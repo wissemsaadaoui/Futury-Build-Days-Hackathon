@@ -800,3 +800,95 @@ def test_llm_price_prediction_in_preview_falls_back(monkeypatch):
     p = _fake_preview([7.9, 15.5], [1.36, 2.52], [0, 1])
     monkeypatch.setattr(llm, "complete", lambda *a, **k: "In its past 2 quarterly results releases, the price will rise 11.7%.")
     assert assistant.summarize_event_preview(p) == templates.preview_summary(p)
+
+
+# ---------- Event preview ----------
+def test_preview_never_uses_events_after_day():
+    from app.analytics import preview as PV
+
+    before = A.build_event_preview(PBB, "quarterly_results", "2026-08-13")  # H1 publié le 13.08 : exclu
+    assert before["as_of"] == "2026-08-13"
+    assert [e["event_id"] for e in before["own_history"]["events"]] == ["evt_016"]
+    assert all(e["date"] < "2026-08-13" for e in before["own_history"]["events"])
+    after = A.build_event_preview(PBB, "quarterly_results", "2026-08-14")
+    assert [e["event_id"] for e in after["own_history"]["events"]] == ["evt_016", "evt_018"]
+    # upcoming = prochain événement du type à partir de `day`
+    assert before["upcoming"]["event_id"] == "evt_018"
+    assert PV._upcoming(PBB, "quarterly_results", pd.Timestamp("2026-12-01")) == {
+        "date": "2026-12-01", "title": None, "event_id": None, "source_url": None}
+
+
+def test_preview_stats_on_synthetic_events(monkeypatch):
+    from app.analytics import preview as PV
+
+    days = ["2026-04-14", "2026-06-16", "2026-07-14", "2026-09-15"]
+    _with_extra_events(monkeypatch, [
+        {"event_id": f"syn_{i}", "isin": PBB, "date": d, "time": "07:00", "type": "m_and_a", "title": "synthetic"}
+        for i, d in enumerate(days)
+    ])
+    p = A.build_event_preview(PBB, "m_and_a")
+    own = p["own_history"]
+    assert own["n"] == 4 and p["confidence"] == "medium"
+    for k in PV.METRICS:
+        vals = [e[k] for e in own["events"] if e[k] is not None]
+        st = own[k]
+        assert st["n"] == len(vals)
+        if vals:
+            assert st["median"] == pytest.approx(np.median(vals), abs=0.06)  # médiane arrondie à 0,1
+            assert st["min"] == pytest.approx(min(vals), abs=0.01) and st["max"] == pytest.approx(max(vals), abs=0.01)
+    # chaque événement = son impact card
+    card = A.build_impact_card("syn_0")
+    e0 = own["events"][0]
+    assert e0["spread_change_pct"] == card["metrics"]["spread_bps"]["change_pct"]
+    assert e0["volume_ratio"] == card["metrics"]["volume"]["ratio"]
+    _no_nan(p)
+
+
+def test_stats_and_confidence_rules():
+    from app.analytics import preview as PV
+
+    assert PV._stats([3.0, 1.0, 2.0, None]) == {"n": 3, "median": 2.0, "min": 1.0, "max": 3.0}
+    assert PV._stats([]) == {"n": 0, "median": None, "min": None, "max": None}
+    assert [PV._confidence(n) for n in (0, 2, 3, 5, 6)] == ["low", "low", "medium", "medium", "high"]
+
+
+def test_preview_with_no_past_event_is_all_null():
+    p = A.build_event_preview(PBB, "dividend")
+    assert p["own_history"]["n"] == 0 and p["own_history"]["events"] == []
+    from app.analytics import preview as PV
+
+    for k in PV.METRICS:
+        assert p["own_history"][k] == {"n": 0, "median": None, "min": None, "max": None}
+    assert p["attention_points"] == [] and p["confidence"] == "low" and p["ai_summary"]
+    assert p["peers"]["n"] == 0 and p["peers"]["peers_note"] == "No peer events of this type in the event calendar"
+    _no_nan(p)
+    with pytest.raises(A.NotFound):
+        A.build_event_preview("XX0000000000", "dividend")
+
+
+def test_attention_points_rules():
+    from app.analytics import preview as PV
+
+    def st(m):
+        return {"n": 1 if m is not None else 0, "median": m, "min": m, "max": m}
+
+    own = {"spread_change_pct": st(30.0), "sessions_to_normal": st(2), "first_15min_ratio": st(6.0)}
+    peers = {"spread_change_pct": st(15.0)}
+    pts = PV._attention_points(own, peers)
+    assert len(pts) == 4 and pts[-1] == "The stock reacts more strongly than its peers."
+    assert PV._attention_points({"spread_change_pct": st(10.0), "sessions_to_normal": st(1), "first_15min_ratio": st(2.0)},
+                                {"spread_change_pct": st(None)}) == []
+    # réel : l'ad hoc du 13.02 -> 136x en 15 min
+    assert "Most of the reaction happens in the first 15 minutes after publication." in A.build_event_preview(PBB, "ad_hoc")["attention_points"]
+
+
+def test_price_abs_change_never_negative_and_no_direction():
+    for t in ("quarterly_results", "annual_results", "ad_hoc", "agm", "voting_rights", "directors_dealings"):
+        p = A.build_event_preview(PBB, t)
+        for e in p["own_history"]["events"]:
+            assert e["price_abs_change_pct"] is None or e["price_abs_change_pct"] >= 0
+            assert "price_change_pct" not in e  # jamais de rendement signé
+        s = p["ai_summary"].lower()
+        assert not any(w in s for w in ("will rise", "will fall", "target", "upside", "downside", "expect the price"))
+    ah = A.build_event_preview(PBB, "ad_hoc")["own_history"]["events"][0]
+    assert ah["price_abs_change_pct"] == abs(A.build_impact_card("evt_002")["metrics"]["price"]["change_pct"])

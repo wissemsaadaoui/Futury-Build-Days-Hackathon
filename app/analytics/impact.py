@@ -112,7 +112,7 @@ def _auction_blocks(isin: str, days: pd.DatetimeIndex, td: pd.Timestamp, card: d
     return True
 
 
-def _build(isin: str, td: pd.Timestamp, event_row: dict | None) -> dict:
+def _build(isin: str, td: pd.Timestamp, event_row: dict | None, with_summary: bool = True) -> dict:
     if not data.known_isin(isin):
         raise NotFound(f"Unknown ISIN {isin}")
     days = data.trading_days()
@@ -169,15 +169,16 @@ def _build(isin: str, td: pd.Timestamp, event_row: dict | None) -> dict:
     from app.assistant import summarize_impact_card  # import tardif (évite les imports circulaires)
 
     card = clean(card)
-    card["ai_summary"] = summarize_impact_card(card)
+    card["ai_summary"] = summarize_impact_card(card) if with_summary else ""
     return card
 
 
-def build_impact_card(event_id: str) -> dict:
+def build_impact_card(event_id: str, *, with_summary: bool = True) -> dict:
+    """with_summary=False : sans résumé (ni appel LLM), pour les calculs internes (event preview)."""
     row = events.get_event(event_id)
     if row is None:
         raise NotFound(f"Unknown event {event_id}")
-    return _build(row["isin"], pd.Timestamp(row["trading_day"]), row)
+    return _build(row["isin"], pd.Timestamp(row["trading_day"]), row, with_summary=with_summary)
 
 
 def build_day_card(isin: str, day) -> dict:
