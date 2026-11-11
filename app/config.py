@@ -83,6 +83,9 @@ ALERT_SWEEP_MIN_TRADES = 3           # aggressor_sweep : au moins 3 exécutions
 ALERT_SWEEP_WINDOW_S = 1.0           # aggressor_sweep : exécutions consécutives du même côté en <= 1 s
 ALERT_NET_FLOW_ADTV_SHARE = 0.20     # net_flow : |net AGENT ou PROP en €| > 20 % de l'ADTV 30 jours (Flows n_days == 1)
 ALERT_AUCTION_SPIKE_RATIO = 2.0      # auction_spike : part de la closing auction > 2 x sa baseline 20 jours
+ALERT_PRICE_MOVE_PCT = 2.5           # price_move : |rendement excédentaire vs médiane des peers| > 2,5 % ...
+ALERT_PRICE_MOVE_VOLUME = 1.5        # ... ET volume_ratio > 1,5
+ALERT_LEVEL_BREAK_VOLUME = 1.5       # level_break : volume_ratio > 1,5 ET large_trade ou aggressor_sweep le même jour
 ALERT_HIGH_FACTOR = 2.0              # severity "high" si la valeur dépasse 2 x le seuil
 
 # LLM (assistant)
