@@ -1,0 +1,9 @@
+event_id,isin,date,time,trading_day,type,title,source_url
+evt_001,DE000A1K0235,2026-03-30,07:00,,annual_results,FY 2025 results,
+evt_002,DE000A1K0235,2026-05-07,07:00,,quarterly_results,Q1 2026 results,
+evt_003,DE000A1K0235,2026-06-03,10:00,,agm,Annual General Meeting,
+evt_004,DE000A1K0235,2026-06-04,07:30,,index_change,MDAX inclusion announced (effective 22 Jun 2026),https://www.suss.com/en/news/corporate-news/2026/shares-of-suss-microtec-se-are-being-included-in-the-mdax-for-the-first-time
+evt_005,DE000A1K0235,2026-06-22,09:00,,index_change,First trading day in the MDAX,
+evt_006,DE000A1K0235,2026-06-19,17:35,2026-06-19,index_change,Index rebalancing day (last closing auction before MDAX entry),
+evt_007,DE000A1K0235,2026-08-06,07:00,,quarterly_results,H1 2026 results,
+evt_008,DE000A1K0235,2026-10-27,09:05,,press_release,Production network optimisation and FY 2026 guidance update,https://live.deutsche-boerse.com/nachrichten/EQS-News-SUSS-optimiert-globales-Produktionsnetzwerk-zur-Unterstuetzung-des-weiteren-Wachstums-und-aktualisiert-Prognose-fuer-das-Geschaeftsjahr-2026-6e9218e2-4568-4095-9214-477e356de8db

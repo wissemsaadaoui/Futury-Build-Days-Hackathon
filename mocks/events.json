@@ -1,0 +1,137 @@
+{
+  "_endpoint": "GET /stocks/{isin}/events",
+  "isin": "DE000A1K0235",
+  "events": [
+    {
+      "event_id": "evt_001",
+      "date": "2026-03-30",
+      "time": "07:00",
+      "trading_day": "2026-03-30",
+      "type": "annual_results",
+      "title": "FY 2025 results",
+      "source_url": null,
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 2.3,
+        "price_change_pct": -2.4,
+        "spread_change_pct": -7.1
+      }
+    },
+    {
+      "event_id": "evt_002",
+      "date": "2026-05-07",
+      "time": "07:00",
+      "trading_day": "2026-05-07",
+      "type": "quarterly_results",
+      "title": "Q1 2026 results",
+      "source_url": null,
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 2.05,
+        "price_change_pct": 3.1,
+        "spread_change_pct": -6.7
+      }
+    },
+    {
+      "event_id": "evt_003",
+      "date": "2026-06-03",
+      "time": "10:00",
+      "trading_day": "2026-06-03",
+      "type": "agm",
+      "title": "Annual General Meeting",
+      "source_url": null,
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 1.1,
+        "price_change_pct": 0.4,
+        "spread_change_pct": 3.1
+      }
+    },
+    {
+      "event_id": "evt_004",
+      "date": "2026-06-04",
+      "time": "07:30",
+      "trading_day": "2026-06-04",
+      "type": "index_change",
+      "title": "MDAX inclusion announced (effective 22 Jun 2026)",
+      "source_url": "https://www.suss.com/en/news/corporate-news/2026/shares-of-suss-microtec-se-are-being-included-in-the-mdax-for-the-first-time",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 3.21,
+        "price_change_pct": 8.15,
+        "spread_change_pct": -3.9
+      }
+    },
+    {
+      "event_id": "evt_006",
+      "date": "2026-06-19",
+      "time": "17:35",
+      "trading_day": "2026-06-19",
+      "type": "index_change",
+      "title": "Index rebalancing day (last closing auction before MDAX entry)",
+      "source_url": null,
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 4.1,
+        "price_change_pct": 1.2,
+        "spread_change_pct": 2.8
+      }
+    },
+    {
+      "event_id": "evt_005",
+      "date": "2026-06-22",
+      "time": "09:00",
+      "trading_day": "2026-06-22",
+      "type": "index_change",
+      "title": "First trading day in the MDAX",
+      "source_url": null,
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 1.6,
+        "price_change_pct": 0.9,
+        "spread_change_pct": 8.9
+      }
+    },
+    {
+      "event_id": "evt_007",
+      "date": "2026-08-06",
+      "time": "07:00",
+      "trading_day": "2026-08-06",
+      "type": "quarterly_results",
+      "title": "H1 2026 results",
+      "source_url": null,
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 2.4,
+        "price_change_pct": -4.2,
+        "spread_change_pct": 13.2
+      }
+    },
+    {
+      "event_id": "evt_008",
+      "date": "2026-10-27",
+      "time": "09:05",
+      "trading_day": "2026-10-27",
+      "type": "press_release",
+      "title": "Production network optimisation and FY 2026 guidance update",
+      "source_url": "https://live.deutsche-boerse.com/nachrichten/EQS-News-SUSS-optimiert-globales-Produktionsnetzwerk-zur-Unterstuetzung-des-weiteren-Wachstums-und-aktualisiert-Prognose-fuer-das-Geschaeftsjahr-2026-6e9218e2-4568-4095-9214-477e356de8db",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 3.8,
+        "price_change_pct": -9.6,
+        "spread_change_pct": -13.0
+      }
+    }
+  ],
+  "event_types": [
+    "quarterly_results",
+    "annual_results",
+    "ad_hoc",
+    "dividend",
+    "press_release",
+    "m_and_a",
+    "agm",
+    "index_change"
+  ],
+  "_note": "dates/heures réelles (heures 07:00 à vérifier), spread_change_pct réel ; volume_ratio et price_change_pct = mock"
+}

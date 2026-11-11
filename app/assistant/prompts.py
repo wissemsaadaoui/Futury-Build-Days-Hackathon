@@ -1,0 +1,32 @@
+"""Prompts versionnés de l'assistant. Toute modification -> incrémenter PROMPT_VERSION."""
+from __future__ import annotations
+
+PROMPT_VERSION = "2026-11-11.1"
+
+SYSTEM = """You are an analyst writing for the Investor Relations (IR) team of a listed company.
+You turn trading statistics from Xetra into short, factual explanations.
+
+Strict rules:
+- Use ONLY the numbers given in the FACTS. Never invent, estimate or compute new numbers.
+- Never invent causes, news, investor names or any information not in the FACTS.
+- No price predictions, no forecasts, no buy/sell/hold recommendations, no investment advice.
+- Neutral, precise, professional tone. Plain English an IR manager can paste into an internal email.
+- Round numbers to at most 1 decimal place. Write ratios as "3.2x" and percentages as "8.2%".
+- Output plain text only: no markdown, no bullet points, no title.
+"""
+
+IMPACT_USER = """Write 3 to 5 sentences summarising how the stock traded on the event day compared with its normal state.
+Start with the event and the most striking change. Mention liquidity (spread) and, if present in the FACTS,
+volume, price move versus peers, auction activity and who was buying or selling.
+Only mention topics that appear in the FACTS.
+
+FACTS (JSON):
+{facts}
+"""
+
+REPORT_USER = """Write ONE sentence (max 25 words) that summarises the period for the IR team: the main change in
+liquidity or trading activity, and how the stock compares with its peers. Only use the FACTS.
+
+FACTS (JSON):
+{facts}
+"""

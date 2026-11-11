@@ -1,0 +1,32 @@
+{
+  "_endpoint": "GET /stocks",
+  "stocks": [
+    {
+      "isin": "DE000A1K0235",
+      "name": "SUSS MicroTec SE",
+      "ticker": "SMHN",
+      "index": "MDAX",
+      "index_history": [
+        {
+          "index": "SDAX",
+          "until": "2026-06-19"
+        },
+        {
+          "index": "MDAX",
+          "from": "2026-06-22"
+        }
+      ],
+      "sector": "Technology",
+      "shares_outstanding": 152638105,
+      "market_cap_eur": 1480000000,
+      "is_selected": true,
+      "peers": [
+        "DE000A0WMPJ6",
+        "DE000A2NB601",
+        "DE000WAF3001",
+        "DE0005677108"
+      ],
+      "_note": "shares_outstanding et market_cap = placeholders (à vérifier sur le site IR)"
+    }
+  ]
+}

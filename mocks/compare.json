@@ -1,0 +1,58 @@
+{
+  "_endpoint": "GET /compare?type=quarterly_results&index=MDAX&from=2025-11-01&to=2026-10-31",
+  "filter": {
+    "type": "quarterly_results",
+    "index": "MDAX",
+    "from": "2025-11-01",
+    "to": "2026-10-31"
+  },
+  "summary": {
+    "n_events": 4,
+    "median_volume_ratio": 2.35,
+    "median_abs_price_change_pct": 4.1,
+    "median_spread_change_pct": 22.0
+  },
+  "events": [
+    {
+      "event_id": "evt_002",
+      "isin": "DE000A1K0235",
+      "name": "SUSS MicroTec SE",
+      "date": "2026-05-07",
+      "volume_ratio": 3.21,
+      "price_change_pct": 8.15,
+      "spread_change_pct": -6.7,
+      "auction_share_change_pts": 0.09
+    },
+    {
+      "event_id": "evt_101",
+      "isin": "DE000MOCK0004",
+      "name": "Mock Peer One AG",
+      "date": "2026-03-12",
+      "volume_ratio": 2.1,
+      "price_change_pct": -3.2,
+      "spread_change_pct": 18.0,
+      "auction_share_change_pts": 0.04
+    },
+    {
+      "event_id": "evt_102",
+      "isin": "DE000MOCK0005",
+      "name": "Mock Peer Two SE",
+      "date": "2026-04-29",
+      "volume_ratio": 2.6,
+      "price_change_pct": 5.0,
+      "spread_change_pct": 26.0,
+      "auction_share_change_pts": 0.06
+    },
+    {
+      "event_id": "evt_103",
+      "isin": "DE000MOCK0004",
+      "name": "Mock Peer One AG",
+      "date": "2026-08-06",
+      "volume_ratio": 1.7,
+      "price_change_pct": -1.1,
+      "spread_change_pct": 9.0,
+      "auction_share_change_pts": 0.02
+    }
+  ],
+  "_note": "SUSS evt_002 : spread réel ; autres événements (Mock Peer) et médianes = mock"
+}
