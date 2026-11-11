@@ -1,0 +1,307 @@
+{
+  "_endpoint": "GET /stocks/{isin}/dashboard?from=2026-06-01&to=2026-06-12",
+  "stock": {
+    "isin": "DE000A1K0235",
+    "name": "SUSS MicroTec SE",
+    "index": "SDAX",
+    "sector": "Technology"
+  },
+  "period": {
+    "from": "2026-06-01",
+    "to": "2026-06-12"
+  },
+  "kpis": {
+    "avg_daily_volume": 412000,
+    "avg_daily_turnover_eur": 18900000,
+    "avg_spread_bps": 46.3,
+    "avg_auction_share": 0.21,
+    "price_change_pct": 3.6,
+    "anomaly_days": 2,
+    "vs_peers": {
+      "volume_ratio": 1.12,
+      "spread_diff_bps": 11.7,
+      "auction_share_diff": 0.02
+    }
+  },
+  "series": [
+    {
+      "date": "2026-06-01",
+      "open": 9.02,
+      "high": 9.16,
+      "low": 8.98,
+      "close": 9.12,
+      "volume": 380000,
+      "turnover_eur": 17300000,
+      "volume_ratio": 0.95,
+      "spread_bps": 41.5,
+      "auction_share": 0.2,
+      "ema_20": 9.0,
+      "ema_50": 8.82,
+      "macd": 0.062,
+      "macd_signal": 0.05,
+      "macd_hist": 0.012,
+      "anomaly": false
+    },
+    {
+      "date": "2026-06-02",
+      "open": 9.12,
+      "high": 9.24,
+      "low": 9.08,
+      "close": 9.2,
+      "volume": 401000,
+      "turnover_eur": 18400000,
+      "volume_ratio": 1.0,
+      "spread_bps": 47.6,
+      "auction_share": 0.21,
+      "ema_20": 9.02,
+      "ema_50": 8.84,
+      "macd": 0.072,
+      "macd_signal": 0.054,
+      "macd_hist": 0.018,
+      "anomaly": false
+    },
+    {
+      "date": "2026-06-03",
+      "open": 9.2,
+      "high": 9.22,
+      "low": 9.04,
+      "close": 9.08,
+      "volume": 395000,
+      "turnover_eur": 18000000,
+      "volume_ratio": 0.98,
+      "spread_bps": 41.0,
+      "auction_share": 0.22,
+      "ema_20": 9.03,
+      "ema_50": 8.85,
+      "macd": 0.068,
+      "macd_signal": 0.058,
+      "macd_hist": 0.01,
+      "anomaly": false
+    },
+    {
+      "date": "2026-06-04",
+      "open": 9.08,
+      "high": 9.96,
+      "low": 9.06,
+      "close": 9.82,
+      "volume": 1290000,
+      "turnover_eur": 62100000,
+      "volume_ratio": 3.21,
+      "spread_bps": 38.2,
+      "auction_share": 0.29,
+      "ema_20": 9.1,
+      "ema_50": 8.88,
+      "macd": 0.132,
+      "macd_signal": 0.072,
+      "macd_hist": 0.06,
+      "anomaly": true
+    },
+    {
+      "date": "2026-06-05",
+      "open": 9.82,
+      "high": 9.9,
+      "low": 9.64,
+      "close": 9.72,
+      "volume": 820000,
+      "turnover_eur": 40000000,
+      "volume_ratio": 1.98,
+      "spread_bps": 52.0,
+      "auction_share": 0.24,
+      "ema_20": 9.16,
+      "ema_50": 8.92,
+      "macd": 0.172,
+      "macd_signal": 0.092,
+      "macd_hist": 0.08,
+      "anomaly": true
+    },
+    {
+      "date": "2026-06-08",
+      "open": 9.72,
+      "high": 9.78,
+      "low": 9.58,
+      "close": 9.64,
+      "volume": 520000,
+      "turnover_eur": 25100000,
+      "volume_ratio": 1.24,
+      "spread_bps": 43.3,
+      "auction_share": 0.21,
+      "ema_20": 9.21,
+      "ema_50": 8.94,
+      "macd": 0.196,
+      "macd_signal": 0.114,
+      "macd_hist": 0.082,
+      "anomaly": false
+    },
+    {
+      "date": "2026-06-09",
+      "open": 9.64,
+      "high": 9.74,
+      "low": 9.56,
+      "close": 9.68,
+      "volume": 450000,
+      "turnover_eur": 21700000,
+      "volume_ratio": 1.06,
+      "spread_bps": 44.7,
+      "auction_share": 0.2,
+      "ema_20": 9.25,
+      "ema_50": 8.97,
+      "macd": 0.214,
+      "macd_signal": 0.134,
+      "macd_hist": 0.08,
+      "anomaly": false
+    },
+    {
+      "date": "2026-06-10",
+      "open": 9.68,
+      "high": 9.72,
+      "low": 9.52,
+      "close": 9.58,
+      "volume": 430000,
+      "turnover_eur": 20600000,
+      "volume_ratio": 1.01,
+      "spread_bps": 51.3,
+      "auction_share": 0.19,
+      "ema_20": 9.28,
+      "ema_50": 9.0,
+      "macd": 0.216,
+      "macd_signal": 0.15,
+      "macd_hist": 0.066,
+      "anomaly": false
+    },
+    {
+      "date": "2026-06-11",
+      "open": 9.58,
+      "high": 9.66,
+      "low": 9.5,
+      "close": 9.56,
+      "volume": 410000,
+      "turnover_eur": 19600000,
+      "volume_ratio": 0.97,
+      "spread_bps": 53.0,
+      "auction_share": 0.2,
+      "ema_20": 9.31,
+      "ema_50": 9.02,
+      "macd": 0.212,
+      "macd_signal": 0.162,
+      "macd_hist": 0.05,
+      "anomaly": false
+    },
+    {
+      "date": "2026-06-12",
+      "open": 9.56,
+      "high": 9.58,
+      "low": 9.38,
+      "close": 9.45,
+      "volume": 470000,
+      "turnover_eur": 22200000,
+      "volume_ratio": 1.1,
+      "spread_bps": 50.0,
+      "auction_share": 0.25,
+      "ema_20": 9.32,
+      "ema_50": 9.04,
+      "macd": 0.198,
+      "macd_signal": 0.17,
+      "macd_hist": 0.028,
+      "anomaly": false
+    }
+  ],
+  "peers_series": [
+    {
+      "date": "2026-06-01",
+      "volume_ratio": 0.97,
+      "spread_bps": 32.4,
+      "auction_share": 0.19
+    },
+    {
+      "date": "2026-06-02",
+      "volume_ratio": 1.02,
+      "spread_bps": 31.8,
+      "auction_share": 0.19
+    },
+    {
+      "date": "2026-06-03",
+      "volume_ratio": 0.99,
+      "spread_bps": 34.1,
+      "auction_share": 0.2
+    },
+    {
+      "date": "2026-06-04",
+      "volume_ratio": 1.05,
+      "spread_bps": 34.7,
+      "auction_share": 0.19
+    },
+    {
+      "date": "2026-06-05",
+      "volume_ratio": 1.01,
+      "spread_bps": 32.8,
+      "auction_share": 0.19
+    },
+    {
+      "date": "2026-06-08",
+      "volume_ratio": 0.96,
+      "spread_bps": 34.1,
+      "auction_share": 0.18
+    },
+    {
+      "date": "2026-06-09",
+      "volume_ratio": 1.0,
+      "spread_bps": 34.9,
+      "auction_share": 0.19
+    },
+    {
+      "date": "2026-06-10",
+      "volume_ratio": 0.98,
+      "spread_bps": 36.8,
+      "auction_share": 0.19
+    },
+    {
+      "date": "2026-06-11",
+      "volume_ratio": 1.03,
+      "spread_bps": 36.9,
+      "auction_share": 0.19
+    },
+    {
+      "date": "2026-06-12",
+      "volume_ratio": 1.08,
+      "spread_bps": 37.5,
+      "auction_share": 0.24
+    }
+  ],
+  "anomalies": [
+    {
+      "date": "2026-06-04",
+      "type": "volume_spike",
+      "severity": "high",
+      "value": 3.21,
+      "description": "Volume 3.2x above 20-day baseline – MDAX inclusion announcement",
+      "linked_event_id": "evt_004"
+    },
+    {
+      "date": "2026-06-05",
+      "type": "volume_spike",
+      "severity": "medium",
+      "value": 1.98,
+      "description": "Volume 2.0x above 20-day baseline (follow-through day)",
+      "linked_event_id": "evt_004"
+    }
+  ],
+  "support_resistance": {
+    "support": [
+      {
+        "price": 9.04,
+        "touches": 3
+      },
+      {
+        "price": 8.76,
+        "touches": 2
+      }
+    ],
+    "resistance": [
+      {
+        "price": 9.94,
+        "touches": 2
+      }
+    ]
+  },
+  "_note": "spread_bps réel (SUSS et moyenne des 4 peers) ; prix, volume, auctions, indicateurs = mock"
+}

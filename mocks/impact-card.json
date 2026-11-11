@@ -1,0 +1,197 @@
+{
+  "_endpoint": "GET /events/{event_id}/impact-card   (aussi: GET /days/{isin}/{date}/impact-card, avec \"event\": null)",
+  "card_id": "card_evt_004",
+  "stock": {
+    "isin": "DE000A1K0235",
+    "name": "SUSS MicroTec SE",
+    "index": "SDAX"
+  },
+  "event": {
+    "event_id": "evt_004",
+    "type": "index_change",
+    "title": "MDAX inclusion announced (effective 22 Jun 2026)",
+    "published_at": "2026-06-04T07:30:00+02:00",
+    "trading_day": "2026-06-04",
+    "source_url": "https://www.suss.com/en/news/corporate-news/2026/shares-of-suss-microtec-se-are-being-included-in-the-mdax-for-the-first-time"
+  },
+  "baseline": {
+    "method": "20-day mean before event",
+    "from": "2026-05-07",
+    "to": "2026-06-03"
+  },
+  "metrics": {
+    "volume": {
+      "event": 1290000,
+      "baseline": 402000,
+      "ratio": 3.21,
+      "z_score": 4.8
+    },
+    "turnover_eur": {
+      "event": 62100000,
+      "baseline": 18300000,
+      "ratio": 3.39
+    },
+    "price": {
+      "prev_close": 9.08,
+      "open": 9.08,
+      "close": 9.82,
+      "change_pct": 8.15,
+      "intraday_range_pct": 9.93
+    },
+    "spread_bps": {
+      "event": 38.2,
+      "baseline": 39.7,
+      "change_pct": -3.9
+    },
+    "auction_share": {
+      "event": 0.29,
+      "baseline": 0.2,
+      "change_pts": 0.09
+    },
+    "opening_auction": {
+      "volume": 96000,
+      "baseline": 18000,
+      "ratio": 5.33
+    },
+    "closing_auction": {
+      "volume": 278000,
+      "baseline": 62000,
+      "ratio": 4.48
+    }
+  },
+  "flows": {
+    "by_participant": [
+      {
+        "type": "AGENT",
+        "buy": 410000,
+        "sell": 250000,
+        "net": 160000
+      },
+      {
+        "type": "PROP",
+        "buy": 220000,
+        "sell": 260000,
+        "net": -40000
+      },
+      {
+        "type": "MARKET_MAKER",
+        "buy": 140000,
+        "sell": 120000,
+        "net": 20000
+      }
+    ],
+    "by_mode": [
+      {
+        "mode": "AGGRESSIVE",
+        "share": 0.46
+      },
+      {
+        "mode": "PASSIVE",
+        "share": 0.25
+      },
+      {
+        "mode": "AUCTION",
+        "share": 0.29
+      }
+    ]
+  },
+  "window": [
+    {
+      "offset": -5,
+      "date": "2026-05-28",
+      "close": 8.94,
+      "volume_ratio": 0.92,
+      "spread_bps": 41.6
+    },
+    {
+      "offset": -4,
+      "date": "2026-05-29",
+      "close": 8.98,
+      "volume_ratio": 1.04,
+      "spread_bps": 40.0
+    },
+    {
+      "offset": -3,
+      "date": "2026-06-01",
+      "close": 9.12,
+      "volume_ratio": 0.95,
+      "spread_bps": 41.5
+    },
+    {
+      "offset": -2,
+      "date": "2026-06-02",
+      "close": 9.2,
+      "volume_ratio": 1.0,
+      "spread_bps": 47.6
+    },
+    {
+      "offset": -1,
+      "date": "2026-06-03",
+      "close": 9.08,
+      "volume_ratio": 0.98,
+      "spread_bps": 41.0
+    },
+    {
+      "offset": 0,
+      "date": "2026-06-04",
+      "close": 9.82,
+      "volume_ratio": 3.21,
+      "spread_bps": 38.2
+    },
+    {
+      "offset": 1,
+      "date": "2026-06-05",
+      "close": 9.72,
+      "volume_ratio": 1.98,
+      "spread_bps": 52.0
+    },
+    {
+      "offset": 2,
+      "date": "2026-06-08",
+      "close": 9.64,
+      "volume_ratio": 1.24,
+      "spread_bps": 43.3
+    },
+    {
+      "offset": 3,
+      "date": "2026-06-09",
+      "close": 9.68,
+      "volume_ratio": 1.06,
+      "spread_bps": 44.7
+    },
+    {
+      "offset": 4,
+      "date": "2026-06-10",
+      "close": 9.58,
+      "volume_ratio": 1.01,
+      "spread_bps": 51.3
+    },
+    {
+      "offset": 5,
+      "date": "2026-06-11",
+      "close": 9.56,
+      "volume_ratio": 0.97,
+      "spread_bps": 53.0
+    }
+  ],
+  "vs_peers": {
+    "peer_avg_volume_ratio": 1.05,
+    "peer_avg_price_change_pct": 0.4,
+    "excess_return_pct": 7.75
+  },
+  "technical_context": {
+    "trend_before": "above_ema50",
+    "macd_before": "bullish",
+    "macd_after": "bullish",
+    "broke_level": {
+      "type": "resistance",
+      "price": 9.5
+    }
+  },
+  "ai_summary": "On the day SUSS MicroTec SE's MDAX inclusion was announced, the share traded 3.2x its usual volume and closed 8.2% higher, outperforming its peer group by 7.8 points. The round-trip cost for a 25,000 EUR trade was 38.2 bps versus a 20-day average of 39.7 bps (-3.9%). Closing-auction volume was 4.5x normal, and institutional agents were net buyers.",
+  "generated_at": "2026-11-11T15:40:00+01:00",
+  "export": {
+    "pdf_url": "/events/evt_004/impact-card.pdf"
+  },
+  "_note": "spread_bps réel ; volume, prix, flows, auctions, technical_context = mock"
+}

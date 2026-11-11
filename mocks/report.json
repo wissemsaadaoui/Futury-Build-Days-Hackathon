@@ -1,0 +1,102 @@
+{
+  "_endpoint": "GET /stocks/{isin}/report?from=2026-01-01&to=2026-10-31   (IR snapshot)",
+  "stock": {
+    "isin": "DE000A1K0235",
+    "name": "SUSS MicroTec SE",
+    "index": "MDAX",
+    "sector": "Technology"
+  },
+  "period": {
+    "from": "2026-01-01",
+    "to": "2026-10-31"
+  },
+  "headline": "SUSS MicroTec moved from SDAX to MDAX on 22 June 2026; the report compares its trading profile with its peers.",
+  "sections": [
+    {
+      "title": "Trading profile",
+      "kpis": [
+        {
+          "label": "Avg daily volume",
+          "value": 412000,
+          "unit": "shares",
+          "trend": "up",
+          "change_pct": 9.5
+        },
+        {
+          "label": "Avg daily turnover",
+          "value": 18900000,
+          "unit": "EUR",
+          "trend": "up",
+          "change_pct": 12.1
+        },
+        {
+          "label": "Avg spread",
+          "value": 8.4,
+          "unit": "bps",
+          "trend": "down",
+          "change_pct": -6.0
+        },
+        {
+          "label": "Auction share",
+          "value": 0.21,
+          "unit": "ratio",
+          "trend": "flat",
+          "change_pct": 0.5
+        }
+      ],
+      "text": "Average daily volume rose by 9.5% versus the previous period while spreads tightened by 6%."
+    },
+    {
+      "title": "Peer comparison",
+      "kpis": [
+        {
+          "label": "Spread vs peers",
+          "value": 8.4,
+          "unit": "bps",
+          "trend": "worse"
+        },
+        {
+          "label": "Volume vs peers",
+          "value": 1.12,
+          "unit": "ratio",
+          "trend": "better"
+        }
+      ],
+      "text": "The share trades with wider spreads than its peer group (+8.4 bps at 25,000 EUR) and slightly higher relative volume."
+    },
+    {
+      "title": "Notable events",
+      "items": [
+        {
+          "event_id": "evt_004",
+          "date": "2026-06-04",
+          "title": "MDAX inclusion announced (effective 22 Jun 2026)",
+          "volume_ratio": 3.21,
+          "price_change_pct": 8.15,
+          "spread_change_pct": -3.9
+        },
+        {
+          "event_id": "evt_006",
+          "date": "2026-06-19",
+          "title": "Index rebalancing day (last closing auction before MDAX entry)",
+          "volume_ratio": 4.1,
+          "price_change_pct": 1.2,
+          "spread_change_pct": 2.8
+        },
+        {
+          "event_id": "evt_008",
+          "date": "2026-10-27",
+          "title": "Production network optimisation and FY 2026 guidance update",
+          "volume_ratio": 3.8,
+          "price_change_pct": -9.6,
+          "spread_change_pct": -13.0
+        }
+      ]
+    }
+  ],
+  "disclaimer": "Descriptive analysis of historical Xetra trading data. Not investment advice.",
+  "generated_at": "2026-11-11T15:40:00+01:00",
+  "export": {
+    "pdf_url": "/stocks/DE000A1K0235/report.pdf"
+  }
+}
