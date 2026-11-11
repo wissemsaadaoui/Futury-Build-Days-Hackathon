@@ -5,7 +5,10 @@ from typing import Literal, Optional
 
 from app.schemas.common import DataStatusMixin, ISODate, OptNumber, Period, Schema, StockRef
 
-AnomalyType = Literal["volume_spike", "spread_widening", "price_move", "auction_spike"]
+# v0.2 (modifié par Alfred, à valider par le backend) : alertes sur les exécutions, voir mocks/API.md §5.2
+AnomalyType = Literal[
+    "volume_spike", "spread_widening", "price_move", "auction_spike", "large_trade", "aggressor_sweep", "net_flow"
+]
 Severity = Literal["low", "medium", "high"]
 
 
@@ -35,6 +38,8 @@ class DailyPoint(Schema):
     turnover_eur: OptNumber
     volume_ratio: OptNumber  # volume / baseline 20j
     spread_bps: OptNumber
+    spread_eur: OptNumber = None  # v0.2 : coût aller-retour en € pour 25 000 €
+    spread_ticks: OptNumber = None  # v0.2 : coût par action en ticks Xetra (null sans trades)
     auction_share: OptNumber  # 0–1, null si pas de Flows
     ema_20: OptNumber
     ema_50: OptNumber
@@ -58,6 +63,10 @@ class Anomaly(Schema):
     value: OptNumber
     description: str
     linked_event_id: Optional[str]
+    # v0.2 : champs optionnels (large_trade, aggressor_sweep ; side et notional_eur aussi pour net_flow)
+    time: Optional[str] = None  # "HH:MM:SS"
+    side: Optional[Literal["BUY", "SELL"]] = None
+    notional_eur: OptNumber = None
 
 
 class PriceLevel(Schema):

@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from app.analytics import data, events, indicators, metrics
+from app.analytics import alerts, data, events, indicators, metrics, pricing
 from app.analytics._util import clean, iso, load_mock, pct, r0, r1, r2, ratio
 
 
@@ -39,6 +39,13 @@ def _anomaly_rows(isin: str, spread: pd.Series, volume: pd.Series | None, start,
             rows.append(
                 {"date": iso(d), "type": r["type"], "severity": r["severity"], "value": value, "description": desc, "linked_event_id": ev_day.get(pd.Timestamp(d))}
             )
+    if volume is not None:  # alertes sur les exécutions (trades, Flows, enchères) : seulement avec l'OHLC (ADTV)
+        for a in alerts.alert_rows(isin, pd.Timestamp(start), pd.Timestamp(end), ev_day):
+            a["date"] = iso(a["date"])
+            a["value"] = r2(a["value"])
+            if "notional_eur" in a:
+                a["notional_eur"] = r0(a["notional_eur"])
+            rows.append(a)
     return sorted(rows, key=lambda x: (x["date"], x["type"]))
 
 
@@ -75,6 +82,7 @@ def build_dashboard(isin: str, start, end) -> dict:
         share = data.auction_share_series(isin)
         if data.has_flows():
             status["flows"] = "real"
+        spf = pricing.spread_frame(isin)
         series = []
         for d in rng:
             if d not in px.index:
@@ -87,6 +95,8 @@ def build_dashboard(isin: str, start, end) -> dict:
                     "volume": r0(row["volume"]), "turnover_eur": r0(row["turnover_eur"]),
                     "volume_ratio": r2(ratio(row["volume"], vmean.get(d))),
                     "spread_bps": r1(sp.get(d, np.nan)),
+                    "spread_eur": r1(spf["spread_eur"].get(d, np.nan)),        # coût aller-retour pour 25 000 € (€)
+                    "spread_ticks": r1(spf["spread_ticks"].get(d, np.nan)),    # coût par action en ticks (null sans trades)
                     "auction_share": r2(share.get(d, np.nan)) if not share.empty else None,
                     "ema_20": r2(ind.at[d, "ema_20"]), "ema_50": r2(ind.at[d, "ema_50"]),
                     "macd": round(float(ind.at[d, "macd"]), 3), "macd_signal": round(float(ind.at[d, "macd_signal"]), 3),

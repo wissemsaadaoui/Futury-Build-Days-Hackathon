@@ -120,6 +120,36 @@ class TechnicalContext(Schema):
     broke_level: Optional[BrokeLevel]
 
 
+# v0.2 (modifié par Alfred, à valider par le backend) : bloc intraday, voir mocks/API.md §5.1
+class IntradayMinute(Schema):
+    offset_min: int
+    time: str  # "HH:MM"
+    vwap: OptNumber
+    volume: OptNumber
+    cum_volume: OptNumber
+    buy_aggressor_share: OptNumber
+
+
+class IntradayFirstWindow(Schema):
+    volume: OptNumber
+    baseline: OptNumber
+    ratio: OptNumber
+
+
+class IntradayPriceChange(Schema):
+    after_5min: OptNumber
+    after_30min: OptNumber
+    after_60min: OptNumber
+
+
+class IntradayBlock(Schema):
+    reference_time: ISODateTime
+    during_session: bool
+    minutes: list[IntradayMinute]
+    first_15min: IntradayFirstWindow
+    price_change_pct: IntradayPriceChange
+
+
 class ImpactCardResponse(DataStatusMixin, Schema):
     card_id: str
     stock: StockRef
@@ -130,6 +160,7 @@ class ImpactCardResponse(DataStatusMixin, Schema):
     window: list[WindowPoint]
     vs_peers: ImpactVsPeers
     technical_context: TechnicalContext
+    intraday: Optional[IntradayBlock] = None  # v0.2 : null si pas de trades ce jour-là
     ai_summary: str
     generated_at: ISODateTime
     export: ExportLinks

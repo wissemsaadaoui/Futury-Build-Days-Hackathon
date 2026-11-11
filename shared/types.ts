@@ -81,6 +81,8 @@ export interface DailyPoint {
   turnover_eur: number;
   volume_ratio: number;          // volume / baseline 20j
   spread_bps: number;
+  spread_eur: number | null;     // 🆕 v0.2 : coût aller-retour en € pour 25 000 € échangés (= spread_bps × 2,5)
+  spread_ticks: number | null;   // 🆕 v0.2 : coût par action en ticks Xetra (tick déduit des trades), null sans trades
   auction_share: number | null;  // 0–1, null si pas de Flows
   ema_20: number;
   ema_50: number;
@@ -97,7 +99,14 @@ export interface PeerPoint {
   auction_share: number | null;
 }
 
-export type AnomalyType = "volume_spike" | "spread_widening" | "price_move" | "auction_spike";
+export type AnomalyType =
+  | "volume_spike"
+  | "spread_widening"
+  | "price_move"
+  | "auction_spike"     // closing auction > 2× sa part moyenne 20 j
+  | "large_trade"       // 🆕 v0.2 : exécution unique ≥ 500 k€ ou ≥ 5 % de l'ADTV 30 j
+  | "aggressor_sweep"   // 🆕 v0.2 : exécutions consécutives du même côté en ≤ 1 s, somme ≥ mêmes seuils
+  | "net_flow";         // 🆕 v0.2 : |flux net AGENT ou PROP| > 20 % de l'ADTV 30 j
 export type Severity = "low" | "medium" | "high";
 
 export interface Anomaly {
@@ -105,8 +114,11 @@ export interface Anomaly {
   type: AnomalyType;
   severity: Severity;
   value: number;
-  description: string;
+  description: string;            // anglais ; jamais « an investor » : « a single execution », « aggressive buy orders »
   linked_event_id: string | null;
+  time?: string;                  // 🆕 v0.2 : "HH:MM:SS" (large_trade, aggressor_sweep)
+  side?: "BUY" | "SELL";          // 🆕 v0.2 : côté agresseur (trades) ou sens du flux net (net_flow)
+  notional_eur?: number;          // 🆕 v0.2 : montant de l'exécution / de la rafale / du flux net
 }
 
 export interface PriceLevel {
@@ -211,9 +223,28 @@ export interface ImpactCardResponse {
     macd_after: "bullish" | "bearish";
     broke_level: { type: "support" | "resistance"; price: number } | null;
   };
+  intraday: IntradayBlock | null;  // 🆕 v0.2 : réaction minute par minute (null si pas de trades ce jour-là)
   ai_summary: string;
   generated_at: ISODateTime;
   export: ExportLinks;
+}
+
+// 🆕 v0.2 – bloc intraday de l'impact card (mocks/API.md §5.1)
+export interface IntradayMinute {
+  offset_min: number;                  // -30 … +120 (0 = minute de référence)
+  time: string;                        // "HH:MM", heure de Francfort
+  vwap: number | null;                 // null si aucune exécution dans la minute
+  volume: number;                      // actions (0 si aucune exécution)
+  cum_volume: number;                  // cumul depuis offset -30
+  buy_aggressor_share: number | null;  // 0–1, part du volume à l'initiative d'un acheteur
+}
+
+export interface IntradayBlock {
+  reference_time: ISODateTime;  // heure de publication, ou ouverture du trading_day si hors séance
+  during_session: boolean;      // true si l'annonce tombe pendant le continu (09:00–17:30)
+  minutes: IntradayMinute[];
+  first_15min: { volume: number; baseline: number | null; ratio: number | null };  // vs même créneau, 20 séances
+  price_change_pct: { after_5min: number | null; after_30min: number | null; after_60min: number | null };
 }
 
 // ---------- GET /compare ----------

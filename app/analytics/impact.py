@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 
 from app import config
-from app.analytics import data, events, indicators, metrics
-from app.analytics._util import clean, iso, load_mock, now_iso, pct, r0, r1, r2, ratio
+from app.analytics import data, events, indicators, intraday, metrics
+from app.analytics._util import clean, iso, load_mock, nanmedian, now_iso, pct, r0, r1, r2, ratio
 
 
 class NotFound(KeyError):
@@ -65,8 +65,8 @@ def _ohlc_blocks(isin: str, days: pd.DatetimeIndex, td: pd.Timestamp, card: dict
         if j > 0:
             peer_moves.append(pct(ppx["close"].iloc[j], ppx["close"].iloc[j - 1]))
         peer_ratios.append(ratio(ppx.at[td, "volume"], pm))
-    peer_ratio = np.nanmedian([x for x in peer_ratios if x is not None]) if peer_ratios else np.nan
-    peer_move = np.nanmedian([x for x in peer_moves if x is not None]) if peer_moves else np.nan
+    peer_ratio = nanmedian(peer_ratios)
+    peer_move = nanmedian(peer_moves)
     own = pct(c, prev_close)
     card["vs_peers"] = {
         "peer_avg_volume_ratio": r2(peer_ratio),
@@ -95,7 +95,20 @@ def _flows_blocks(isin: str, days: pd.DatetimeIndex, td: pd.Timestamp, card: dic
     tot = day["volume"].sum()
     by_m = [{"mode": mo, "share": r2(day.loc[day["mode"] == mo, "volume"].sum() / tot if tot else np.nan)} for mo in ("AGGRESSIVE", "PASSIVE", "AUCTION")]
     card["flows"] = {"by_participant": by_p, "by_mode": by_m}
-    # opening/closing auction : seulement si les Flows les distinguent (à vérifier dans NOTES.md)
+    return True
+
+
+def _auction_blocks(isin: str, days: pd.DatetimeIndex, td: pd.Timestamp, card: dict) -> bool:
+    """Opening / closing auction depuis les trades (les Flows regroupent toutes les enchères dans AUCTION).
+    volume = actions exécutées dans l'enchère ce jour-là, baseline = moyenne des 20 séances précédentes."""
+    if not data.has_trades(isin):
+        return False
+    for kind, key in (("opening", "opening_auction"), ("closing", "closing_auction")):
+        s = data.auction_volume_series(isin, kind)
+        if td not in s.index:
+            return False
+        mean, _ = metrics.baseline_at(s, days, td)
+        card["metrics"][key] = {"volume": r0(s.at[td]), "baseline": r0(mean), "ratio": r2(ratio(s.at[td], mean))}
     return True
 
 
@@ -136,6 +149,10 @@ def _build(isin: str, td: pd.Timestamp, event_row: dict | None) -> dict:
         status["ohlc"] = "real"
     if data.has_flows() and _flows_blocks(isin, days, td, card):
         status["flows"] = "real"
+    if _auction_blocks(isin, days, td, card):
+        status["opening_closing_auction"] = "real"
+    card["intraday"] = intraday.intraday_block(isin, td, card["event"]["published_at"] if card["event"] else None)
+    status["intraday"] = "real" if card["intraday"] else "missing"
 
     card["_data_status"] = status
     card["generated_at"] = now_iso()
