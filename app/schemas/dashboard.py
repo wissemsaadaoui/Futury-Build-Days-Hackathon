@@ -5,9 +5,16 @@ from typing import Literal, Optional
 
 from app.schemas.common import DataStatusMixin, ISODate, OptNumber, Period, Schema, StockRef
 
-# v0.2 (modifié par Alfred, à valider par le backend) : alertes sur les exécutions, voir mocks/API.md §5.2
+# v0.3 : alertes sur les exécutions (§5.2) + level_break, voir mocks/API.md
 AnomalyType = Literal[
-    "volume_spike", "spread_widening", "price_move", "auction_spike", "large_trade", "aggressor_sweep", "net_flow"
+    "volume_spike",
+    "spread_widening",
+    "price_move",
+    "auction_spike",
+    "large_trade",
+    "aggressor_sweep",
+    "net_flow",
+    "level_break",
 ]
 Severity = Literal["low", "medium", "high"]
 
@@ -63,10 +70,13 @@ class Anomaly(Schema):
     value: OptNumber
     description: str
     linked_event_id: Optional[str]
-    # v0.2 : champs optionnels (large_trade, aggressor_sweep ; side et notional_eur aussi pour net_flow)
+    detail_url: str  # /events/{id}/impact-card si linked_event_id, sinon /days/{isin}/{date}/impact-card
+    # Champs optionnels selon le type : large_trade, aggressor_sweep (time) ; + net_flow (side, notional_eur)
     time: Optional[str] = None  # "HH:MM:SS"
     side: Optional[Literal["BUY", "SELL"]] = None
     notional_eur: OptNumber = None
+    level_type: Optional[Literal["support", "resistance"]] = None  # level_break uniquement
+    level_price: OptNumber = None  # level_break uniquement (€)
 
 
 class PriceLevel(Schema):

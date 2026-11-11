@@ -46,6 +46,7 @@ def _get(url: str, status: int = 200) -> dict:
         ("dashboard", DashboardResponse),
         ("events", EventsResponse),
         ("impact-card", ImpactCardResponse),
+        ("impact-card-voting-rights", ImpactCardResponse),
         ("compare", CompareResponse),
         ("report", ReportResponse),
     ],
@@ -168,3 +169,41 @@ def test_pdfs_fit_on_one_a4_page() -> None:
 @needs_data
 def test_pdf_not_found(url: str) -> None:
     assert "detail" in _get(url, 404)
+
+
+# ---------- v0.3 : level_break, detail_url, pre_disclosure_activity ----------
+@needs_data
+def test_dashboard_full_year_validates() -> None:
+    """Toute l'année (période par défaut, scène a de la démo) : toutes les anomalies passent le schéma."""
+    d = _get(f"/stocks/{PBB}/dashboard")
+    assert d["anomalies"]
+
+
+@needs_data
+def test_level_break_has_level_fields() -> None:
+    anomalies = _get(f"/stocks/{PBB}/dashboard?from=2026-08-01&to=2026-08-31")["anomalies"]
+    breaks = [a for a in anomalies if a["type"] == "level_break"]
+    assert breaks
+    for a in breaks:
+        assert a["level_type"] in ("support", "resistance")
+        assert a["level_price"] > 0
+
+
+@needs_data
+def test_every_anomaly_has_a_working_detail_url() -> None:
+    anomalies = _get(f"/stocks/{PBB}/dashboard")["anomalies"]
+    for a in anomalies:
+        expected = f"/events/{a['linked_event_id']}/impact-card" if a["linked_event_id"] else f"/days/{PBB}/{a['date']}/impact-card"
+        assert a["detail_url"] == expected
+    for url in sorted({a["detail_url"] for a in anomalies})[:5]:
+        _get(url)
+
+
+@needs_data
+def test_pre_disclosure_activity_only_on_voting_rights() -> None:
+    voting = _get("/events/evt_019/impact-card")
+    assert voting["event"]["type"] == "voting_rights"
+    pre = voting["pre_disclosure_activity"]
+    assert pre and pre["window"]["sessions"] > 0 and pre["summary"]
+    assert pre["window"]["from"] <= pre["window"]["to"] < voting["event"]["trading_day"]
+    assert _get("/events/evt_002/impact-card")["pre_disclosure_activity"] is None
