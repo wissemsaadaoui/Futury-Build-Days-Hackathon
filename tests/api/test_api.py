@@ -286,3 +286,48 @@ def test_report_alerts_section_in_json_and_pdf() -> None:
     assert all(d["n_alerts"] >= d["n_high"] for d in alerts[0]["alert_days"])
     r = _pdf(f"/stocks/{PBB}/report.pdf")
     assert re.search(rb"/Count (\d+)", r.content).group(1) == b"1"
+
+
+# ---------- T18 : JSON propre sur toutes les routes (pas de NaN/Infinity, arrondis CLAUDE.md) ----------
+# 1 décimale : bps et % ; 2 décimales : prix et ratios. Exception : MACD (écart de prix d'une action à ~3 € :
+# ~0,003 ; arrondi à 2 décimales, la courbe serait plate). Le mock d'origine a déjà 3 décimales.
+_DECIMALS_EXCEPTIONS = {"macd": 3, "macd_signal": 3, "macd_hist": 3}
+
+
+def _max_decimals(key: str) -> int:
+    if key in _DECIMALS_EXCEPTIONS:
+        return _DECIMALS_EXCEPTIONS[key]
+    return 1 if key.endswith(("_bps", "_pct")) or key.startswith("after_") else 2
+
+
+def _rounding_errors(obj, key: str = "", path: str = "") -> list[str]:
+    if isinstance(obj, dict):
+        return [e for k, v in obj.items() for e in _rounding_errors(v, k, f"{path}.{k}")]
+    if isinstance(obj, list):
+        return [e for v in obj for e in _rounding_errors(v, key, f"{path}[]")]
+    if isinstance(obj, float):
+        text = repr(obj)
+        decimals = 99 if "e" in text else len(text.partition(".")[2])
+        if decimals > _max_decimals(key):
+            return [f"{path} = {obj}"]
+    return []
+
+
+@needs_data
+def test_all_routes_return_clean_json() -> None:
+    events = _get(f"/stocks/{PBB}/events")["events"]
+    days = sorted({a["date"] for a in _get(f"/stocks/{PBB}/dashboard")["anomalies"] if not a["linked_event_id"]})
+    urls = [
+        "/stocks",
+        f"/stocks/{PBB}/dashboard",
+        f"/stocks/{PBB}/report",
+        *(f"/events/{e['event_id']}/impact-card" for e in events),
+        *(f"/days/{PBB}/{d}/impact-card" for d in days[:10]),
+        *(f"/compare?type={t}" for t in {e["type"] for e in events}),
+        *(f"/stocks/{PBB}/event-preview?type={t}" for t in {e["type"] for e in events}),
+    ]
+    errors = []
+    for url in urls:
+        data = _get(url)  # _get échoue sur NaN / Infinity
+        errors += [f"{url}: {e}" for e in _rounding_errors(data)[:3]]
+    assert not errors, "\n".join(errors[:20])
