@@ -81,6 +81,8 @@ export interface DailyPoint {
   turnover_eur: number;
   volume_ratio: number;          // volume / baseline 20j
   spread_bps: number;
+  spread_eur: number | null;     // 🆕 v0.2 : coût aller-retour en € pour 25 000 € échangés (= spread_bps × 2,5)
+  spread_ticks: number | null;   // 🆕 v0.2 : coût par action en ticks Xetra (tick déduit des trades), null sans trades
   auction_share: number | null;  // 0–1, null si pas de Flows
   ema_20: number;
   ema_50: number;

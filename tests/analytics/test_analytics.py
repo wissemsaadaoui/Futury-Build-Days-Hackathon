@@ -283,3 +283,32 @@ def test_flows_ignore_multi_day_rows(monkeypatch):
         assert next(p for p in got if p["type"] == "AGENT")["buy"] == round(buy)
     finally:
         data.clear_caches()
+
+
+# ---------- Prix vs spread ----------
+def test_infer_tick_on_synthetic_grid():
+    from app.analytics import pricing
+
+    rng = np.random.default_rng(1)
+    prices = pd.Series(np.round(rng.uniform(2.5, 4.5, 500) / 0.002) * 0.002)
+    assert pricing.infer_tick(prices) == 0.002
+    assert pricing.infer_tick(prices.head(10)) is None  # pas assez de prix
+
+
+def test_spread_decomposition_adds_up():
+    from app.analytics import pricing
+
+    d = pricing.decompose(PBB, ("2026-01-01", "2026-03-31"), ("2026-08-01", "2026-10-31"))
+    assert d["price_effect_bps"] + d["liquidity_effect_bps"] == pytest.approx(d["total_change_bps"])
+    # effet prix = spread de a ramené au prix moyen de b, à coût constant en € par action
+    assert d["price_effect_bps"] == pytest.approx(d["bps_a"] * d["price_a"] / d["price_b"] - d["bps_a"])
+    # le cours de pbb baisse sur l'année -> effet prix positif
+    assert (d["price_b"] < d["price_a"]) == (d["price_effect_bps"] > 0)
+
+
+def test_dashboard_spread_in_eur_and_ticks():
+    d = A.build_dashboard(PBB, "2026-10-01", "2026-10-30")
+    for row in d["series"]:
+        if row["spread_bps"] is not None:
+            assert row["spread_eur"] == pytest.approx(row["spread_bps"] * 2.5, abs=0.2)  # bps et € arrondis à 0,1 : écart max 0,175
+            assert row["spread_ticks"] is not None and row["spread_ticks"] > 0

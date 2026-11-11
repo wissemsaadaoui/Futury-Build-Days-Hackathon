@@ -184,3 +184,6 @@ def clear_caches() -> None:
     for fn in (trading_days, spread_series, index_series, ohlc, flows, auction_share_series, trades, continuous_trades,
                auction_volume_series, closing_auction_share_series, adtv_series):
         fn.cache_clear()
+    from app.analytics import pricing  # import tardif (pricing dépend de data)
+
+    pricing.clear_caches()

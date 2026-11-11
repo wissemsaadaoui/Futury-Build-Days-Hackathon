@@ -100,8 +100,55 @@ event_id,isin,date,time,trading_day,type,title,source_url
 
 ## 5. Premiers résultats pbb (spread à 25k €)
 
-> ⏳ À recalculer pour pbb (`DE0008019001`) depuis `data/raw/spreads` : médiane mensuelle à 25 000 € vs médianes d'indice et peers, effet de chaque annonce, anomalies de spread.
-> L'analyse précédente portait sur SUSS MicroTec (voir l'historique git, commit `92d9aa0`).
+Calculés depuis les données réelles (`app/analytics/pricing.py`). Spread = médiane mensuelle de `Impact_bps` à 25 000 € ; médiane d'indice = tous les titres de l'indice **à la date** ; peers = GRENKE, Hypoport, MLP, ProCredit (dès le 14.10), W&W (jusqu'au 05.10), flatexDEGIRO.
+
+### 5.1 Le fil rouge : 54 → 97 bps
+
+| Mois | pbb (bps) | Médiane SDAX | Médiane peers | Cours moyen pbb | Coût / action | Ticks |
+|---|---|---|---|---|---|---|
+| Janvier | **54.3** | 70.0 | 72.3 | 4.26 € | 0.023 € | 23.3 |
+| Février | 56.4 | 69.3 | 72.1 | 3.90 € | 0.022 € | 21.8 |
+| Mars | 56.5 | 72.0 | 81.4 | 2.96 € | 0.017 € | 16.9 |
+| Avril | 62.2 | 71.6 | 78.0 | 3.21 € | 0.020 € | 20.0 |
+| Mai | 72.6 | 74.2 | 71.2 | 3.46 € | 0.025 € | 24.7 |
+| Juin | 72.4 | 81.8 | 84.0 | 3.41 € | 0.025 € | 24.6 |
+| Juillet | 78.4 | 84.1 | 92.4 | 3.46 € | 0.028 € | 27.6 |
+| Août | 76.6 | 73.8 | 76.2 | 3.43 € | 0.027 € | 26.6 |
+| Septembre | 69.8 | 67.9 | 68.5 | 3.26 € | 0.023 € | 23.0 |
+| Octobre | **97.4** | 70.9 | 70.6 | 2.92 € | 0.028 € | 27.7 |
+
+- **+79 %** entre janvier et octobre : pbb passe de **moins cher** que la médiane SDAX (54 vs 70 bps) à **nettement plus cher** (97 vs 71) et que ses peers (71).
+- **Rupture le 29.09.2026** : médiane 69,4 bps du 01 au 28.09, puis 95,3 bps du 29.09 au 30.10. Trois anomalies de spread consécutives (29.09, 02.10, 06.10, sévérité high), aucune annonce de pbb ce jour-là.
+- Coût pour 25 000 € échangés (`spread_eur` = bps × 2,5) : 135,8 € en janvier → 243,4 € en octobre.
+
+### 5.2 Effet prix ou vrai recul de liquidité ?
+
+Le spread XLM est **relatif au prix**. Si le coût en € par action restait constant, une baisse du cours augmenterait mécaniquement le spread en bps. Décomposition (`pricing.decompose`) : effet prix = `bps_a × P_a / P_b − bps_a` (coût constant en € par action), effet liquidité = le reste.
+
+| Comparaison | Spread | Cours moyen | Variation | Effet prix | Effet liquidité |
+|---|---|---|---|---|---|
+| Janvier → octobre | 54.3 → 97.4 bps | 4.26 → 2.92 € | +43.0 bps | +25.0 (58 %) | +18.0 (42 %) |
+| Janv.–mars → août–oct. | 55.9 → 77.3 bps | 3.69 → 3.20 € | +21.4 bps | +8.6 (40 %) | +12.8 (60 %) |
+| 01–28.09 → 29.09–30.10 | 69.4 → 95.3 bps | 3.28 → 2.93 € | +25.9 bps | +8.2 (32 %) | +17.6 (68 %) |
+
+Comparaison janv.–mars → août–oct. :
+
+| | Spread | Cours | Effet prix | Effet liquidité |
+|---|---|---|---|---|
+| **pbb** | 55.9 → 77.3 | −13 % | +8.6 | **+12.8** |
+| Médiane SDAX (59 titres restés en SDAX) | 72.7 → 72.1 | −6.5 % (médiane) | +3.3 | −2.0 |
+| GRENKE | 72.0 → 66.8 | −24 % | +22.6 | −27.7 |
+| Hypoport | 77.9 → 72.5 | −17 % | +15.8 | −21.1 |
+| MLP | 103.4 → 76.1 | +32 % | −25.1 | −2.2 |
+| W&W | 79.7 → 91.7 | −9 % | +7.5 | +4.5 |
+| flatexDEGIRO (MDAX) | 23.4 → 24.0 | −12 % | +3.2 | −2.5 |
+
+**Conclusion (honnête) :**
+- Environ **la moitié** de la hausse 54 → 97 bps s'explique par la baisse du cours (58 % sur janvier → octobre, 40 % sur des trimestres). **L'autre moitié est un vrai recul de liquidité** : le coût en € par action monte de 0,023 € à 0,028 € (+19 %), de 23 à 28 ticks.
+- La rupture du **29.09** est surtout de la liquidité (68 %) : c'est le jour à expliquer dans la démo.
+- Le recul est **propre à pbb** : sur la même période, la médiane SDAX et la plupart des peers voient leur liquidité s'améliorer (effet liquidité négatif), même quand leur cours baisse (GRENKE, Hypoport).
+- L'« effet prix » est une **borne haute**, pas une loi : le tick Xetra de pbb (0,001 €, déduit des trades) est très en dessous du spread (17–28 ticks), donc le tick ne force pas le spread en €. Preuve : en mars le cours chute de 30 % mais le spread en bps ne bouge presque pas (coût par action 0,023 → 0,017 €).
+- **Limites** : tick déduit empiriquement des prix exécutés (≥ 99,5 % des prix sur la grille, mois par mois), pas lu dans le référentiel MiFID II (bandes de liquidité revues chaque année ; Hypoport passe de 0,05 € à 0,005 € en avril). Médianes mensuelles sur ~20 séances.
 
 ## 6. Scénario de la démo (Deutsche Pfandbriefbank AG (pbb))
 
