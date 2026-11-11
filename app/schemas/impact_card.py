@@ -1,0 +1,135 @@
+"""GET /events/{event_id}/impact-card  |  GET /days/{isin}/{date}/impact-card"""
+from __future__ import annotations
+
+from typing import Literal, Optional
+
+from pydantic import Field
+
+from app.schemas.common import (
+    DataStatusMixin,
+    EventType,
+    ExportLinks,
+    ISODate,
+    ISODateTime,
+    MarketMode,
+    OptNumber,
+    ParticipantType,
+    Schema,
+    StockRef,
+)
+
+
+class ImpactEvent(Schema):
+    event_id: str
+    type: EventType
+    title: str
+    published_at: Optional[ISODateTime]  # null si l'heure de publication n'est pas vérifiée
+    trading_day: ISODate
+    source_url: Optional[str]
+
+
+class Baseline(Schema):
+    method: str
+    from_: ISODate = Field(alias="from")
+    to: ISODate
+
+
+class RatioMetric(Schema):
+    event: OptNumber
+    baseline: OptNumber
+    ratio: OptNumber
+    z_score: OptNumber = None
+
+
+class PriceMetric(Schema):
+    prev_close: OptNumber
+    open: OptNumber
+    close: OptNumber
+    change_pct: OptNumber
+    intraday_range_pct: OptNumber
+
+
+class SpreadMetric(Schema):
+    event: OptNumber
+    baseline: OptNumber
+    change_pct: OptNumber
+
+
+class AuctionShareMetric(Schema):
+    event: OptNumber
+    baseline: OptNumber
+    change_pts: OptNumber
+
+
+class AuctionMetric(Schema):
+    volume: OptNumber
+    baseline: OptNumber
+    ratio: OptNumber
+
+
+class Metrics(Schema):
+    volume: RatioMetric
+    turnover_eur: RatioMetric
+    price: PriceMetric
+    spread_bps: SpreadMetric
+    auction_share: AuctionShareMetric
+    opening_auction: AuctionMetric
+    closing_auction: AuctionMetric
+
+
+class ParticipantFlow(Schema):
+    type: ParticipantType
+    buy: OptNumber
+    sell: OptNumber
+    net: OptNumber
+
+
+class ModeShare(Schema):
+    mode: MarketMode
+    share: OptNumber
+
+
+class Flows(Schema):
+    by_participant: list[ParticipantFlow]
+    by_mode: list[ModeShare]
+
+
+class WindowPoint(Schema):
+    offset: int  # 0 = jour de l'événement
+    date: ISODate
+    close: OptNumber
+    volume_ratio: OptNumber
+    spread_bps: OptNumber
+
+
+class ImpactVsPeers(Schema):
+    peer_avg_volume_ratio: OptNumber
+    peer_avg_price_change_pct: OptNumber
+    excess_return_pct: OptNumber
+
+
+class BrokeLevel(Schema):
+    type: Literal["support", "resistance"]
+    price: float
+
+
+class TechnicalContext(Schema):
+    trend_before: Literal["above_ema50", "below_ema50"]
+    macd_before: Literal["bullish", "bearish"]
+    macd_after: Literal["bullish", "bearish"]
+    broke_level: Optional[BrokeLevel]
+
+
+class ImpactCardResponse(DataStatusMixin, Schema):
+    card_id: str
+    stock: StockRef
+    event: Optional[ImpactEvent]  # null pour un « notable day » sans annonce
+    baseline: Baseline
+    metrics: Metrics
+    flows: Flows
+    window: list[WindowPoint]
+    vs_peers: ImpactVsPeers
+    technical_context: TechnicalContext
+    ai_summary: str
+    generated_at: ISODateTime
+    export: ExportLinks
