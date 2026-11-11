@@ -21,7 +21,7 @@ EVENTS_CSV = Path(os.getenv("EVENTS_CSV", ROOT / "data" / "events.csv"))
 MOCKS_DIR = ROOT / "mocks"
 
 TZ = "Europe/Berlin"
-DEMO_ISINS = ["DE000A1K0235"]  # SUSS MicroTec SE  (modifié par Alfred – démo SUSS)
+DEMO_ISINS = ["DE0008019001"]  # Deutsche Pfandbriefbank AG (pbb)  (modifié par Alfred – démo pbb)
 
 # Notional de référence pour spread_bps (colonne Impact_bps du XLM)
 REF_NOTIONAL = 25_000.0
@@ -30,27 +30,32 @@ WINDOW_DAYS = 5
 MARKET_CLOSE = "17:30"  # annonce après cette heure -> jour de trading suivant
 
 # Peers choisis à la main (pas de colonne secteur dans les données)
-# modifié par Alfred – démo SUSS : équipementiers / semi-conducteurs MDAX/SDAX
+# modifié par Alfred – démo pbb : financières SDAX/MDAX
+# Couverture XLM : ProCredit seulement dès le 14.10.2026 (entrée SDAX), W&W jusqu'au 05.10.2026 (sortie SDAX)
 PEERS: dict[str, list[str]] = {
-    "DE000A1K0235": [
-        "DE000A0WMPJ6",  # Aixtron (AIXA)
-        "DE000A2NB601",  # Jenoptik (JEN)
-        "DE000WAF3001",  # Siltronic (WAF)
-        "DE0005677108",  # Elmos Semiconductor (ELG)
+    "DE0008019001": [
+        "DE000A161N30",  # GRENKE (GLJ)
+        "DE0005493365",  # Hypoport (HYQ)
+        "DE0006569908",  # MLP (MLP)
+        "DE0006223407",  # ProCredit Holding (PCZ)
+        "DE0008051004",  # Wüstenrot & Württembergische (WUW)
+        "DE000FTG1111",  # flatexDEGIRO (FTK, MDAX)
     ],
 }
 
-# modifié par Alfred – démo SUSS
+# modifié par Alfred – démo pbb
 NAMES: dict[str, str] = {
-    "DE000A1K0235": "SUSS MicroTec SE",
-    "DE000A0WMPJ6": "AIXTRON SE",
-    "DE000A2NB601": "JENOPTIK AG",
-    "DE000WAF3001": "Siltronic AG",
-    "DE0005677108": "Elmos Semiconductor SE",
+    "DE0008019001": "Deutsche Pfandbriefbank AG",
+    "DE000A161N30": "GRENKE AG",
+    "DE0005493365": "Hypoport SE",
+    "DE0006569908": "MLP SE",
+    "DE0006223407": "ProCredit Holding AG",
+    "DE0008051004": "Wüstenrot & Württembergische AG",
+    "DE000FTG1111": "flatexDEGIRO AG",
 }
 
-# modifié par Alfred – démo SUSS (semiconductor equipment)
-SECTORS: dict[str, str] = {isin: "Technology" for isin in NAMES}
+# modifié par Alfred – démo pbb
+SECTORS: dict[str, str] = {isin: "Financials" for isin in NAMES}
 
 # LLM (assistant)
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "")  # "anthropic" | "openai" | "" (= templates seulement)
