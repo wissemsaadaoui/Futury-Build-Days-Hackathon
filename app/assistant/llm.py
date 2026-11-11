@@ -28,7 +28,8 @@ def complete(system: str, user: str, max_tokens: int = 400) -> str | None:
             client = anthropic.Anthropic(api_key=config.LLM_API_KEY, timeout=config.LLM_TIMEOUT_S)
             msg = client.messages.create(
                 model=model,
-                max_tokens=max_tokens,
+                max_tokens=max(max_tokens, 600),
+                thinking={"type": "disabled"},
                 system=system,
                 messages=[{"role": "user", "content": user}],
             )
