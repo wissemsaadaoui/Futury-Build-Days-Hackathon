@@ -94,9 +94,11 @@ def alerts_section(isin: str, rng: pd.DatetimeIndex) -> dict:
             "linked_event_id": al[0]["linked_event_id"],
             "detail_url": al[0]["detail_url"],
         })
+    from app.assistant import fmt
+
     n_days = len(by_day)
-    text = (f"{len(rows)} alerts on {n_days} of {len(rng)} sessions. "
-            + "; ".join(f"{k['label']}: {k['value']}" for k in kpis) + ".") if rows else "No alerts over the period."
+    text = (f"{fmt.count(len(rows))} alerts on {fmt.count(n_days)} of {fmt.count(len(rng))} sessions. "
+            + "; ".join(f"{k['label']}: {fmt.value(k['value'], k['unit'])}" for k in kpis) + ".") if rows else "No alerts over the period."
     return {"title": "Alerts", "kpis": kpis, "alert_days": top, "text": text}
 
 
