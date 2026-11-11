@@ -892,3 +892,43 @@ def test_price_abs_change_never_negative_and_no_direction():
         assert not any(w in s for w in ("will rise", "will fall", "target", "upside", "downside", "expect the price"))
     ah = A.build_event_preview(PBB, "ad_hoc")["own_history"]["events"][0]
     assert ah["price_abs_change_pct"] == abs(A.build_impact_card("evt_002")["metrics"]["price"]["change_pct"])
+
+
+# ---------- Report : section Alerts ----------
+def test_report_alerts_section_matches_dashboard():
+    from collections import Counter
+
+    r = A.build_report(PBB, "2026-01-02", "2026-10-30")
+    sec = next(s for s in r["sections"] if s["title"] == "Alerts")
+    d = A.build_dashboard(PBB, "2026-01-02", "2026-10-30")
+    counts = Counter(a["type"] for a in d["anomalies"])
+    assert {k["alert_type"]: k["value"] for k in sec["kpis"]} == dict(counts)
+    for k in sec["kpis"]:
+        assert k["unit"] == "count" and k["trend"] is None
+    top = sec["alert_days"]
+    assert len(top) == 5
+    by_day = {}
+    for a in d["anomalies"]:
+        by_day.setdefault(a["date"], []).append(a)
+    key = lambda day: (sum(a["severity"] == "high" for a in by_day[day]), len(by_day[day]))  # noqa: E731
+    assert [key(t["date"]) for t in top] == sorted([key(t["date"]) for t in top], reverse=True)
+    best_other = max(key(dd) for dd in by_day if dd not in {t["date"] for t in top})
+    assert key(top[-1]["date"]) >= best_other
+    for t in top:
+        assert t["n_alerts"] == len(by_day[t["date"]])
+        assert t["detail_url"].endswith("/impact-card")
+    assert sec["text"].startswith(f"{sum(counts.values())} alerts on {len(by_day)} of ")
+    _no_nan(r)
+
+
+def test_report_alerts_section_on_quiet_period(monkeypatch):
+    monkeypatch.setattr(etl, "load_ohlc", lambda: pd.DataFrame(columns=etl.OHLC_COLS))
+    monkeypatch.setattr(etl, "load_flows", lambda: pd.DataFrame(columns=etl.FLOWS_COLS))
+    data.clear_caches()
+    try:
+        r = A.build_report(PBB, "2026-04-01", "2026-04-30")
+        sec = next(s for s in r["sections"] if s["title"] == "Alerts")
+        assert isinstance(sec["kpis"], list) and isinstance(sec["alert_days"], list)
+        assert all(k["unit"] == "count" for k in sec["kpis"])
+    finally:
+        data.clear_caches()
