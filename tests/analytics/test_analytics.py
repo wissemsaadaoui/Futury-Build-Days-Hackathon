@@ -30,6 +30,28 @@ def _keys(d, prefix=""):
     return out
 
 
+def _missing_keys(mock, out, prefix=""):
+    """Clés du mock absentes de `out`. Une valeur null ou [] dans `out` accepte toute la sous-structure
+    (broke_level: null, support: [] sont valides avec les données réelles)."""
+    if out is None or out == []:
+        return set()
+    if isinstance(mock, dict):
+        if not isinstance(out, dict):
+            return {prefix.rstrip(".")}
+        missing = set()
+        for k, v in mock.items():
+            if k.startswith("_"):
+                continue
+            if k not in out:
+                missing.add(prefix + k)
+            else:
+                missing |= _missing_keys(v, out[k], prefix + k + ".")
+        return missing
+    if isinstance(mock, list) and mock and isinstance(mock[0], dict):
+        return _missing_keys(mock[0], out[0], prefix + "[].") if isinstance(out, list) else {prefix.rstrip(".")}
+    return set()
+
+
 def _no_nan(obj):
     s = json.dumps(obj)  # échoue si objet non sérialisable
     assert "NaN" not in s and "Infinity" not in s
@@ -110,7 +132,7 @@ def _xlm_spread(isin: str, day: str) -> float:
 
 def test_impact_card_shape_matches_mock():
     card = A.build_impact_card("evt_003")  # FY 2025 results
-    assert _keys(_util.load_mock("impact-card")) <= _keys(card)
+    assert not _missing_keys(_util.load_mock("impact-card"), card)
     assert card["event"]["trading_day"] == "2026-03-05"
     assert card["metrics"]["spread_bps"]["event"] == pytest.approx(_xlm_spread(PBB, "2026-03-05"), abs=0.05)
     assert len(card["window"]) == 11 and card["window"][5]["offset"] == 0
@@ -142,18 +164,25 @@ def test_unknown_ids_raise_notfound():
         A.build_day_card(PBB, "2026-03-07")  # samedi
 
 
-def test_dashboard_spread_only():
-    d = A.build_dashboard(PBB, "2026-01-01", "2026-10-30")
-    assert _keys(_util.load_mock("dashboard")) <= _keys(d)
-    assert d["_data_status"]["spreads"] == "real"
-    dates = [a["date"] for a in d["anomalies"]]
-    assert dates == sorted(dates)
-    event_ids = {e["event_id"] for e in A.list_events(PBB)["events"]}
-    for a in d["anomalies"]:
-        assert a["type"] in {"volume_spike", "spread_widening", "price_move", "auction_spike"}
-        assert a["severity"] in {"low", "medium", "high"}
-        assert a["linked_event_id"] is None or a["linked_event_id"] in event_ids
-    _no_nan(d)
+def test_dashboard_spread_only(monkeypatch):
+    """Mode « spreads seulement » : OHLC et Flows vidés -> structure mock, spreads réels."""
+    monkeypatch.setattr(etl, "load_ohlc", lambda: pd.DataFrame(columns=etl.OHLC_COLS))
+    monkeypatch.setattr(etl, "load_flows", lambda: pd.DataFrame(columns=etl.FLOWS_COLS))
+    data.clear_caches()
+    try:
+        d = A.build_dashboard(PBB, "2026-01-01", "2026-10-30")
+        assert not _missing_keys(_util.load_mock("dashboard"), d)
+        assert d["_data_status"] == {"spreads": "real", "ohlc": "mock", "flows": "mock"}
+        dates = [a["date"] for a in d["anomalies"]]
+        assert dates == sorted(dates)
+        event_ids = {e["event_id"] for e in A.list_events(PBB)["events"]}
+        for a in d["anomalies"]:
+            assert a["type"] in {"volume_spike", "spread_widening", "price_move", "auction_spike"}
+            assert a["severity"] in {"low", "medium", "high"}
+            assert a["linked_event_id"] is None or a["linked_event_id"] in event_ids
+        _no_nan(d)
+    finally:
+        data.clear_caches()
 
 
 def test_events_compare_report():

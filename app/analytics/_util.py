@@ -48,6 +48,12 @@ def pct(new: Any, old: Any) -> float | None:
     return (n / o - 1.0) * 100.0
 
 
+def nanmedian(values: Any) -> float:
+    """Médiane en ignorant None/NaN ; NaN (sans RuntimeWarning) si aucune valeur valide."""
+    vals = [f for f in (_num(v) for v in values) if f is not None]
+    return float(np.median(vals)) if vals else np.nan
+
+
 def ratio(a: Any, b: Any) -> float | None:
     x, y = _num(a), _num(b)
     if x is None or y is None or y == 0:

@@ -10,7 +10,7 @@ import pandas as pd
 
 from app import config
 from app.analytics import data, events, indicators, metrics
-from app.analytics._util import clean, iso, load_mock, now_iso, pct, r0, r1, r2, ratio
+from app.analytics._util import clean, iso, load_mock, nanmedian, now_iso, pct, r0, r1, r2, ratio
 
 
 class NotFound(KeyError):
@@ -65,8 +65,8 @@ def _ohlc_blocks(isin: str, days: pd.DatetimeIndex, td: pd.Timestamp, card: dict
         if j > 0:
             peer_moves.append(pct(ppx["close"].iloc[j], ppx["close"].iloc[j - 1]))
         peer_ratios.append(ratio(ppx.at[td, "volume"], pm))
-    peer_ratio = np.nanmedian([x for x in peer_ratios if x is not None]) if peer_ratios else np.nan
-    peer_move = np.nanmedian([x for x in peer_moves if x is not None]) if peer_moves else np.nan
+    peer_ratio = nanmedian(peer_ratios)
+    peer_move = nanmedian(peer_moves)
     own = pct(c, prev_close)
     card["vs_peers"] = {
         "peer_avg_volume_ratio": r2(peer_ratio),
