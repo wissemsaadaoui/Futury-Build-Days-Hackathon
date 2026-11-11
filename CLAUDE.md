@@ -5,7 +5,7 @@ Contexte complet du challenge, glossaire et données : voir `PROJECT.md`.
 
 ## Projet en une phrase
 
-Back-end Python d'un outil self-service pour les équipes **Investor Relations** de mid/small caps : il analyse le trading Xetra d'une action (liquidity, spread, auctions, peers) et génère des **impact cards** pour chaque annonce, avec un résumé écrit par un LLM. Démo : **SUSS MicroTec SE** (`DE000A1K0235`, mnemonic `SMHN`).
+Back-end Python d'un outil self-service pour les équipes **Investor Relations** de mid/small caps : il analyse le trading Xetra d'une action (liquidity, spread, auctions, peers) et génère des **impact cards** pour chaque annonce, avec un résumé écrit par un LLM. Démo : **Deutsche Pfandbriefbank AG (pbb)** (`DE0008019001`, mnemonic `PBB`).
 
 ## Stack
 
@@ -45,7 +45,7 @@ issuer-hub/
 │   │   ├── spreads/          # dax_mdax_sdax_xlm.YYYYMMDD.csv
 │   │   ├── ohlc/
 │   │   └── flows/
-│   └── events.csv            # annonces SUSS MicroTec (fait main)
+│   └── events.csv            # annonces pbb (fait main)
 ├── app/
 │   ├── main.py               # [backend] création de l'app, CORS, routers
 │   ├── config.py             # [backend] chemins, constantes, .env
@@ -158,7 +158,7 @@ Erreurs : `404` si l'ISIN ou l'event_id est inconnu, `422` pour des dates invali
 | Anomalie spread | z-score > 3 **et** spread > 1,2 × baseline (high si z > 4 ou > 1,5 ×) – calibré : ~3,7 alertes/action sur 10 mois |
 | `trading_day` | Annonce avant 17:30 → même jour ; après → jour de trading suivant |
 | `window` | Jours de trading −5 à +5 autour du `trading_day` |
-| Peers | Même indice + liste manuelle (`config.PEERS`) : pas de colonne secteur dans les données. SUSS : Aixtron, Jenoptik, Siltronic, Elmos Semiconductor |
+| Peers | Même indice + liste manuelle (`config.PEERS`) : pas de colonne secteur dans les données. pbb : peers à définir (banques / immobilier commercial) |
 | Indicateurs | EMA20, EMA50, MACD(12, 26, 9), support/resistance sur pivots locaux (fenêtre 5, tolérance 1,5 %) |
 
 ## Règles pour l'assistant LLM (Alfred)
@@ -198,6 +198,6 @@ Erreurs : `404` si l'ISIN ou l'event_id est inconnu, `422` pour des dates invali
 
 - Les fichiers XLM sont nommés `dax_mdax_sdax_xlm.YYYYMMDD.csv` ; 213 jours (02.01–30.10.2026), 174 actions.
 - `Impact_bps = nan` quand le carnet n'est pas assez profond pour le notional : ne pas remplacer par 0.
-- La colonne `Index` change dans le temps (SUSS MicroTec : SDAX jusqu'au 19.06.2026, MDAX dès le 22.06.2026). Pour les peers, utiliser l'indice **à la date** concernée.
+- La colonne `Index` change dans le temps (ex. SUSS MicroTec : SDAX jusqu'au 19.06.2026, MDAX dès le 22.06.2026 ; vérifier l'historique d'indice de pbb). Pour les peers, utiliser l'indice **à la date** concernée.
 - Lire le `NOTES.md` et le PDF de chaque dossier de données avant d'écrire l'ETL correspondant.
 - Les Flows décrivent le trading de la **veille** : vérifier l'alignement des dates.
