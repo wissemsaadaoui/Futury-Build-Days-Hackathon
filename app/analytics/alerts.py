@@ -24,23 +24,27 @@ def _eur(x: float) -> str:
     return f"EUR {x / 1e6:.1f}m" if x >= 1e6 else f"EUR {x / 1e3:.0f}k"
 
 
-def _threshold_eur(adtv: float) -> float:
-    """Seuil d'une exécution / d'un sweep : >= 500 k€ OU >= 5 % de l'ADTV -> le plus bas des deux."""
-    cands = [config.ALERT_LARGE_TRADE_EUR]
-    if adtv and not np.isnan(adtv):
-        cands.append(config.ALERT_LARGE_TRADE_ADTV_SHARE * adtv)
-    return min(cands)
+def _threshold_eur(adtv: float, share: float | None = None) -> float:
+    """Seuil d'une exécution (ou d'une rafale) : >= part de l'ADTV, OU >= ALERT_LARGE_TRADE_EUR s'il est défini
+    -> le plus bas des deux. Sans ADTV ni seuil absolu : inf (pas d'alerte)."""
+    share = config.ALERT_LARGE_TRADE_ADTV_SHARE if share is None else share
+    cands = []
+    if config.ALERT_LARGE_TRADE_EUR:
+        cands.append(config.ALERT_LARGE_TRADE_EUR)
+    if adtv is not None and not np.isnan(adtv) and adtv > 0:
+        cands.append(share * adtv)
+    return min(cands) if cands else np.inf
 
 
 def _severity(value: float, threshold: float) -> str:
     return "high" if value >= config.ALERT_HIGH_FACTOR * threshold else "medium"
 
 
-def _with_adtv(isin: str, df: pd.DataFrame) -> pd.DataFrame:
+def _with_adtv(isin: str, df: pd.DataFrame, share: float | None = None) -> pd.DataFrame:
     adtv = data.adtv_series(isin)
     out = df.copy()
     out["adtv"] = out["date"].map(adtv) if not adtv.empty else np.nan
-    out["threshold"] = [_threshold_eur(a) for a in out["adtv"]]
+    out["threshold"] = [_threshold_eur(a, share) for a in out["adtv"]]
     return out
 
 
@@ -103,9 +107,10 @@ def sweeps(isin: str) -> pd.DataFrame:
     """Une ligne par jour : la plus grosse rafale au-dessus du seuil."""
     cols = ["date", "time", "side", "notional_eur", "n", "duration_s", "adtv"]
     runs = sweep_runs(data.continuous_trades(isin))
+    runs = runs[runs["n"] >= config.ALERT_SWEEP_MIN_TRADES]
     if runs.empty:
         return pd.DataFrame(columns=cols)
-    runs = _with_adtv(isin, runs)
+    runs = _with_adtv(isin, runs, config.ALERT_SWEEP_ADTV_SHARE)
     hit = runs[runs["notional_eur"] >= runs["threshold"]]
     if hit.empty:
         return pd.DataFrame(columns=cols)

@@ -73,9 +73,14 @@ SECTORS: dict[str, str] = {isin: "Financials" for isin in NAMES}
 # Alertes sur les exécutions (ajouté par Alfred – mocks/API.md v0.2 §3 et §5.2)
 # Ce sont des EXÉCUTIONS (trades on-book), pas des investisseurs identifiés.
 ALERT_ADTV_DAYS = 30                 # ADTV = moyenne du turnover_eur (OHLC) des 30 séances précédentes
-ALERT_LARGE_TRADE_EUR = 500_000.0    # large_trade : exécution unique >= 500 k€ ...
-ALERT_LARGE_TRADE_ADTV_SHARE = 0.05  # ... OU >= 5 % de l'ADTV 30 jours
-ALERT_SWEEP_WINDOW_S = 1.0           # aggressor_sweep : exécutions consécutives du même côté en <= 1 s (mêmes seuils)
+# v2 (Alfred, 2026-11-11) : 10 % de l'ADTV, plus de seuil absolu. Sur pbb : large_trade 58 -> 13 jours,
+# aggressor_sweep 103 -> 38 jours (sur 213). Le seuil absolu de 500 k€ dominait pour les titres liquides
+# (flatexDEGIRO : 203 jours sur 213) : None = désactivé.
+ALERT_LARGE_TRADE_EUR: float | None = None  # seuil absolu optionnel (€) : alerte si >= ce montant OU >= la part d'ADTV
+ALERT_LARGE_TRADE_ADTV_SHARE = 0.10  # large_trade : exécution unique >= 10 % de l'ADTV 30 jours
+ALERT_SWEEP_ADTV_SHARE = 0.10        # aggressor_sweep : somme de la rafale >= 10 % de l'ADTV 30 jours
+ALERT_SWEEP_MIN_TRADES = 3           # aggressor_sweep : au moins 3 exécutions
+ALERT_SWEEP_WINDOW_S = 1.0           # aggressor_sweep : exécutions consécutives du même côté en <= 1 s
 ALERT_NET_FLOW_ADTV_SHARE = 0.20     # net_flow : |net AGENT ou PROP en €| > 20 % de l'ADTV 30 jours (Flows n_days == 1)
 ALERT_AUCTION_SPIKE_RATIO = 2.0      # auction_spike : part de la closing auction > 2 x sa baseline 20 jours
 ALERT_HIGH_FACTOR = 2.0              # severity "high" si la valeur dépasse 2 x le seuil

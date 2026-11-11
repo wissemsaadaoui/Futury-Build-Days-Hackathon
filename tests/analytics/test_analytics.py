@@ -480,7 +480,9 @@ def test_alerts_on_pbb_are_consistent():
         if a["type"] == "large_trade":
             day = ct[ct["date"] == pd.Timestamp(a["date"])]
             assert a["notional_eur"] == round(day["notional_eur"].max())
-            thr = min(config.ALERT_LARGE_TRADE_EUR, config.ALERT_LARGE_TRADE_ADTV_SHARE * adtv[pd.Timestamp(a["date"])])
+            from app.analytics import alerts as AL
+
+            thr = AL._threshold_eur(adtv[pd.Timestamp(a["date"])])
             assert a["notional_eur"] >= thr - 1 and a["time"] and a["side"] in {"BUY", "SELL"}
         if a["type"] == "net_flow":
             assert abs(a["value"]) >= config.ALERT_NET_FLOW_ADTV_SHARE  # value arrondie à 0,01
@@ -541,3 +543,18 @@ def test_extended_closing_auctions_are_kept():
     s = data.auction_volume_series(PBB, "closing")
     assert s.reindex(closing.index).tolist() == closing.astype(float).tolist()
     assert (s > 0).all()
+
+
+def test_sweep_needs_three_executions_and_no_absolute_floor(synthetic_trades):
+    from app import config
+
+    alerts, thr = synthetic_trades([])
+    assert config.ALERT_LARGE_TRADE_EUR is None
+    adtv = data.adtv_series(PBB).get(pd.Timestamp("2026-03-10"))
+    assert thr == pytest.approx(config.ALERT_LARGE_TRADE_ADTV_SHARE * adtv)
+    q = int(thr * 0.8 / 3.0)
+    # 2 exécutions = 160 % du seuil, mais < 3 exécutions -> pas d'alerte sweep
+    alerts, _ = synthetic_trades([("10:00:00.000", 3.0, q, "BUY"), ("10:00:00.200", 3.0, q, "BUY")])
+    assert alerts.sweeps(PBB).empty
+    alerts, _ = synthetic_trades([("10:00:00.000", 3.0, q, "BUY"), ("10:00:00.200", 3.0, q, "BUY"), ("10:00:00.400", 3.0, 10, "BUY")])
+    assert len(alerts.sweeps(PBB)) == 1
