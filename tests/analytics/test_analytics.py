@@ -480,7 +480,9 @@ def test_alerts_on_pbb_are_consistent():
         if a["type"] == "large_trade":
             day = ct[ct["date"] == pd.Timestamp(a["date"])]
             assert a["notional_eur"] == round(day["notional_eur"].max())
-            thr = min(config.ALERT_LARGE_TRADE_EUR, config.ALERT_LARGE_TRADE_ADTV_SHARE * adtv[pd.Timestamp(a["date"])])
+            from app.analytics import alerts as AL
+
+            thr = AL._threshold_eur(adtv[pd.Timestamp(a["date"])])
             assert a["notional_eur"] >= thr - 1 and a["time"] and a["side"] in {"BUY", "SELL"}
         if a["type"] == "net_flow":
             assert abs(a["value"]) >= config.ALERT_NET_FLOW_ADTV_SHARE  # value arrondie à 0,01
@@ -520,7 +522,9 @@ def test_facts_include_intraday_and_day_alerts():
     assert f["intraday"]["announcement_during_session"] is True
     assert f["auctions"]["closing_auction_ratio_vs_baseline"] == card["metrics"]["closing_auction"]["ratio"]
     d = A.build_dashboard(PBB, "2026-02-13", "2026-02-13")
-    trade_alerts = {a["description"] for a in d["anomalies"] if a["type"] in {"large_trade", "aggressor_sweep", "net_flow", "auction_spike"}}
+    from app.analytics import alerts as AL
+
+    trade_alerts = {a["description"] for a in d["anomalies"] if a["type"] in AL.ALERT_TYPES}
     assert {a["description"] for a in f["execution_alerts_that_day"]} <= trade_alerts
     assert f"{it['first_15min']['ratio']:.1f}x" in card["ai_summary"]  # arrondi à 1 décimale dans le texte
 
@@ -541,3 +545,143 @@ def test_extended_closing_auctions_are_kept():
     s = data.auction_volume_series(PBB, "closing")
     assert s.reindex(closing.index).tolist() == closing.astype(float).tolist()
     assert (s > 0).all()
+
+
+def test_sweep_needs_three_executions_and_no_absolute_floor(synthetic_trades):
+    from app import config
+
+    alerts, thr = synthetic_trades([])
+    assert config.ALERT_LARGE_TRADE_EUR is None
+    adtv = data.adtv_series(PBB).get(pd.Timestamp("2026-03-10"))
+    assert thr == pytest.approx(config.ALERT_LARGE_TRADE_ADTV_SHARE * adtv)
+    q = int(thr * 0.8 / 3.0)
+    # 2 exécutions = 160 % du seuil, mais < 3 exécutions -> pas d'alerte sweep
+    alerts, _ = synthetic_trades([("10:00:00.000", 3.0, q, "BUY"), ("10:00:00.200", 3.0, q, "BUY")])
+    assert alerts.sweeps(PBB).empty
+    alerts, _ = synthetic_trades([("10:00:00.000", 3.0, q, "BUY"), ("10:00:00.200", 3.0, q, "BUY"), ("10:00:00.400", 3.0, 10, "BUY")])
+    assert len(alerts.sweeps(PBB)) == 1
+
+
+# ---------- price_move et level_break ----------
+def _ohlc_frame(isin: str, closes: list[float], vols: list[float], days) -> pd.DataFrame:
+    c = pd.Series(closes, dtype=float)
+    return pd.DataFrame({"date": days, "isin": isin, "open": c, "high": c * 1.002, "low": c * 0.998, "close": c,
+                         "volume": vols, "turnover_eur": c * pd.Series(vols, dtype=float)})
+
+
+@pytest.fixture
+def synthetic_ohlc(monkeypatch):
+    """OHLC synthétique pbb + peers sur les 60 premiers jours de trading ; renvoie une fonction d'installation."""
+    days = list(data.trading_days()[:60])
+
+    def install(own_close, own_vol, peer_close):
+        frames = [_ohlc_frame(PBB, own_close, own_vol, days)]
+        frames += [_ohlc_frame(p, peer_close, [1e5] * len(days), days) for p in data.peers_of(PBB)]
+        df = pd.concat(frames, ignore_index=True)
+        monkeypatch.setattr(etl, "load_ohlc", lambda: df)
+        data.clear_caches()
+        return days
+
+    yield install
+    data.clear_caches()
+
+
+def test_price_move_uses_excess_return(synthetic_ohlc):
+    from app.analytics import alerts
+
+    n = 60
+    own = [10.0] * n
+    peers = [10.0] * n
+    vol = [1e5] * n
+    own[40] = 10.5; own[41:] = [10.5] * (n - 41)      # jour 40 : +5 % sur 2x volume, peers plats -> alerte
+    vol[40] = 2e5
+    own[50] = 10.5 * 1.04; own[51:] = [own[50]] * (n - 51)  # jour 50 : +4 %, mais peers aussi +4 % -> pas d'alerte
+    peers[50:] = [10.4] * (n - 50)
+    vol[50] = 3e5
+    own[55] = own[54] * 1.05; own[56:] = [own[55]] * (n - 56)  # jour 55 : +5 % excédentaire mais volume normal -> rien
+    days = synthetic_ohlc(own, vol, peers)
+    pm = alerts.price_moves(PBB)
+    assert list(pm["date"]) == [days[40]]
+    assert pm.iloc[0]["excess_pct"] == pytest.approx(5.0)
+    row = [a for a in alerts.alert_rows(PBB, days[0], days[-1], {}) if a["type"] == "price_move"][0]
+    assert row["description"] == "Price moved +5.0% vs peers on 2.0x usual volume"
+    assert row["detail_url"] == f"/days/{PBB}/{days[40]:%Y-%m-%d}/impact-card"
+    assert alerts.detail_url(PBB, days[40], "evt_002") == "/events/evt_002/impact-card"
+
+
+def test_level_break_needs_volume_and_large_execution(synthetic_ohlc, monkeypatch):
+    from app.analytics import alerts, indicators
+
+    n = 60
+    # deux sommets à ~11 (jours 10 et 25) -> résistance à 11 ; cassure à la hausse au jour 45
+    own = [10.0] * n
+    own[10], own[25] = 11.0, 11.0
+    own[45:] = [11.5] * (n - 45)
+    vol = [1e5] * n
+    vol[45] = 2e5
+    days = synthetic_ohlc(own, vol, [10.0] * n)
+    lv = indicators.broken_level(data.ohlc(PBB), days[45])
+    assert lv["type"] == "resistance" and lv["price"] == pytest.approx(11.0 * 1.002, abs=0.01)
+    # niveaux calculés AVANT le jour : la cassure elle-même ne crée pas de niveau
+    assert indicators.broken_level(data.ohlc(PBB), days[30]) is None
+    # (les trades réels restent chargés : on fixe les jours d'exécutions inhabituelles à la main)
+    monkeypatch.setattr(alerts, "sweeps", lambda isin: pd.DataFrame({"date": []}))
+    # sans exécution inhabituelle le même jour : pas de level_break
+    monkeypatch.setattr(alerts, "large_trades", lambda isin: pd.DataFrame({"date": []}))
+    assert alerts.level_breaks.__wrapped__(PBB).empty
+    # avec un large_trade ce jour-là : alerte
+    monkeypatch.setattr(alerts, "large_trades", lambda isin: pd.DataFrame({"date": [days[45]]}))
+    lb = alerts.level_breaks.__wrapped__(PBB)
+    assert list(lb["date"]) == [days[45]] and lb.iloc[0]["level_type"] == "resistance"
+
+
+def test_new_alert_wording_on_pbb():
+    d = A.build_dashboard(PBB, "2026-01-01", "2026-10-30")
+    for a in d["anomalies"]:
+        low = a["description"].lower()
+        assert "institutional" not in low and "retail" not in low and "investor" not in low
+        assert a["detail_url"] == (f"/events/{a['linked_event_id']}/impact-card" if a["linked_event_id"]
+                                   else f"/days/{PBB}/{a['date']}/impact-card")
+        if a["type"] == "level_break":
+            assert a["level_type"] in {"support", "resistance"} and a["level_price"] > 0
+            assert "confirmed by unusually large executions" in a["description"]
+
+
+# ---------- pre_disclosure_activity (notifications WpHG) ----------
+def _with_extra_events(monkeypatch, rows: list[dict]):
+    real = etl.load_events()
+    extra = pd.DataFrame([{**{c: "" for c in real.columns}, **r} for r in rows])
+    monkeypatch.setattr(etl, "load_events", lambda: pd.concat([real, extra], ignore_index=True))
+    data.clear_caches()
+
+
+def test_pre_disclosure_looks_only_before_publication(monkeypatch):
+    from app.analytics import disclosure
+
+    # 31.08.2026 est un jour très inhabituel (volume 22x, enchère de clôture, flux nets)
+    _with_extra_events(monkeypatch, [
+        {"event_id": "vr_after", "isin": PBB, "date": "2026-09-01", "time": "08:00", "type": "voting_rights", "title": "VR test"},
+        {"event_id": "vr_same", "isin": PBB, "date": "2026-08-31", "time": "08:00", "type": "voting_rights", "title": "VR test"},
+    ])
+    after = A.build_impact_card("vr_after")["pre_disclosure_activity"]
+    assert "2026-08-31" in [d["date"] for d in after["days"]]
+    days = data.trading_days()
+    i = days.get_loc(pd.Timestamp("2026-09-01"))
+    assert after["window"] == {"from": f"{days[i - 7]:%Y-%m-%d}", "to": "2026-08-31", "sessions": 7}
+    same = A.build_impact_card("vr_same")["pre_disclosure_activity"]
+    assert same is None or all(d["date"] < "2026-08-31" for d in same["days"])  # jour de publication exclu
+    # fenêtre = 7 séances strictement avant
+    win = disclosure.window_before(pd.Timestamp("2026-09-01"))
+    assert len(win) == 7 and win[-1] < pd.Timestamp("2026-09-01")
+    for d in after["days"]:
+        assert pd.Timestamp(d["date"]) in win and d["anomaly_types"]
+    s = after["summary"]
+    assert s.startswith("Unusual activity in the 7 sessions before the disclosure") and "may coincide with" in s
+    assert "investor" not in s.lower()
+
+
+def test_pre_disclosure_null_when_quiet_or_not_voting_rights():
+    assert A.build_impact_card("evt_002")["pre_disclosure_activity"] is None  # ad hoc, pas une notification
+    vr = [e["event_id"] for e in A.list_events(PBB)["events"] if e["type"] == "voting_rights"]
+    blocks = [A.build_impact_card(e)["pre_disclosure_activity"] for e in vr]
+    assert any(b is None for b in blocks) and any(b is not None for b in blocks)

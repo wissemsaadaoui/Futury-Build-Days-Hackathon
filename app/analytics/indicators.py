@@ -58,6 +58,26 @@ def support_resistance(
     return {"support": fmt(support), "resistance": fmt(resistance)}
 
 
+def broken_level(px: pd.DataFrame, day: pd.Timestamp) -> dict | None:
+    """Support ou résistance franchi par la clôture du jour.
+    Niveaux calculés UNIQUEMENT sur l'historique avant `day` (pas de look-ahead), par rapport à la clôture de la veille.
+    Descriptif : aucune projection de prix."""
+    if px.empty or day not in px.index:
+        return None
+    i = px.index.get_loc(day)
+    if i < 1:
+        return None
+    c_prev, c_day = float(px["close"].iloc[i - 1]), float(px["close"].iloc[i])
+    sr = support_resistance(px["high"].iloc[:i], px["low"].iloc[:i], c_prev)
+    for lv in sr["resistance"]:
+        if c_prev <= lv["price"] < c_day:
+            return {"type": "resistance", "price": lv["price"], "touches": lv["touches"]}
+    for lv in sr["support"]:
+        if c_day < lv["price"] <= c_prev:
+            return {"type": "support", "price": lv["price"], "touches": lv["touches"]}
+    return None
+
+
 def technical_context(px: pd.DataFrame, day: pd.Timestamp, after_days: int = 5) -> dict | None:
     """Contexte technique autour d'un jour : tendance, momentum avant/après, niveau cassé."""
     if px.empty or day not in px.index:
@@ -68,18 +88,9 @@ def technical_context(px: pd.DataFrame, day: pd.Timestamp, after_days: int = 5) 
         return None
     prev = px.index[i - 1]
     after = px.index[min(i + after_days, len(px) - 1)]
-    sr = support_resistance(px["high"].iloc[:i], px["low"].iloc[:i], float(px["close"].iloc[i - 1]))
-    c_prev, c_day = float(px.at[prev, "close"]), float(px.at[day, "close"])
-    broke = None
-    for lv in sr["resistance"]:
-        if c_prev <= lv["price"] < c_day:
-            broke = {"type": "resistance", "price": lv["price"]}
-            break
-    if broke is None:
-        for lv in sr["support"]:
-            if c_day < lv["price"] <= c_prev:
-                broke = {"type": "support", "price": lv["price"]}
-                break
+    c_prev = float(px.at[prev, "close"])
+    lv = broken_level(px, day)
+    broke = {"type": lv["type"], "price": lv["price"]} if lv else None
     return {
         "trend_before": "above_ema50" if c_prev >= ind.at[prev, "ema_50"] else "below_ema50",
         "macd_before": "bullish" if ind.at[prev, "macd_hist"] >= 0 else "bearish",

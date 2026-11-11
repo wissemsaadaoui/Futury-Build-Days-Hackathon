@@ -12,10 +12,10 @@ import numpy as np
 import pandas as pd
 
 from app import config
-from app.analytics import data, metrics
+from app.analytics import data, indicators, metrics
 
 PARTICIPANT_LABEL = {"AGENT": "Agency flow (orders on behalf of clients)", "PROP": "Proprietary trading flow"}
-ALERT_TYPES = ("large_trade", "aggressor_sweep", "net_flow", "auction_spike")
+ALERT_TYPES = ("large_trade", "aggressor_sweep", "net_flow", "auction_spike", "price_move", "level_break")
 
 
 def _eur(x: float) -> str:
@@ -24,23 +24,27 @@ def _eur(x: float) -> str:
     return f"EUR {x / 1e6:.1f}m" if x >= 1e6 else f"EUR {x / 1e3:.0f}k"
 
 
-def _threshold_eur(adtv: float) -> float:
-    """Seuil d'une exécution / d'un sweep : >= 500 k€ OU >= 5 % de l'ADTV -> le plus bas des deux."""
-    cands = [config.ALERT_LARGE_TRADE_EUR]
-    if adtv and not np.isnan(adtv):
-        cands.append(config.ALERT_LARGE_TRADE_ADTV_SHARE * adtv)
-    return min(cands)
+def _threshold_eur(adtv: float, share: float | None = None) -> float:
+    """Seuil d'une exécution (ou d'une rafale) : >= part de l'ADTV, OU >= ALERT_LARGE_TRADE_EUR s'il est défini
+    -> le plus bas des deux. Sans ADTV ni seuil absolu : inf (pas d'alerte)."""
+    share = config.ALERT_LARGE_TRADE_ADTV_SHARE if share is None else share
+    cands = []
+    if config.ALERT_LARGE_TRADE_EUR:
+        cands.append(config.ALERT_LARGE_TRADE_EUR)
+    if adtv is not None and not np.isnan(adtv) and adtv > 0:
+        cands.append(share * adtv)
+    return min(cands) if cands else np.inf
 
 
 def _severity(value: float, threshold: float) -> str:
     return "high" if value >= config.ALERT_HIGH_FACTOR * threshold else "medium"
 
 
-def _with_adtv(isin: str, df: pd.DataFrame) -> pd.DataFrame:
+def _with_adtv(isin: str, df: pd.DataFrame, share: float | None = None) -> pd.DataFrame:
     adtv = data.adtv_series(isin)
     out = df.copy()
     out["adtv"] = out["date"].map(adtv) if not adtv.empty else np.nan
-    out["threshold"] = [_threshold_eur(a) for a in out["adtv"]]
+    out["threshold"] = [_threshold_eur(a, share) for a in out["adtv"]]
     return out
 
 
@@ -103,9 +107,10 @@ def sweeps(isin: str) -> pd.DataFrame:
     """Une ligne par jour : la plus grosse rafale au-dessus du seuil."""
     cols = ["date", "time", "side", "notional_eur", "n", "duration_s", "adtv"]
     runs = sweep_runs(data.continuous_trades(isin))
+    runs = runs[runs["n"] >= config.ALERT_SWEEP_MIN_TRADES]
     if runs.empty:
         return pd.DataFrame(columns=cols)
-    runs = _with_adtv(isin, runs)
+    runs = _with_adtv(isin, runs, config.ALERT_SWEEP_ADTV_SHARE)
     hit = runs[runs["notional_eur"] >= runs["threshold"]]
     if hit.empty:
         return pd.DataFrame(columns=cols)
@@ -149,6 +154,61 @@ def auction_spikes(isin: str) -> pd.DataFrame:
     df["ratio"] = df["share"] / df["baseline"]
     df = df[df["ratio"] > config.ALERT_AUCTION_SPIKE_RATIO].dropna()
     return df.rename_axis("date").reset_index()[cols]
+
+
+# ---------- price_move (« notable day ») ----------
+@lru_cache(maxsize=64)
+def day_moves(isin: str) -> pd.DataFrame:
+    """Par jour : rendement de l'action, médiane des rendements des peers, rendement excédentaire, volume_ratio."""
+    px = data.ohlc(isin)
+    cols = ["ret_pct", "peer_ret_pct", "excess_pct", "volume_ratio"]
+    if px.empty:
+        return pd.DataFrame(columns=cols)
+    ret = px["close"].astype(float).pct_change() * 100
+    peer_rets = [data.ohlc(p)["close"].astype(float).pct_change() * 100 for p in data.peers_of(isin) if not data.ohlc(p).empty]
+    peer = pd.concat(peer_rets, axis=1).median(axis=1, skipna=True).reindex(ret.index) if peer_rets else pd.Series(np.nan, index=ret.index)
+    vol = px["volume"].astype(float)
+    vmean, _ = metrics.rolling_baseline(vol)
+    return pd.DataFrame({"ret_pct": ret, "peer_ret_pct": peer, "excess_pct": ret - peer, "volume_ratio": vol / vmean})
+
+
+@lru_cache(maxsize=64)
+def price_moves(isin: str) -> pd.DataFrame:
+    """|rendement excédentaire vs médiane des peers| > ALERT_PRICE_MOVE_PCT ET volume_ratio > ALERT_PRICE_MOVE_VOLUME.
+    Rendement EXCÉDENTAIRE : une journée où tout le secteur bouge ne déclenche rien."""
+    m = day_moves(isin).dropna(subset=["excess_pct", "volume_ratio"])
+    hit = m[(m["excess_pct"].abs() > config.ALERT_PRICE_MOVE_PCT) & (m["volume_ratio"] > config.ALERT_PRICE_MOVE_VOLUME)]
+    return hit.rename_axis("date").reset_index()
+
+
+# ---------- level_break ----------
+@lru_cache(maxsize=64)
+def level_breaks(isin: str) -> pd.DataFrame:
+    """Clôture qui franchit un support/une résistance (calculés sur l'historique AVANT le jour), confirmée par
+    volume_ratio > ALERT_LEVEL_BREAK_VOLUME ET au moins un large_trade ou aggressor_sweep le même jour."""
+    cols = ["date", "level_type", "level_price", "touches", "close", "volume_ratio"]
+    px = data.ohlc(isin)
+    if px.empty:
+        return pd.DataFrame(columns=cols)
+    confirmed = set(large_trades(isin)["date"]) | set(sweeps(isin)["date"])
+    vr = day_moves(isin)["volume_ratio"]
+    rows = []
+    for d in sorted(confirmed):
+        d = pd.Timestamp(d)
+        if not (vr.get(d, np.nan) > config.ALERT_LEVEL_BREAK_VOLUME):
+            continue
+        lv = indicators.broken_level(px, d)
+        if lv:
+            rows.append({"date": d, "level_type": lv["type"], "level_price": lv["price"], "touches": lv["touches"],
+                         "close": float(px.at[d, "close"]), "volume_ratio": float(vr[d])})
+    return pd.DataFrame(rows, columns=cols)
+
+
+def detail_url(isin: str, day, linked_event_id: str | None) -> str:
+    """Lien de l'alerte : l'impact card de l'événement du jour, sinon celle du « notable day »."""
+    if linked_event_id:
+        return f"/events/{linked_event_id}/impact-card"
+    return f"/days/{isin}/{pd.Timestamp(day).strftime('%Y-%m-%d')}/impact-card"
 
 
 # ---------- anomalies au format dashboard ----------
@@ -207,8 +267,32 @@ def alert_rows(isin: str, start: pd.Timestamp, end: pd.Timestamp, linked: dict[p
             "description": f"Closing auction executed {r['share']:.0%} of the day's volume ({r['ratio']:.1f}x its 20-day average share)",
         })
 
+    for _, r in price_moves(isin).iterrows():
+        if not inside(r["date"]):
+            continue
+        rows.append({
+            "date": r["date"], "type": "price_move", "severity": _severity(abs(r["excess_pct"]), config.ALERT_PRICE_MOVE_PCT),
+            "value": r["excess_pct"],
+            "description": f"Price moved {r['excess_pct']:+.1f}% vs peers on {r['volume_ratio']:.1f}x usual volume",
+        })
+
+    for _, r in level_breaks(isin).iterrows():
+        if not inside(r["date"]):
+            continue
+        verb = "rose above the resistance" if r["level_type"] == "resistance" else "fell below the support"
+        rows.append({
+            "date": r["date"], "type": "level_break",
+            "severity": _severity(r["volume_ratio"], config.ALERT_LEVEL_BREAK_VOLUME),
+            "value": r["volume_ratio"],
+            "description": f"Close of EUR {r['close']:.2f} {verb} at EUR {r['level_price']:.2f} "
+                           f"({int(r['touches'])} previous touches) on {r['volume_ratio']:.1f}x usual volume, "
+                           f"confirmed by unusually large executions",
+            "level_type": r["level_type"], "level_price": r["level_price"],
+        })
+
     for row in rows:
         row["linked_event_id"] = linked.get(pd.Timestamp(row["date"]))
+        row["detail_url"] = detail_url(isin, row["date"], row["linked_event_id"])
     return rows
 
 
@@ -218,5 +302,5 @@ def day_alerts(isin: str, day: pd.Timestamp) -> list[dict]:
 
 
 def clear_caches() -> None:
-    for fn in (large_trades, sweeps, net_flows, auction_spikes):
-        fn.cache_clear()
+    for fn in (large_trades, sweeps, net_flows, auction_spikes, day_moves, price_moves, level_breaks):
+        getattr(fn, "cache_clear", lambda: None)()  # tolère une fonction remplacée par monkeypatch (tests)

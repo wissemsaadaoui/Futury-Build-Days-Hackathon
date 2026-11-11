@@ -102,11 +102,12 @@ export interface PeerPoint {
 export type AnomalyType =
   | "volume_spike"
   | "spread_widening"
-  | "price_move"
+  | "price_move"        // 🆕 v0.3 : |rendement excédentaire vs médiane des peers| > 2,5 % ET volume_ratio > 1,5
   | "auction_spike"     // closing auction > 2× sa part moyenne 20 j
-  | "large_trade"       // 🆕 v0.2 : exécution unique ≥ 500 k€ ou ≥ 5 % de l'ADTV 30 j
-  | "aggressor_sweep"   // 🆕 v0.2 : exécutions consécutives du même côté en ≤ 1 s, somme ≥ mêmes seuils
-  | "net_flow";         // 🆕 v0.2 : |flux net AGENT ou PROP| > 20 % de l'ADTV 30 j
+  | "large_trade"       // v0.3 : exécution unique ≥ 10 % de l'ADTV 30 j
+  | "aggressor_sweep"   // v0.3 : ≥ 3 exécutions consécutives du même côté en ≤ 1 s, somme ≥ 10 % de l'ADTV 30 j
+  | "net_flow"          // |flux net AGENT ou PROP| > 20 % de l'ADTV 30 j
+  | "level_break";      // 🆕 v0.3 : clôture qui franchit un support/une résistance, volume_ratio > 1,5 + exécution inhabituelle
 export type Severity = "low" | "medium" | "high";
 
 export interface Anomaly {
@@ -119,6 +120,9 @@ export interface Anomaly {
   time?: string;                  // 🆕 v0.2 : "HH:MM:SS" (large_trade, aggressor_sweep)
   side?: "BUY" | "SELL";          // 🆕 v0.2 : côté agresseur (trades) ou sens du flux net (net_flow)
   notional_eur?: number;          // 🆕 v0.2 : montant de l'exécution / de la rafale / du flux net
+  level_type?: "support" | "resistance";  // 🆕 v0.3 : level_break uniquement
+  level_price?: number;                   // 🆕 v0.3 : level_break uniquement (€)
+  detail_url: string;             // 🆕 v0.3 : /events/{id}/impact-card si linked_event_id, sinon /days/{isin}/{date}/impact-card
 }
 
 export interface PriceLevel {
@@ -224,6 +228,7 @@ export interface ImpactCardResponse {
     broke_level: { type: "support" | "resistance"; price: number } | null;
   };
   intraday: IntradayBlock | null;  // 🆕 v0.2 : réaction minute par minute (null si pas de trades ce jour-là)
+  pre_disclosure_activity: PreDisclosureActivity | null;  // 🆕 v0.3 : voting_rights uniquement, null sinon ou si rien d'inhabituel
   ai_summary: string;
   generated_at: ISODateTime;
   export: ExportLinks;
@@ -245,6 +250,18 @@ export interface IntradayBlock {
   minutes: IntradayMinute[];
   first_15min: { volume: number; baseline: number | null; ratio: number | null };  // vs même créneau, 20 séances
   price_change_pct: { after_5min: number | null; after_30min: number | null; after_60min: number | null };
+}
+
+// 🆕 v0.3 – activité des 7 séances AVANT une notification de droits de vote (WpHG art. 40)
+export interface PreDisclosureActivity {
+  window: { from: ISODate; to: ISODate; sessions: number };  // séances strictement avant le jour de publication
+  days: {
+    date: ISODate;
+    anomaly_types: AnomalyType[];
+    volume_ratio: number | null;
+    agent_net_flow_eur: number | null;  // flux net AGENT (ordres pour compte de clients), € ; null sans Flows
+  }[];
+  summary: string;  // phrase neutre : « … may coincide with … » ; ne désigne jamais l'investisseur notifié
 }
 
 // ---------- GET /compare ----------
