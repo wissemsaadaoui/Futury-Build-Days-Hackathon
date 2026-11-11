@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from app.analytics import data, events, indicators, metrics, pricing
+from app.analytics import alerts, data, events, indicators, metrics, pricing
 from app.analytics._util import clean, iso, load_mock, pct, r0, r1, r2, ratio
 
 
@@ -39,6 +39,13 @@ def _anomaly_rows(isin: str, spread: pd.Series, volume: pd.Series | None, start,
             rows.append(
                 {"date": iso(d), "type": r["type"], "severity": r["severity"], "value": value, "description": desc, "linked_event_id": ev_day.get(pd.Timestamp(d))}
             )
+    if volume is not None:  # alertes sur les exécutions (trades, Flows, enchères) : seulement avec l'OHLC (ADTV)
+        for a in alerts.alert_rows(isin, pd.Timestamp(start), pd.Timestamp(end), ev_day):
+            a["date"] = iso(a["date"])
+            a["value"] = r2(a["value"])
+            if "notional_eur" in a:
+                a["notional_eur"] = r0(a["notional_eur"])
+            rows.append(a)
     return sorted(rows, key=lambda x: (x["date"], x["type"]))
 
 

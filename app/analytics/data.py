@@ -187,3 +187,6 @@ def clear_caches() -> None:
     from app.analytics import pricing  # import tardif (pricing dépend de data)
 
     pricing.clear_caches()
+    from app.analytics import alerts
+
+    alerts.clear_caches()

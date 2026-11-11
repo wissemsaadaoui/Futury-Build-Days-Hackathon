@@ -99,7 +99,14 @@ export interface PeerPoint {
   auction_share: number | null;
 }
 
-export type AnomalyType = "volume_spike" | "spread_widening" | "price_move" | "auction_spike";
+export type AnomalyType =
+  | "volume_spike"
+  | "spread_widening"
+  | "price_move"
+  | "auction_spike"     // closing auction > 2× sa part moyenne 20 j
+  | "large_trade"       // 🆕 v0.2 : exécution unique ≥ 500 k€ ou ≥ 5 % de l'ADTV 30 j
+  | "aggressor_sweep"   // 🆕 v0.2 : exécutions consécutives du même côté en ≤ 1 s, somme ≥ mêmes seuils
+  | "net_flow";         // 🆕 v0.2 : |flux net AGENT ou PROP| > 20 % de l'ADTV 30 j
 export type Severity = "low" | "medium" | "high";
 
 export interface Anomaly {
@@ -107,8 +114,11 @@ export interface Anomaly {
   type: AnomalyType;
   severity: Severity;
   value: number;
-  description: string;
+  description: string;            // anglais ; jamais « an investor » : « a single execution », « aggressive buy orders »
   linked_event_id: string | null;
+  time?: string;                  // 🆕 v0.2 : "HH:MM:SS" (large_trade, aggressor_sweep)
+  side?: "BUY" | "SELL";          // 🆕 v0.2 : côté agresseur (trades) ou sens du flux net (net_flow)
+  notional_eur?: number;          // 🆕 v0.2 : montant de l'exécution / de la rafale / du flux net
 }
 
 export interface PriceLevel {

@@ -52,6 +52,10 @@ def _missing_keys(mock, out, prefix=""):
     return set()
 
 
+# Champs optionnels du contrat v0.2 (présents seulement sur certains types d'anomalies)
+OPTIONAL_KEYS = {"anomalies.[].time", "anomalies.[].side", "anomalies.[].notional_eur"}
+
+
 def _no_nan(obj):
     s = json.dumps(obj)  # échoue si objet non sérialisable
     assert "NaN" not in s and "Infinity" not in s
@@ -171,7 +175,7 @@ def test_dashboard_spread_only(monkeypatch):
     data.clear_caches()
     try:
         d = A.build_dashboard(PBB, "2026-01-01", "2026-10-30")
-        assert not _missing_keys(_util.load_mock("dashboard"), d)
+        assert not _missing_keys(_util.load_mock("dashboard"), d) - OPTIONAL_KEYS
         assert d["_data_status"] == {"spreads": "real", "ohlc": "mock", "flows": "mock"}
         dates = [a["date"] for a in d["anomalies"]]
         assert dates == sorted(dates)
@@ -363,3 +367,124 @@ def test_intraday_null_without_trades(monkeypatch):
         assert card["intraday"] is None and card["_data_status"]["intraday"] == "missing"
     finally:
         data.clear_caches()
+
+
+# ---------- Partie D : alertes sur les exécutions ----------
+def _synthetic_trades(day: str, rows: list[tuple[str, float, int, str]]) -> pd.DataFrame:
+    """rows = (HH:MM:SS.ffffff, prix, quantité, side). Format etl.load_trades."""
+    ts = [pd.Timestamp(f"{day} {t}").tz_localize("Europe/Berlin") for t, *_ in rows]
+    df = pd.DataFrame(
+        {
+            "ts_utc": [t.tz_convert("UTC") for t in ts],
+            "ts_local": ts,
+            "date": pd.Timestamp(day),
+            "price": [p for _, p, _, _ in rows],
+            "qty": [q for _, _, q, _ in rows],
+            "side": [s for *_, s in rows],
+        }
+    )
+    df["notional_eur"] = df["price"] * df["qty"]
+    df["is_auction"] = df["side"] == ""
+    df["auction_type"] = ""
+    return df[etl.TRADES_COLS]
+
+
+@pytest.fixture
+def synthetic_trades(monkeypatch):
+    """Trades synthétiques le 2026-03-10 (ADTV réel de pbb ce jour-là)."""
+    from app.analytics import alerts
+
+    def install(rows):
+        df = _synthetic_trades("2026-03-10", rows)
+        monkeypatch.setattr(etl, "load_trades", lambda isin: df if isin == PBB else pd.DataFrame(columns=etl.TRADES_COLS))
+        data.clear_caches()
+        adtv = data.adtv_series(PBB).get(pd.Timestamp("2026-03-10"))
+        return alerts, alerts._threshold_eur(adtv)
+
+    yield install
+    data.clear_caches()
+
+
+def test_large_trade_on_synthetic_trades(synthetic_trades):
+    alerts, thr = synthetic_trades([])
+    q_big = int(thr * 1.5 / 3.0)  # 1,5 x le seuil à 3 €
+    alerts, thr = synthetic_trades([
+        ("10:00:00.000", 3.0, 100, "BUY"),
+        ("10:05:00.000", 3.0, q_big, "SELL"),           # au-dessus du seuil
+        ("11:00:00.000", 3.0, int(q_big * 0.5), "BUY"),  # en dessous
+    ])
+    lt = alerts.large_trades(PBB)
+    assert len(lt) == 1
+    r = lt.iloc[0]
+    assert r["time"] == "10:05:00" and r["side"] == "SELL" and r["notional_eur"] == pytest.approx(q_big * 3.0)
+    rows = alerts.day_alerts(PBB, pd.Timestamp("2026-03-10"))
+    big = [a for a in rows if a["type"] == "large_trade"][0]
+    assert big["description"].startswith("A single sell-initiated execution") and "investor" not in big["description"]
+
+
+def test_aggressor_sweep_on_synthetic_trades(synthetic_trades):
+    alerts, thr = synthetic_trades([])
+    q = int(thr * 0.4 / 3.0)  # chaque exécution = 40 % du seuil : il en faut 3 pour le dépasser
+    alerts, thr = synthetic_trades([
+        # rafale 1 : 3 achats en 0,6 s -> 120 % du seuil -> alerte
+        ("10:00:00.000", 3.0, q, "BUY"), ("10:00:00.300", 3.0, q, "BUY"), ("10:00:00.600", 3.0, q, "BUY"),
+        # rafale 2 : 3 ventes mais coupées par un achat -> pas d'alerte
+        ("11:00:00.000", 3.0, q, "SELL"), ("11:00:00.100", 3.0, q, "SELL"), ("11:00:00.200", 3.0, 10, "BUY"), ("11:00:00.300", 3.0, q, "SELL"),
+        # rafale 3 : 3 ventes étalées sur 1,5 s -> > 1 s, pas d'alerte
+        ("12:00:00.000", 3.0, q, "SELL"), ("12:00:00.700", 3.0, q, "SELL"), ("12:00:01.500", 3.0, q, "SELL"),
+    ])
+    runs = alerts.sweep_runs(data.continuous_trades(PBB))
+    assert runs["duration_s"].max() <= 1.0
+    sw = alerts.sweeps(PBB)
+    assert len(sw) == 1
+    r = sw.iloc[0]
+    assert r["time"] == "10:00:00" and r["side"] == "BUY" and r["n"] == 3
+    assert r["notional_eur"] == pytest.approx(3 * q * 3.0)
+    desc = [a for a in alerts.day_alerts(PBB, pd.Timestamp("2026-03-10")) if a["type"] == "aggressor_sweep"][0]["description"]
+    assert desc.startswith("Aggressive buy orders") and "investor" not in desc
+
+
+def test_net_flow_ignores_multi_day_rows(monkeypatch):
+    from app.analytics import alerts
+
+    day = pd.Timestamp("2026-03-10")
+    base = {(r["participant"]): r["share"] for _, r in alerts.net_flows(PBB).query("date == @day").iterrows()}
+    real = etl.load_flows()
+    fake = real[(real["isin"] == PBB) & (real["date"] == day) & (real["participant"] == "AGENT")].copy()
+    fake = fake[fake["side"] == "BUY"]
+    fake["notional_eur"] = 1e9  # énorme achat net... mais sur une ligne multi-jours
+    fake["n_days"] = 3
+    monkeypatch.setattr(etl, "load_flows", lambda: pd.concat([real, fake], ignore_index=True))
+    data.clear_caches()
+    try:
+        after = {(r["participant"]): r["share"] for _, r in alerts.net_flows(PBB).query("date == @day").iterrows()}
+        assert after == pytest.approx(base)
+    finally:
+        data.clear_caches()
+
+
+def test_alerts_on_pbb_are_consistent():
+    from app import config
+
+    d = A.build_dashboard(PBB, "2026-01-01", "2026-10-30")
+    event_ids = {e["event_id"] for e in A.list_events(PBB)["events"]}
+    ev_days = {e["trading_day"] for e in A.list_events(PBB)["events"]}
+    ct = data.continuous_trades(PBB)
+    adtv = data.adtv_series(PBB)
+    types = set()
+    for a in d["anomalies"]:
+        types.add(a["type"])
+        assert "investor" not in a["description"].lower()
+        assert a["linked_event_id"] is None or a["linked_event_id"] in event_ids
+        assert (a["linked_event_id"] is not None) == (a["date"] in ev_days)
+        if a["type"] == "large_trade":
+            day = ct[ct["date"] == pd.Timestamp(a["date"])]
+            assert a["notional_eur"] == round(day["notional_eur"].max())
+            thr = min(config.ALERT_LARGE_TRADE_EUR, config.ALERT_LARGE_TRADE_ADTV_SHARE * adtv[pd.Timestamp(a["date"])])
+            assert a["notional_eur"] >= thr - 1 and a["time"] and a["side"] in {"BUY", "SELL"}
+        if a["type"] == "net_flow":
+            assert abs(a["value"]) >= config.ALERT_NET_FLOW_ADTV_SHARE  # value arrondie à 0,01
+        if a["type"] == "auction_spike":
+            assert a["value"] >= config.ALERT_AUCTION_SPIKE_RATIO
+    assert {"large_trade", "aggressor_sweep", "net_flow", "auction_spike"} <= types
+    _no_nan(d)
