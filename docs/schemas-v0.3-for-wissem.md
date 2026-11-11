@@ -101,3 +101,109 @@ le repli « 2e moitié vs 1re moitié », mais possible sur une période sans OH
 Constat : `GET /compare?type=voting_rights&index=ALL&from=2026-01-01&to=2026-10-30` renvoie aujourd'hui **422** : le paramètre
 `index` de la route (`app/api/compare.py` / `params.py`) refuse déjà `ALL`, alors que `compare_events(..., "ALL", ...)` le gère
 (tous indices) et que le contrat (`mocks/API.md` §2) l'annonce. À ouvrir côté route et côté `CompareFilter`.
+
+---
+
+# v0.4 – Event preview + report Alerts (branche `alfred/event-preview`)
+
+## 6. Déjà fait par Alfred (avec l'accord de l'équipe) : `app/schemas/report.py`
+
+Commit `feat(schemas): ReportKpi accepts unit 'count'…` : `unit` + `"count"`, `trend: Optional`, `change_basis`, `alert_type`,
+`ReportAlertDay` + `ReportSection.alert_days`. Sans ça, `/report` et `/report.pdf` renvoyaient 500 avec la nouvelle section
+« Alerts ». **À relire** ; le point 4 ci-dessus est donc fait.
+
+## 7. À faire : route `GET /stocks/{isin}/event-preview?type=&date=` (`app/api/stocks.py`)
+
+```python
+from datetime import date as Date
+from typing import Optional
+
+from fastapi import Query
+
+from app.schemas import EventPreviewResponse
+from app.schemas.common import EventType
+
+
+@router.get("/{isin}/event-preview", response_model=EventPreviewResponse)
+def get_event_preview(
+    isin: str,
+    type: EventType = Query(..., description="Type d'annonce, ex. quarterly_results"),
+    date: Optional[Date] = Query(None, description="Seuls les événements AVANT cette date sont utilisés"),
+) -> dict:
+    return analytics.build_event_preview(isin, type, date)
+```
+
+`analytics.NotFound` (ISIN inconnu) → 404 via le handler existant ; `type` hors `EventType` → 422 (FastAPI).
+`build_event_preview` accepte `day=None` ou une `date`.
+
+## 8. À faire : schéma `app/schemas/event_preview.py` (+ export dans `app/schemas/__init__.py`)
+
+```python
+"""GET /stocks/{isin}/event-preview"""
+from __future__ import annotations
+
+from typing import Literal, Optional
+
+from app.schemas.common import DataStatusMixin, EventType, ISODate, OptNumber, Schema, StockRef
+
+
+class PreviewStat(Schema):
+    n: int
+    median: OptNumber
+    min: OptNumber
+    max: OptNumber
+
+
+class PreviewEvent(Schema):
+    event_id: str
+    date: ISODate
+    spread_change_pct: OptNumber
+    volume_ratio: OptNumber
+    price_abs_change_pct: OptNumber  # amplitude absolue, jamais signée
+    sessions_to_normal: OptNumber
+    auction_share_change_pts: OptNumber
+    first_15min_ratio: OptNumber
+
+
+class PreviewHistory(Schema):
+    n: int
+    events: list[PreviewEvent]
+    spread_change_pct: PreviewStat
+    volume_ratio: PreviewStat
+    price_abs_change_pct: PreviewStat
+    sessions_to_normal: PreviewStat
+    auction_share_change_pts: PreviewStat
+    first_15min_ratio: PreviewStat
+
+
+class PeerHistory(PreviewHistory):
+    peers_note: Optional[str] = None
+
+
+class Upcoming(Schema):
+    date: ISODate
+    title: Optional[str] = None
+    event_id: Optional[str] = None
+    source_url: Optional[str] = None
+
+
+class EventPreviewResponse(DataStatusMixin, Schema):
+    stock: StockRef
+    event_type: EventType
+    as_of: Optional[ISODate] = None
+    upcoming: Optional[Upcoming] = None
+    own_history: PreviewHistory
+    peers: PeerHistory
+    attention_points: list[str]
+    confidence: Literal["low", "medium", "high"]
+    note: str
+    ai_summary: str
+```
+
+## 9. Tests `tests/api` suggérés
+
+- `/stocks/DE0008019001/event-preview?type=quarterly_results` → 200, `own_history.n == 2`, `upcoming.date == "2026-11-12"`.
+- `…?type=quarterly_results&date=2026-08-13` → `own_history.n == 1` (l'H1 du 13.08 est exclu).
+- `…?type=dividend` → 200, `own_history.n == 0`, statistiques `null`.
+- `/stocks/XX0000000000/event-preview?type=ad_hoc` → 404 ; `?type=nope` → 422.
+- Ajouter `("event-preview", EventPreviewResponse)` à `test_mock_validates` (mock : `mocks/event-preview.json`).
