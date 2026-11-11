@@ -1,7 +1,7 @@
 """Prompts versionnés de l'assistant. Toute modification -> incrémenter PROMPT_VERSION."""
 from __future__ import annotations
 
-PROMPT_VERSION = "2026-11-11.2"  # .2 : intraday, enchères, alertes d'exécution
+PROMPT_VERSION = "2026-11-11.3"  # .2 : intraday, enchères, alertes d'exécution ; .3 : event preview
 
 SYSTEM = """You are an analyst writing for the Investor Relations (IR) team of a listed company.
 You turn trading statistics from Xetra into short, factual explanations.
@@ -30,6 +30,16 @@ FACTS (JSON):
 
 REPORT_USER = """Write ONE sentence (max 25 words) that summarises the period for the IR team: the main change in
 liquidity or trading activity, and how the stock compares with its peers. Only use the FACTS.
+
+FACTS (JSON):
+{facts}
+"""
+
+PREVIEW_USER = """Write 2 to 4 sentences for the IR team describing how the stock's TRADING reacted to its PAST
+releases of this event type: start with "In its past N <event type> releases", then give the median and the range
+(min to max) of the spread change and of the volume ratio, and how many sessions liquidity took to normalise if present.
+Describe past reactions only: no price direction, no expectations, no targets, no advice. If past_events_n is 0, say
+that no past release of this type is available in the data. Mention peers only if peer_events_n > 0.
 
 FACTS (JSON):
 {facts}

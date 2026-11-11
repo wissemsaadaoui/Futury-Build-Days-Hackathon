@@ -115,3 +115,24 @@ def report_facts(report: dict) -> dict[str, Any]:
         "peer_comparison": secs.get("Peer comparison", {}).get("kpis", []),
         "notable_events": len(secs.get("Notable events", {}).get("items", [])),
     }
+
+
+def preview_facts(preview: dict) -> dict[str, Any]:
+    """Faits de l'event preview : uniquement des statistiques de réactions PASSÉES (aucune projection)."""
+    own = preview["own_history"]
+    label = EVENT_LABELS.get(preview["event_type"], preview["event_type"])
+    f: dict[str, Any] = {
+        "company": preview["stock"]["name"],
+        "event_type": label,
+        "past_events_n": own["n"],
+        "data_note": preview.get("note"),
+        "confidence": preview.get("confidence"),
+    }
+    for k in ("spread_change_pct", "volume_ratio", "price_abs_change_pct", "sessions_to_normal", "first_15min_ratio"):
+        st = own.get(k) or {}
+        if st.get("n"):
+            f[k] = {"median": st["median"], "min": st["min"], "max": st["max"], "n": st["n"]}
+    f["peer_events_n"] = preview["peers"]["n"]
+    if preview["peers"]["n"]:
+        f["peers_spread_change_pct"] = preview["peers"]["spread_change_pct"]
+    return f

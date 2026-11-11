@@ -735,3 +735,68 @@ def test_unknown_change_is_never_flat():
     assert report._change(empty, days, days[:0]) == (None, None)
     kpi = report._kpi("X", 1, "ratio", (None, None))
     assert kpi["trend"] is None and kpi["change_pct"] is None and kpi["change_basis"] is None
+
+
+# ---------- Event preview : assistant et garde-fou ----------
+def _stat(vals):
+    vals = [v for v in vals if v is not None]
+    if not vals:
+        return {"n": 0, "median": None, "min": None, "max": None}
+    return {"n": len(vals), "median": float(np.median(vals)), "min": min(vals), "max": max(vals)}
+
+
+def _fake_preview(spreads, vols, stns, event_type="quarterly_results"):
+    own = {"n": len(spreads), "events": []}
+    own["spread_change_pct"] = _stat(spreads)
+    own["volume_ratio"] = _stat(vols)
+    own["sessions_to_normal"] = _stat(stns)
+    for k in ("price_abs_change_pct", "auction_share_change_pts", "first_15min_ratio"):
+        own[k] = _stat([])
+    return {
+        "stock": {"isin": PBB, "name": "Deutsche Pfandbriefbank AG", "index": "SDAX"},
+        "event_type": event_type, "own_history": own,
+        "peers": {"n": 0, "spread_change_pct": _stat([])},
+        "confidence": "low", "note": "Based on 2026 data only (Jan–Oct).",
+    }
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "The share price will rise after the Q3 results.",
+        "We expect the price to recover.",
+        "Analysts see upside of 12.0%.",
+        "The downside is limited.",
+        "Our target is EUR 4.",
+        "The stock will fall on the release.",
+    ],
+)
+def test_guard_rejects_price_predictions(text):
+    assert not guard.check(text, {"x": 12.0, "y": 4})
+
+
+def test_preview_template_past_reactions_only():
+    from app.assistant import facts as F, templates
+
+    p = _fake_preview([7.9, 15.5], [1.36, 2.52], [0, 1])
+    s = templates.preview_summary(p)
+    assert s.startswith("In its past 2 quarterly results releases")
+    assert "+11.7%" in s and "7.9% to 15.5%" in s
+    assert 2 <= len(__import__("re").findall(r"[.!?](?:\s|$)", s)) <= 4
+    assert guard.check(s, F.preview_facts(p))
+    p1 = _fake_preview([-2.2], [15.0], [0], "ad_hoc")
+    one = templates.preview_summary(p1)
+    assert one.startswith("In its only past ad hoc announcement") and "median" not in one
+    assert guard.check(one, F.preview_facts(p1))
+    p0 = _fake_preview([], [], [], "dividend")
+    none = templates.preview_summary(p0)
+    assert none.startswith("No past dividend announcements") and guard.check(none, F.preview_facts(p0))
+
+
+def test_llm_price_prediction_in_preview_falls_back(monkeypatch):
+    from app import assistant
+    from app.assistant import llm, templates
+
+    p = _fake_preview([7.9, 15.5], [1.36, 2.52], [0, 1])
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: "In its past 2 quarterly results releases, the price will rise 11.7%.")
+    assert assistant.summarize_event_preview(p) == templates.preview_summary(p)
