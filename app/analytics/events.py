@@ -41,7 +41,8 @@ def event_payload(row: dict) -> dict:
         "event_id": row["event_id"],
         "type": row["type"],
         "title": row["title"],
-        "published_at": pd.Timestamp(f"{row['date']} {time}").tz_localize(config.TZ).isoformat(),
+        # heure inconnue (non vérifiée) -> null plutôt qu'un faux minuit
+        "published_at": pd.Timestamp(f"{row['date']} {time}").tz_localize(config.TZ).isoformat() if row.get("time") else None,
         "trading_day": pd.Timestamp(row["trading_day"]).strftime("%Y-%m-%d"),
         "source_url": row.get("source_url") or None,
     }

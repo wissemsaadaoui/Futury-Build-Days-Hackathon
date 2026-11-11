@@ -1,5 +1,8 @@
+data/raw
 data/raw/
+data/processed/
 .env
+.venv/
 __pycache__/
-.pytest_cache/ # empêche Git de suivre ces fichiers
-.venv/ # ajoute une ligne .venv/ à la fin du fichier
+.pytest_cache/
+.DS_Store

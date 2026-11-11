@@ -131,7 +131,9 @@
     "press_release",
     "m_and_a",
     "agm",
-    "index_change"
+    "index_change",
+    "voting_rights",
+    "directors_dealings"
   ],
   "_note": "dates/heures réelles (heures 07:00 à vérifier), spread_change_pct réel ; volume_ratio et price_change_pct = mock"
 }

@@ -26,9 +26,10 @@ Toutes les réponses sont en JSON. Les fichiers `*.json` dans ce dossier sont de
 - **z_score** : écart à la normale en écarts-types (> 2 = inhabituel).
 - **change_pct** : variation en %. **change_pts** : variation en points (pour les ratios).
 - **anomaly** (`dashboard.series`) : `true` → mettre le point en évidence ; le détail est dans `anomalies[]`.
+- **event.published_at** (`impact-card`) : horodatage ISO de publication, ou `null` si l'heure n'est pas vérifiée (le `trading_day` reste renseigné). *Changement de contrat (démo pbb).*
 - **window** (`impact-card`) : jours autour de l'événement, `offset 0` = jour de l'événement. Idéal pour un petit graphique avant/après.
 - **trading_day** (`events`) : jour où l'effet est mesuré. Une annonce après la clôture (17:30) compte pour le jour suivant.
-- **event_types** : `quarterly_results`, `annual_results`, `ad_hoc`, `dividend`, `press_release`, `m_and_a`, `agm`, `index_change`.
+- **event_types** : `quarterly_results`, `annual_results`, `ad_hoc`, `dividend`, `press_release`, `m_and_a`, `agm`, `index_change`, `voting_rights` (notification WpHG art. 40, EQS-PVR), `directors_dealings` (transaction de dirigeant MAR art. 19, EQS-DD).
 - **technical_context** : valeurs possibles `trend_before`: `above_ema50` | `below_ema50` ; `macd_*`: `bullish` | `bearish` ; `broke_level`: `null` ou `{type: "support"|"resistance", price}`.
 - **export.pdf_url** : bouton "Export PDF" (sera disponible plus tard ; en attendant, ignorer).
 
