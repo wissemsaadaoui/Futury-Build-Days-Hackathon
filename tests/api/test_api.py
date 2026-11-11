@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 from fastapi.testclient import TestClient
@@ -132,3 +133,38 @@ def test_not_found(url: str) -> None:
 )
 def test_invalid_params(url: str) -> None:
     assert "detail" in _get(url, 422)
+
+
+# ---------- Phase 4 : export PDF ----------
+def _pdf(url: str):
+    r = client.get(url)
+    assert r.status_code == 200, (url, r.status_code, r.text[:300])
+    assert r.headers["content-type"] == "application/pdf"
+    assert r.content.startswith(b"%PDF")
+    return r
+
+
+@needs_data
+def test_impact_card_pdf_url_downloads_pdf() -> None:
+    card = _get("/events/evt_002/impact-card")
+    r = _pdf(card["export"]["pdf_url"])  # T16 : export.pdf_url pointe vers la route PDF
+    assert r.headers["content-disposition"] == 'attachment; filename="pbb_impact_2026-02-13.pdf"'
+
+
+@needs_data
+def test_report_pdf_url_downloads_pdf() -> None:
+    report = _get(f"/stocks/{PBB}/report")
+    r = _pdf(report["export"]["pdf_url"])
+    assert r.headers["content-disposition"].startswith('attachment; filename="pbb_report_')
+
+
+@needs_data
+def test_pdfs_fit_on_one_a4_page() -> None:
+    for url in ("/events/evt_002/impact-card.pdf", f"/stocks/{PBB}/report.pdf"):
+        assert re.search(rb"/Count (\d+)", _pdf(url).content).group(1) == b"1", url
+
+
+@pytest.mark.parametrize("url", ["/events/evt_unknown/impact-card.pdf", "/stocks/XX0000000000/report.pdf"])
+@needs_data
+def test_pdf_not_found(url: str) -> None:
+    assert "detail" in _get(url, 404)

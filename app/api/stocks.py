@@ -1,9 +1,10 @@
 """Routes /stocks : liste, dashboard, événements, IR snapshot."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
-from app import analytics, config, etl
+from app import analytics, config, etl, export
+from app.api.impact_cards import PDF_RESPONSE, pdf_response
 from app.api.params import DateRange, date_range
 from app.schemas import DashboardResponse, EventsResponse, ReportResponse, StocksResponse
 
@@ -48,3 +49,9 @@ def get_events(isin: str) -> dict:
 @router.get("/{isin}/report", response_model=ReportResponse)
 def get_report(isin: str, period: DateRange = Depends(date_range)) -> dict:
     return analytics.build_report(isin, period.start, period.end)
+
+
+@router.get("/{isin}/report.pdf", response_class=Response, responses=PDF_RESPONSE)
+def get_report_pdf(isin: str, period: DateRange = Depends(date_range)) -> Response:
+    report = ReportResponse.model_validate(analytics.build_report(isin, period.start, period.end)).model_dump(by_alias=True)
+    return pdf_response(export.report_pdf(report), export.report_filename(report))
