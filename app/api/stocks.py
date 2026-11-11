@@ -1,12 +1,16 @@
-"""Routes /stocks : liste, dashboard, événements, IR snapshot."""
+"""Routes /stocks : liste, dashboard, événements, IR snapshot, event preview."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response
+from datetime import date
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query, Response
 
 from app import analytics, config, etl, export
 from app.api.impact_cards import PDF_RESPONSE, pdf_response
 from app.api.params import DateRange, date_range
-from app.schemas import DashboardResponse, EventsResponse, ReportResponse, StocksResponse
+from app.schemas import DashboardResponse, EventPreviewResponse, EventsResponse, ReportResponse, StocksResponse
+from app.schemas.common import EventType
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 
@@ -55,3 +59,13 @@ def get_report(isin: str, period: DateRange = Depends(date_range)) -> dict:
 def get_report_pdf(isin: str, period: DateRange = Depends(date_range)) -> Response:
     report = ReportResponse.model_validate(analytics.build_report(isin, period.start, period.end)).model_dump(by_alias=True)
     return pdf_response(export.report_pdf(report), export.report_filename(report))
+
+
+@router.get("/{isin}/event-preview", response_model=EventPreviewResponse)
+def get_event_preview(
+    isin: str,
+    event_type: EventType = Query(alias="type", description="Type d'annonce, ex. quarterly_results"),
+    day: Optional[date] = Query(None, alias="date", description="Seuls les événements AVANT cette date sont utilisés"),
+) -> dict:
+    """« What to expect » : statistiques des réactions passées du trading à ce type d'annonce (pas une prédiction)."""
+    return analytics.build_event_preview(isin, event_type, day)
