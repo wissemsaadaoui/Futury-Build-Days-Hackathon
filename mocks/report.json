@@ -266,10 +266,162 @@
           "spread_change_pct": 5.6
         }
       ]
+    },
+    {
+      "title": "Alerts",
+      "kpis": [
+        {
+          "label": "Volume spikes",
+          "value": 12,
+          "unit": "count",
+          "trend": null,
+          "change_pct": null,
+          "change_basis": null,
+          "alert_type": "volume_spike"
+        },
+        {
+          "label": "Spread widenings",
+          "value": 5,
+          "unit": "count",
+          "trend": null,
+          "change_pct": null,
+          "change_basis": null,
+          "alert_type": "spread_widening"
+        },
+        {
+          "label": "Price moves vs peers",
+          "value": 15,
+          "unit": "count",
+          "trend": null,
+          "change_pct": null,
+          "change_basis": null,
+          "alert_type": "price_move"
+        },
+        {
+          "label": "Large single executions",
+          "value": 13,
+          "unit": "count",
+          "trend": null,
+          "change_pct": null,
+          "change_basis": null,
+          "alert_type": "large_trade"
+        },
+        {
+          "label": "Aggressor sweeps",
+          "value": 38,
+          "unit": "count",
+          "trend": null,
+          "change_pct": null,
+          "change_basis": null,
+          "alert_type": "aggressor_sweep"
+        },
+        {
+          "label": "Unusual net flows",
+          "value": 60,
+          "unit": "count",
+          "trend": null,
+          "change_pct": null,
+          "change_basis": null,
+          "alert_type": "net_flow"
+        },
+        {
+          "label": "Closing auction spikes",
+          "value": 5,
+          "unit": "count",
+          "trend": null,
+          "change_pct": null,
+          "change_basis": null,
+          "alert_type": "auction_spike"
+        },
+        {
+          "label": "Support/resistance breaks",
+          "value": 1,
+          "unit": "count",
+          "trend": null,
+          "change_pct": null,
+          "change_basis": null,
+          "alert_type": "level_break"
+        }
+      ],
+      "alert_days": [
+        {
+          "date": "2026-02-13",
+          "n_alerts": 6,
+          "n_high": 4,
+          "types": [
+            "volume_spike",
+            "price_move",
+            "large_trade",
+            "aggressor_sweep",
+            "net_flow"
+          ],
+          "top_description": "Volume 15.0x above 20-day baseline",
+          "linked_event_id": "evt_002",
+          "detail_url": "/events/evt_002/impact-card"
+        },
+        {
+          "date": "2026-08-31",
+          "n_alerts": 7,
+          "n_high": 3,
+          "types": [
+            "volume_spike",
+            "price_move",
+            "large_trade",
+            "aggressor_sweep",
+            "net_flow",
+            "auction_spike"
+          ],
+          "top_description": "Volume 22.7x above 20-day baseline",
+          "linked_event_id": null,
+          "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
+        },
+        {
+          "date": "2026-03-05",
+          "n_alerts": 4,
+          "n_high": 3,
+          "types": [
+            "volume_spike",
+            "price_move",
+            "net_flow"
+          ],
+          "top_description": "Price moved -7.6% vs peers on 3.2x usual volume",
+          "linked_event_id": "evt_003",
+          "detail_url": "/events/evt_003/impact-card"
+        },
+        {
+          "date": "2026-05-11",
+          "n_alerts": 6,
+          "n_high": 2,
+          "types": [
+            "volume_spike",
+            "price_move",
+            "large_trade",
+            "aggressor_sweep",
+            "net_flow"
+          ],
+          "top_description": "Agency flow (orders on behalf of clients) was net selling EUR 958k (65% of 30-day average daily turnover)",
+          "linked_event_id": null,
+          "detail_url": "/days/DE0008019001/2026-05-11/impact-card"
+        },
+        {
+          "date": "2026-05-05",
+          "n_alerts": 4,
+          "n_high": 2,
+          "types": [
+            "large_trade",
+            "aggressor_sweep",
+            "net_flow"
+          ],
+          "top_description": "Agency flow (orders on behalf of clients) was net selling EUR 681k (41% of 30-day average daily turnover)",
+          "linked_event_id": null,
+          "detail_url": "/days/DE0008019001/2026-05-05/impact-card"
+        }
+      ],
+      "text": "149 alerts on 68 of 213 sessions. Volume spikes: 12; Spread widenings: 5; Price moves vs peers: 15; Large single executions: 13; Aggressor sweeps: 38; Unusual net flows: 60; Closing auction spikes: 5; Support/resistance breaks: 1."
     }
   ],
   "disclaimer": "Descriptive analysis of historical Xetra trading data. Not investment advice.",
-  "generated_at": "2026-11-11T22:19:02+01:00",
+  "generated_at": "2026-11-11T22:35:00+01:00",
   "export": {
     "pdf_url": "/stocks/DE0008019001/report.pdf"
   },

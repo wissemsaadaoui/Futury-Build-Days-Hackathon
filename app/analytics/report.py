@@ -6,7 +6,7 @@ import pandas as pd
 from app import config
 from app.analytics import data, events
 from app.analytics._util import clean, iso, now_iso, pct, r0, r1, r2
-from app.analytics.dashboard import _peer_spread_median
+from app.analytics.dashboard import _anomaly_rows, _peer_spread_median
 from app.analytics.impact import NotFound, headline_metrics
 
 DISCLAIMER = "Descriptive analysis of historical Xetra trading data. Not investment advice."
@@ -49,6 +49,55 @@ def _change(s: pd.Series, rng: pd.DatetimeIndex, prev: pd.DatetimeIndex) -> tupl
 def _kpi(label: str, value, unit: str, change: tuple[float | None, str | None]) -> dict:
     c, basis = change
     return {"label": label, "value": value, "unit": unit, "trend": _trend(c), "change_pct": r1(c), "change_basis": basis}
+
+
+ALERT_LABELS = {
+    "volume_spike": "Volume spikes",
+    "spread_widening": "Spread widenings",
+    "price_move": "Price moves vs peers",
+    "large_trade": "Large single executions",
+    "aggressor_sweep": "Aggressor sweeps",
+    "net_flow": "Unusual net flows",
+    "auction_spike": "Closing auction spikes",
+    "level_break": "Support/resistance breaks",
+}
+TOP_ALERT_DAYS = 5
+
+
+def alerts_section(isin: str, rng: pd.DatetimeIndex) -> dict:
+    """Section « Alerts » : nombre d'alertes par type sur la période + les 5 jours les plus marquants
+    (classés par nombre d'alertes « high », puis nombre total d'alertes)."""
+    px = data.ohlc(isin)
+    vol = px["volume"].astype(float) if not px.empty else None
+    rows = _anomaly_rows(isin, data.spread_series(isin), vol, rng[0], rng[-1])
+    counts: dict[str, int] = {}
+    for r in rows:
+        counts[r["type"]] = counts.get(r["type"], 0) + 1
+    kpis = [
+        {"label": ALERT_LABELS.get(t, t), "value": counts[t], "unit": "count", "trend": None, "change_pct": None,
+         "change_basis": None, "alert_type": t}
+        for t in ALERT_LABELS if t in counts
+    ]
+    by_day: dict[str, list[dict]] = {}
+    for r in rows:
+        by_day.setdefault(r["date"], []).append(r)
+    rank = lambda d: (-sum(a["severity"] == "high" for a in by_day[d]), -len(by_day[d]), d)  # noqa: E731
+    top = []
+    for d in sorted(by_day, key=rank)[:TOP_ALERT_DAYS]:
+        al = sorted(by_day[d], key=lambda a: (a["severity"] != "high", -abs(a["value"] or 0)))
+        top.append({
+            "date": d,
+            "n_alerts": len(al),
+            "n_high": sum(a["severity"] == "high" for a in al),
+            "types": sorted({a["type"] for a in al}, key=list(ALERT_LABELS).index),
+            "top_description": al[0]["description"],
+            "linked_event_id": al[0]["linked_event_id"],
+            "detail_url": al[0]["detail_url"],
+        })
+    n_days = len(by_day)
+    text = (f"{len(rows)} alerts on {n_days} of {len(rng)} sessions. "
+            + "; ".join(f"{k['label']}: {k['value']}" for k in kpis) + ".") if rows else "No alerts over the period."
+    return {"title": "Alerts", "kpis": kpis, "alert_days": top, "text": text}
 
 
 def build_report(isin: str, start, end) -> dict:
@@ -112,6 +161,7 @@ def build_report(isin: str, start, end) -> dict:
             {"title": "Trading profile", "kpis": profile, "text": templates.profile_text(profile)},
             {"title": "Peer comparison", "kpis": peers_kpis, "text": templates.peers_text(r1(sp_now), r1(peer_sp), len(data.peers_of(isin)), config.SECTORS.get(isin))},
             {"title": "Notable events", "items": notable},
+            alerts_section(isin, rng),
         ],
         "disclaimer": DISCLAIMER,
         "generated_at": now_iso(),

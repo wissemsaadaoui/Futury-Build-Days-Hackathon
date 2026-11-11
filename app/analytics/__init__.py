@@ -11,6 +11,7 @@ from __future__ import annotations
 from app.analytics.compare import compare_events, list_events
 from app.analytics.dashboard import build_dashboard
 from app.analytics.impact import NotFound, build_day_card, build_impact_card
+from app.analytics.preview import build_event_preview
 from app.analytics.report import build_report
 
 __all__ = [
@@ -21,4 +22,5 @@ __all__ = [
     "build_day_card",
     "compare_events",
     "build_report",
+    "build_event_preview",
 ]
