@@ -31,3 +31,9 @@ def get_event_impact_card_pdf(event_id: str) -> Response:
 @router.get("/days/{isin}/{day}/impact-card", response_model=ImpactCardResponse)
 def get_day_impact_card(isin: str, day: date) -> dict:
     return analytics.build_day_card(isin, day)
+
+
+@router.get("/days/{isin}/{day}/impact-card.pdf", response_class=Response, responses=PDF_RESPONSE)
+def get_day_impact_card_pdf(isin: str, day: date) -> Response:
+    card = ImpactCardResponse.model_validate(analytics.build_day_card(isin, day)).model_dump(by_alias=True)
+    return pdf_response(export.impact_card_pdf(card), export.impact_card_filename(card))
