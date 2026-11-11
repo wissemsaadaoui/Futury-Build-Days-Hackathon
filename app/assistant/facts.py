@@ -28,6 +28,30 @@ def sessions_to_normalise(card: dict, tolerance: float = 1.1) -> int | None:
     return None
 
 
+def _event_day(card: dict) -> str | None:
+    ev = card.get("event")
+    if ev:
+        return ev["trading_day"]
+    w0 = [w for w in card.get("window", []) if w.get("offset") == 0]
+    return w0[0]["date"] if w0 else None
+
+
+def day_alert_facts(isin: str, day: str | None, limit: int = 3) -> list[dict]:
+    """Alertes d'exécution du jour (réelles), les plus fortes d'abord. Textes déjà rédigés sans « investor »."""
+    if not day:
+        return []
+    import pandas as pd
+
+    from app.analytics import alerts
+
+    try:
+        rows = alerts.day_alerts(isin, pd.Timestamp(day))
+    except Exception:  # l'assistant ne doit jamais faire planter la carte
+        return []
+    rows.sort(key=lambda a: (a["severity"] != "high", -abs(a["value"] or 0)))
+    return [{"type": a["type"], "severity": a["severity"], "description": a["description"]} for a in rows[:limit]]
+
+
 def impact_facts(card: dict) -> dict[str, Any]:
     st = card.get("_data_status", {})
     ev = card.get("event")
@@ -37,7 +61,7 @@ def impact_facts(card: dict) -> dict[str, Any]:
         "index_on_day": card["stock"]["index"],
         "event": ev["title"] if ev else "unusual trading day (no announcement)",
         "event_type": EVENT_LABELS.get(ev["type"], ev["type"]) if ev else None,
-        "trading_day": ev["trading_day"] if ev else (card["window"][len(card["window"]) // 2]["date"] if card.get("window") else None),
+        "trading_day": _event_day(card),
         "baseline": card["baseline"]["method"],
         "spread_bps_25k_eur": {
             "event_day": m["spread_bps"]["event"],
@@ -55,8 +79,27 @@ def impact_facts(card: dict) -> dict[str, Any]:
         }
         f["technical_context"] = card.get("technical_context")
     if st.get("flows") == "real":
-        f["auction_share"] = m["auction_share"]
+        a = m["auction_share"]
+        pct_ = lambda x: None if x is None else round(x * 100, 1)  # noqa: E731 – en %, pour que le texte cite des nombres présents
+        f["auction_share_pct"] = {"event_day": pct_(a.get("event")), "baseline": pct_(a.get("baseline"))}
         f["net_volume_by_participant"] = {p["type"]: p["net"] for p in card["flows"]["by_participant"]}
+    if st.get("opening_closing_auction") == "real":
+        f["auctions"] = {
+            "opening_auction_ratio_vs_baseline": m["opening_auction"]["ratio"],
+            "closing_auction_ratio_vs_baseline": m["closing_auction"]["ratio"],
+        }
+    it = card.get("intraday")
+    if st.get("intraday") == "real" and it:
+        f["intraday"] = {
+            "reference": ("publication at " if it["during_session"] else "market open at ") + it["reference_time"][11:16],
+            "announcement_during_session": it["during_session"],
+            "first_15min_volume_ratio_vs_same_time_20d": it["first_15min"]["ratio"],
+            "price_change_pct": it["price_change_pct"],
+        }
+    if st.get("ohlc") == "real":
+        alerts = day_alert_facts(card["stock"]["isin"], f.get("trading_day"))
+        if alerts:
+            f["execution_alerts_that_day"] = alerts
     return {k: v for k, v in f.items() if v is not None}
 
 

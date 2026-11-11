@@ -488,3 +488,47 @@ def test_alerts_on_pbb_are_consistent():
             assert a["value"] >= config.ALERT_AUCTION_SPIKE_RATIO
     assert {"large_trade", "aggressor_sweep", "net_flow", "auction_spike"} <= types
     _no_nan(d)
+
+
+# ---------- Assistant : faits réels, templates, wording ----------
+def _sentences(text: str) -> int:
+    import re
+
+    return len(re.findall(r"[.!?](?:\s|$)", text))
+
+
+@pytest.mark.parametrize("which", ["evt_002", "evt_003", "day"])
+def test_real_summaries_are_short_guarded_and_neutral(which):
+    from app.assistant import facts as F
+
+    card = A.build_day_card(PBB, "2026-08-31") if which == "day" else A.build_impact_card(which)
+    s = card["ai_summary"]
+    f = F.impact_facts(card)
+    assert 3 <= _sentences(s) <= 5
+    assert guard.check(s, f)
+    assert "investor" not in s.lower()
+    assert {"intraday", "auctions", "volume", "price"} <= set(f)
+
+
+def test_facts_include_intraday_and_day_alerts():
+    from app.assistant import facts as F
+
+    card = A.build_impact_card("evt_002")
+    f = F.impact_facts(card)
+    it = card["intraday"]
+    assert f["intraday"]["first_15min_volume_ratio_vs_same_time_20d"] == it["first_15min"]["ratio"]
+    assert f["intraday"]["announcement_during_session"] is True
+    assert f["auctions"]["closing_auction_ratio_vs_baseline"] == card["metrics"]["closing_auction"]["ratio"]
+    d = A.build_dashboard(PBB, "2026-02-13", "2026-02-13")
+    trade_alerts = {a["description"] for a in d["anomalies"] if a["type"] in {"large_trade", "aggressor_sweep", "net_flow", "auction_spike"}}
+    assert {a["description"] for a in f["execution_alerts_that_day"]} <= trade_alerts
+    assert f"{it['first_15min']['ratio']:.1f}x" in card["ai_summary"]  # arrondi à 1 décimale dans le texte
+
+
+def test_llm_text_naming_an_investor_is_rejected(monkeypatch):
+    from app.assistant import llm
+
+    card = A.build_impact_card("evt_003")
+    spread = f"{card['metrics']['spread_bps']['event']:.1f}"
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: f"An investor drove the spread to {spread} bps.")
+    assert "investor" not in A.build_impact_card("evt_003")["ai_summary"].lower()
