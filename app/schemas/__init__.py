@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from app.schemas.compare import CompareResponse
 from app.schemas.dashboard import DashboardResponse
+from app.schemas.event_preview import EventPreviewResponse
 from app.schemas.events import EventsResponse
 from app.schemas.impact_card import ImpactCardResponse
 from app.schemas.report import ReportResponse
@@ -20,4 +21,5 @@ __all__ = [
     "ImpactCardResponse",
     "CompareResponse",
     "ReportResponse",
+    "EventPreviewResponse",
 ]

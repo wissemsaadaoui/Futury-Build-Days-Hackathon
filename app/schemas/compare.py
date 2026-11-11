@@ -3,12 +3,12 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from app.schemas.common import EventType, Index, ISODate, OptNumber, Schema
+from app.schemas.common import CompareIndex, EventType, ISODate, OptNumber, Schema
 
 
 class CompareFilter(Schema):
     type: EventType
-    index: Index
+    index: CompareIndex
     from_: ISODate = Field(alias="from")
     to: ISODate
 

@@ -11,6 +11,7 @@ from app.main import app
 from app.schemas import (
     CompareResponse,
     DashboardResponse,
+    EventPreviewResponse,
     EventsResponse,
     ImpactCardResponse,
     ReportResponse,
@@ -47,6 +48,7 @@ def _get(url: str, status: int = 200) -> dict:
         ("events", EventsResponse),
         ("impact-card", ImpactCardResponse),
         ("impact-card-voting-rights", ImpactCardResponse),
+        ("event-preview", EventPreviewResponse),
         ("compare", CompareResponse),
         ("report", ReportResponse),
     ],
@@ -229,3 +231,58 @@ def test_voting_rights_pdf_with_pre_disclosure_fits_one_page() -> None:
 @needs_data
 def test_day_card_pdf_not_found(url: str) -> None:
     assert "detail" in _get(url, 404)
+
+
+# ---------- v0.4 : /compare index=ALL, event preview, section Alerts du report ----------
+@needs_data
+def test_compare_all_indices_is_default() -> None:
+    explicit = _get("/compare?type=voting_rights&index=ALL")
+    assert explicit["filter"]["index"] == "ALL"
+    assert _get("/compare?type=voting_rights") == explicit  # index absent -> ALL
+
+
+@needs_data
+def test_event_preview_upcoming_quarterly_results() -> None:
+    p = _get(f"/stocks/{PBB}/event-preview?type=quarterly_results")
+    assert p["stock"]["isin"] == PBB and p["event_type"] == "quarterly_results"
+    assert p["own_history"]["n"] == 2
+    assert p["upcoming"]["date"] == "2026-11-12"
+    assert p["confidence"] in ("low", "medium", "high") and p["ai_summary"]
+
+
+@needs_data
+def test_event_preview_as_of_excludes_later_events() -> None:
+    p = _get(f"/stocks/{PBB}/event-preview?type=quarterly_results&date=2026-08-13")
+    assert p["as_of"] == "2026-08-13"
+    assert p["own_history"]["n"] == 1  # H1 du 13.08 exclu
+    assert all(e["date"] < "2026-08-13" for e in p["own_history"]["events"])
+
+
+@needs_data
+def test_event_preview_without_history_has_null_stats() -> None:
+    p = _get(f"/stocks/{PBB}/event-preview?type=dividend")
+    assert p["own_history"]["n"] == 0
+    assert p["own_history"]["spread_change_pct"] == {"n": 0, "median": None, "min": None, "max": None}
+
+
+@pytest.mark.parametrize(
+    "url, status",
+    [
+        ("/stocks/XX0000000000/event-preview?type=ad_hoc", 404),
+        (f"/stocks/{PBB}/event-preview?type=nope", 422),
+        (f"/stocks/{PBB}/event-preview", 422),
+    ],
+)
+@needs_data
+def test_event_preview_errors(url: str, status: int) -> None:
+    assert "detail" in _get(url, status)
+
+
+@needs_data
+def test_report_alerts_section_in_json_and_pdf() -> None:
+    report = _get(f"/stocks/{PBB}/report")
+    alerts = [s for s in report["sections"] if s.get("alert_days")]
+    assert alerts and all(k["unit"] == "count" for k in alerts[0]["kpis"])
+    assert all(d["n_alerts"] >= d["n_high"] for d in alerts[0]["alert_days"])
+    r = _pdf(f"/stocks/{PBB}/report.pdf")
+    assert re.search(rb"/Count (\d+)", r.content).group(1) == b"1"

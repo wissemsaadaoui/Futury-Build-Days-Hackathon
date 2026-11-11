@@ -345,8 +345,62 @@ _UNIT_FMT = {
     "bps": lambda v: num(v, 1, " bps"),
     "ratio": lambda v: share(v),
     "pct": lambda v: num(v, 1, "%"),
+    "count": lambda v: num(v),
 }
-_TREND = {"up": "up", "down": "down", "flat": "flat", "better": "better", "worse": "worse"}
+_BASIS = {"previous_period": "vs previous period", "first_half": "vs 1st half"}
+
+
+def _kpi_note(k: dict) -> str:
+    parts = [k.get("trend") or ""]
+    if k.get("change_pct") is not None:
+        parts.append(f"{signed(k['change_pct'])} {_BASIS.get(k.get('change_basis'), '')}".strip())
+    return " · ".join(p for p in parts if p)
+
+
+def _kpi_tiles(kpis: list[dict]) -> list[Flowable]:
+    """Tuiles par lignes de 4 maximum."""
+    rows = [kpis[i : i + 4] for i in range(0, len(kpis), 4)]
+    out: list[Flowable] = []
+    for i, row in enumerate(rows):
+        if i:
+            out.append(Spacer(1, 2 * mm))
+        out.append(_tiles([(k["label"], _UNIT_FMT.get(k["unit"], num)(k.get("value")), _kpi_note(k), INK) for k in row]))
+    return out
+
+
+def _count_grid(kpis: list[dict]) -> Table:
+    """Compteurs (section Alerts) : grille compacte libellé / nombre, 4 par ligne."""
+    cells = [[Paragraph(_esc(k["label"]), S["cell"]), Paragraph(f"<b>{num(k.get('value'))}</b>", ParagraphStyle("n", parent=S["cell"], alignment=2))] for k in kpis]
+    cells += [["", ""]] * (-len(cells) % 4)
+    rows = [sum(cells[i : i + 4], []) for i in range(0, len(cells), 4)]
+    w = CONTENT_W / 4
+    t = Table(rows, colWidths=[w * 0.75, w * 0.25] * 4)
+    t.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), TILE_BG),
+                ("LINEBELOW", (0, 0), (-1, -2), 0.3, colors.white),
+                ("TOPPADDING", (0, 0), (-1, -1), 2.2),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2.2),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    return t
+
+
+def _alert_days_table(days: list[dict]) -> Table:
+    rows = [
+        [
+            d["date"],
+            f"{d['n_alerts']} ({d['n_high']} high)",
+            ", ".join(x.replace("_", " ") for x in d.get("types") or []),
+            d.get("top_description") or "",
+        ]
+        for d in days
+    ]
+    return _table(["Date", "Alerts", "Types", "Main alert"], rows, [CONTENT_W * x for x in (0.11, 0.11, 0.26, 0.52)], align_right_from=4)
 
 
 def report_pdf(report: dict) -> bytes:
@@ -359,22 +413,14 @@ def report_pdf(report: dict) -> bytes:
     for sec in report["sections"]:
         story.append(Paragraph(_esc(sec["title"]), S["h2"]))
         kpis = sec.get("kpis") or []
-        if kpis:
-            story.append(
-                _tiles(
-                    [
-                        (
-                            k["label"],
-                            _UNIT_FMT.get(k["unit"], num)(k.get("value")),
-                            _TREND.get(k.get("trend"), "") + (f" ({signed(k['change_pct'])})" if k.get("change_pct") is not None else ""),
-                            INK,
-                        )
-                        for k in kpis
-                    ]
-                )
-            )
+        if kpis and all(k["unit"] == "count" for k in kpis):
+            story.append(_count_grid(kpis))
+        elif kpis:
+            story += _kpi_tiles(kpis)
         if sec.get("text"):
             story += [Spacer(1, 1.5 * mm), Paragraph(_esc(sec["text"]), S["body"])]
+        if sec.get("alert_days"):
+            story += [Spacer(1, 1.5 * mm), Paragraph("Most active alert days", S["small"]), _alert_days_table(sec["alert_days"])]
         items = sec.get("items") or []
         if items:
             rows = [

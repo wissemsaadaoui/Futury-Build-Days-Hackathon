@@ -14,6 +14,7 @@ OptNumber = Optional[Number]
 ISODate = str  # "YYYY-MM-DD"
 ISODateTime = str  # ISO 8601 avec fuseau
 Index = Literal["DAX", "MDAX", "SDAX"]
+CompareIndex = Literal["DAX", "MDAX", "SDAX", "ALL"]  # /compare : "ALL" = tous indices
 
 EventType = Literal[
     "quarterly_results",
