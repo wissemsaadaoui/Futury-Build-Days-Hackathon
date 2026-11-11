@@ -12,6 +12,8 @@ EVENT_LABELS = {
     "m_and_a": "M&A announcement",
     "agm": "annual general meeting",
     "index_change": "index change",
+    "voting_rights": "voting rights notification",
+    "directors_dealings": "directors' dealings notification",
 }
 
 

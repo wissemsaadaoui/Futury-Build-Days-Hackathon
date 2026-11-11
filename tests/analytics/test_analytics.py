@@ -12,7 +12,7 @@ from app import etl
 from app.analytics import _util, data, events, indicators, metrics
 from app.assistant import guard
 
-SUSS = "DE000A1K0235"
+PBB = "DE0008019001"
 
 
 # ---------- helpers ----------
@@ -37,16 +37,16 @@ def _no_nan(obj):
 
 @pytest.fixture
 def synthetic_ohlc_flows(monkeypatch):
-    """OHLC + Flows synthétiques pour SUSS et ses peers, sur le calendrier réel."""
+    """OHLC + Flows synthétiques pour pbb et ses peers, sur le calendrier réel."""
     xlm = etl.load_xlm()
     days = sorted(xlm["date"].unique())
     rng = np.random.default_rng(0)
     rows, frows = [], []
-    for isin in [SUSS] + data.peers_of(SUSS):
+    for isin in [PBB] + data.peers_of(PBB):
         price = 9.0
         for d in days:
             vol = rng.integers(300_000, 500_000)
-            if isin == SUSS and d == pd.Timestamp("2026-03-30"):
+            if isin == PBB and d == pd.Timestamp("2026-03-05"):
                 vol = 2_000_000
             o = price
             price = max(1, price * (1 + rng.normal(0, 0.015)))
@@ -97,8 +97,9 @@ def test_clean_removes_nan():
 def test_spread_data_loaded():
     assert data.trading_days()[0] == pd.Timestamp("2026-01-02")
     assert len(data.trading_days()) == 213
-    assert data.index_on(SUSS, pd.Timestamp("2026-06-19")) == "SDAX"
-    assert data.index_on(SUSS, pd.Timestamp("2026-06-22")) == "MDAX"
+    # pbb reste en SDAX toute l'année
+    assert data.index_on(PBB, pd.Timestamp("2026-01-02")) == "SDAX"
+    assert data.index_on(PBB, pd.Timestamp("2026-10-30")) == "SDAX"
 
 
 def _xlm_spread(isin: str, day: str) -> float:
@@ -108,20 +109,28 @@ def _xlm_spread(isin: str, day: str) -> float:
 
 
 def test_impact_card_shape_matches_mock():
-    card = A.build_impact_card("evt_001")
+    card = A.build_impact_card("evt_003")  # FY 2025 results
     assert _keys(_util.load_mock("impact-card")) <= _keys(card)
-    assert card["event"]["trading_day"] == "2026-03-30"
-    assert card["metrics"]["spread_bps"]["event"] == pytest.approx(_xlm_spread(SUSS, "2026-03-30"), abs=0.05)
+    assert card["event"]["trading_day"] == "2026-03-05"
+    assert card["metrics"]["spread_bps"]["event"] == pytest.approx(_xlm_spread(PBB, "2026-03-05"), abs=0.05)
     assert len(card["window"]) == 11 and card["window"][5]["offset"] == 0
     assert card["ai_summary"]
     _no_nan(card)
 
 
 def test_after_close_event_maps_to_next_day():
-    # evt_006 : 17:35 mais trading_day forcé dans events.csv (dernière clôture avant l'entrée en MDAX)
-    assert A.build_impact_card("evt_006")["event"]["trading_day"] == "2026-06-19"
-    # sans forçage, une annonce à 18:00 un vendredi tombe sur le lundi suivant
-    assert events.resolve_trading_day("2026-06-19", "18:00", data.trading_days()) == pd.Timestamp("2026-06-22")
+    days = data.trading_days()
+    # 16:48 (evt_005, directors' dealings) : avant 17:30 -> même jour
+    assert A.build_impact_card("evt_005")["event"]["trading_day"] == "2026-03-17"
+    # une annonce à 18:00 un jeudi -> vendredi ; un vendredi -> lundi
+    assert events.resolve_trading_day("2026-03-05", "18:00", days) == pd.Timestamp("2026-03-06")
+    assert events.resolve_trading_day("2026-03-06", "18:00", days) == pd.Timestamp("2026-03-09")
+
+
+def test_unknown_time_gives_null_published_at():
+    ev = A.build_impact_card("evt_003")["event"]  # heure non vérifiée dans events.csv
+    assert ev["published_at"] is None and ev["trading_day"] == "2026-03-05"
+    assert A.build_impact_card("evt_002")["event"]["published_at"] == "2026-02-13T12:26:00+01:00"
 
 
 def test_unknown_ids_raise_notfound():
@@ -130,16 +139,16 @@ def test_unknown_ids_raise_notfound():
     with pytest.raises(A.NotFound):
         A.build_dashboard("XX0000000000", "2026-01-01", "2026-02-01")
     with pytest.raises(A.NotFound):
-        A.build_day_card(SUSS, "2026-03-07")  # samedi
+        A.build_day_card(PBB, "2026-03-07")  # samedi
 
 
 def test_dashboard_spread_only():
-    d = A.build_dashboard(SUSS, "2026-01-01", "2026-10-30")
+    d = A.build_dashboard(PBB, "2026-01-01", "2026-10-30")
     assert _keys(_util.load_mock("dashboard")) <= _keys(d)
     assert d["_data_status"]["spreads"] == "real"
     dates = [a["date"] for a in d["anomalies"]]
     assert dates == sorted(dates)
-    event_ids = {e["event_id"] for e in A.list_events(SUSS)["events"]}
+    event_ids = {e["event_id"] for e in A.list_events(PBB)["events"]}
     for a in d["anomalies"]:
         assert a["type"] in {"volume_spike", "spread_widening", "price_move", "auction_spike"}
         assert a["severity"] in {"low", "medium", "high"}
@@ -148,11 +157,12 @@ def test_dashboard_spread_only():
 
 
 def test_events_compare_report():
-    ev = A.list_events(SUSS)
+    ev = A.list_events(PBB)
     assert [e["event_id"] for e in ev["events"]][:2] == ["evt_001", "evt_002"]
-    c = A.compare_events("index_change", "ALL", "2026-01-01", "2026-10-30")
-    assert c["summary"]["n_events"] == 3
-    r = A.build_report(SUSS, "2026-04-01", "2026-06-30")
+    c = A.compare_events("voting_rights", "ALL", "2026-01-01", "2026-10-30")
+    raw = etl.load_events()
+    assert c["summary"]["n_events"] == int((raw["type"] == "voting_rights").sum())
+    r = A.build_report(PBB, "2026-04-01", "2026-06-30")
     assert r["headline"] and r["disclaimer"].endswith("Not investment advice.")
     for x in (ev, c, r):
         _no_nan(x)
@@ -160,7 +170,7 @@ def test_events_compare_report():
 
 # ---------- chemin complet avec OHLC + Flows ----------
 def test_full_path_with_ohlc_and_flows(synthetic_ohlc_flows):
-    card = A.build_impact_card("evt_001")
+    card = A.build_impact_card("evt_003")
     assert card["_data_status"]["ohlc"] == "real" and card["_data_status"]["flows"] == "real"
     assert card["metrics"]["volume"]["ratio"] > 3
     assert card["metrics"]["volume"]["z_score"] > 3
@@ -169,12 +179,12 @@ def test_full_path_with_ohlc_and_flows(synthetic_ohlc_flows):
     assert card["vs_peers"]["peer_avg_volume_ratio"] is not None
     assert all(w["close"] is not None for w in card["window"])
 
-    d = A.build_dashboard(SUSS, "2026-03-01", "2026-04-30")
+    d = A.build_dashboard(PBB, "2026-03-01", "2026-04-30")
     assert d["series"][0]["date"] >= "2026-03-01" and len(d["series"]) == len(d["peers_series"])
-    assert any(a["type"] == "volume_spike" and a["date"] == "2026-03-30" for a in d["anomalies"])
+    assert any(a["type"] == "volume_spike" and a["date"] == "2026-03-05" for a in d["anomalies"])
     _no_nan(d)
 
-    r = A.build_report(SUSS, "2026-04-01", "2026-06-30")
+    r = A.build_report(PBB, "2026-04-01", "2026-06-30")
     labels = [k["label"] for k in r["sections"][0]["kpis"]]
     assert "Avg daily volume" in labels and "Auction share" in labels
     _no_nan(r)
@@ -193,6 +203,6 @@ def test_summary_falls_back_without_llm(monkeypatch):
     from app.assistant import llm
 
     monkeypatch.setattr(llm, "complete", lambda *a, **k: "Spread exploded to 999 bps, buy now!")
-    card = A.build_impact_card("evt_001")
-    spread = f"{_xlm_spread(SUSS, '2026-03-30'):.1f}"
+    card = A.build_impact_card("evt_003")
+    spread = f"{_xlm_spread(PBB, '2026-03-05'):.1f}"
     assert "999" not in card["ai_summary"] and spread in card["ai_summary"]

@@ -1,5 +1,5 @@
-# Données Deutsche Börse (jamais committées)
-data/raw/
+# Données Deutsche Börse (jamais committées) – sans « / » pour couvrir aussi un lien symbolique
+data/raw
 
 # Secrets (garder .env.example)
 .env
@@ -14,3 +14,6 @@ __pycache__/
 
 # Sorties générées par scripts/
 data/processed/
+
+# macOS
+.DS_Store

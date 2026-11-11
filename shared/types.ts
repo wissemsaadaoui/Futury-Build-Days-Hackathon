@@ -14,7 +14,9 @@ export type EventType =
   | "press_release"
   | "m_and_a"
   | "agm"
-  | "index_change";
+  | "index_change"
+  | "voting_rights"        // notification de droits de vote WpHG art. 40 (EQS-PVR) – ajouté pour la démo pbb
+  | "directors_dealings";  // transaction de dirigeant MAR art. 19 (EQS-DD) – ajouté pour la démo pbb
 
 export type ParticipantType = "AGENT" | "PROP" | "MARKET_MAKER";
 export type MarketMode = "AGGRESSIVE" | "PASSIVE" | "AUCTION";
@@ -163,7 +165,7 @@ export interface ImpactCardResponse {
     event_id: string;
     type: EventType;
     title: string;
-    published_at: ISODateTime;
+    published_at: ISODateTime | null;  // null si l'heure de publication n'est pas vérifiée (démo pbb)
     trading_day: ISODate;
     source_url: string | null;
   } | null;                      // null pour un "notable day" sans annonce

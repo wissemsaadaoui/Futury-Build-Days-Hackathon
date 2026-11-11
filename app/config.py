@@ -42,18 +42,33 @@ BASELINE_DAYS = 20
 WINDOW_DAYS = 5
 MARKET_CLOSE = "17:30"  # annonce après cette heure -> jour de trading suivant
 
-# Peers choisis à la main (pas de colonne secteur dans les données) – à remplir (Alfred)
+# Peers choisis à la main (pas de colonne secteur dans les données)
+# modifié par Alfred – démo pbb : financières SDAX/MDAX
+# Couverture XLM : ProCredit seulement dès le 14.10.2026 (entrée SDAX), W&W jusqu'au 05.10.2026 (sortie SDAX)
 PEERS: dict[str, list[str]] = {
-    "DE0008019001": [],
+    "DE0008019001": [
+        "DE000A161N30",  # GRENKE (GLJ)
+        "DE0005493365",  # Hypoport (HYQ)
+        "DE0006569908",  # MLP (MLP)
+        "DE0006223407",  # ProCredit Holding (PCZ)
+        "DE0008051004",  # Wüstenrot & Württembergische (WUW)
+        "DE000FTG1111",  # flatexDEGIRO (FTK, MDAX)
+    ],
 }
 
+# modifié par Alfred – démo pbb
 NAMES: dict[str, str] = {
     "DE0008019001": "Deutsche Pfandbriefbank AG",
+    "DE000A161N30": "GRENKE AG",
+    "DE0005493365": "Hypoport SE",
+    "DE0006569908": "MLP SE",
+    "DE0006223407": "ProCredit Holding AG",
+    "DE0008051004": "Wüstenrot & Württembergische AG",
+    "DE000FTG1111": "flatexDEGIRO AG",
 }
 
-SECTORS: dict[str, str] = {
-    "DE0008019001": "Financials",
-}
+# modifié par Alfred – démo pbb
+SECTORS: dict[str, str] = {isin: "Financials" for isin in NAMES}
 
 # LLM (assistant)
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "")  # "anthropic" | "openai" | "" (= templates seulement)
