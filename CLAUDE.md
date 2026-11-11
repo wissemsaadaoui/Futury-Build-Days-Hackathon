@@ -80,7 +80,7 @@ C'est ce qui permet de travailler en parallèle. **Ne pas changer une signature 
 
 ### ETL → Analytics (backend fournit, Alfred consomme)
 
-Toutes les fonctions renvoient des `pandas.DataFrame` avec **exactement** ces colonnes. Les données sont chargées une fois au démarrage et mises en cache.
+Toutes les fonctions renvoient des `pandas.DataFrame` avec **exactement** ces colonnes. Les données sont chargées une fois au démarrage (`etl.warm_up()` dans le `lifespan` de `app.main`, ~6 s) et mises en cache. Sans fichiers : DataFrame vide avec les bonnes colonnes.
 
 ```python
 # app/etl/__init__.py
@@ -88,17 +88,32 @@ def load_xlm() -> pd.DataFrame:
     """date (datetime64), isin, mnemonic, index, notional (float), impact_bps (float, NaN possible)"""
 
 def load_ohlc() -> pd.DataFrame:
-    """date, isin, open, high, low, close, volume, turnover_eur (+ colonnes selon NOTES.md)"""
+    """date, isin, open, high, low, close, volume, turnover_eur, vwap, close_mid,
+       open_auction_price, mid_auction_price, close_auction_price,
+       open_auction_ts, mid_auction_ts, close_auction_ts (HH:MM:SS, heure de Francfort)
+       Actions EUR uniquement, clé unique (date, isin). open/high/low/close_mid = prix mid cotés ;
+       close = prix de la closing auction (clôture officielle), sinon close_mid. volume en actions."""
 
 def load_flows() -> pd.DataFrame:
     """date, isin, participant (AGENT|PROP|MARKET_MAKER), mode (AGGRESSIVE|PASSIVE|AUCTION),
-       side (BUY|SELL), volume"""
+       side (BUY|SELL), volume (actions), notional_eur, n_days
+       date = REPORTED_FLOW_DATES (dernier jour si multi-jours, n_days = nb de jours agrégés).
+       AUCTION regroupe toutes les enchères : opening/closing -> load_trades."""
+
+def load_trades(isin: str) -> pd.DataFrame:
+    """ts_utc, ts_local (Europe/Berlin), date, price, qty, notional_eur, side (BUY|SELL|"" = pas d'agresseur),
+       is_auction (side vide), auction_type (opening|midday|closing|""), triés par ts_utc.
+       Lu depuis data/processed/trades_<ISIN>.csv.gz (python -m scripts.extract_trades, ~30 s) ;
+       disponible pour DEMO_ISINS + PEERS, DataFrame vide sinon."""
 
 def load_events() -> pd.DataFrame:
     """event_id, isin, date, time, trading_day, type, title, source_url"""
 
 def get_universe() -> pd.DataFrame:
-    """isin, name, mnemonic, index (actuel), sector (peut être vide)"""
+    """isin, name, mnemonic, index (actuel), sector (peut être vide) – 174 ISIN DAX/MDAX/SDAX (index_constituents)"""
+
+def index_on_date(isin: str, day) -> str | None:
+    """DAX | MDAX | SDAX à cette date (jour de trading précédent si pas de fichier), None si hors indices"""
 ```
 
 ### Analytics → API (Alfred fournit, backend consomme)
@@ -200,4 +215,5 @@ Erreurs : `404` si l'ISIN ou l'event_id est inconnu, `422` pour des dates invali
 - `Impact_bps = nan` quand le carnet n'est pas assez profond pour le notional : ne pas remplacer par 0.
 - La colonne `Index` change dans le temps (ex. SUSS MicroTec : SDAX jusqu'au 19.06.2026, MDAX dès le 22.06.2026 ; vérifier l'historique d'indice de pbb). Pour les peers, utiliser l'indice **à la date** concernée.
 - Lire le `NOTES.md` et le PDF de chaque dossier de données avant d'écrire l'ETL correspondant.
-- Les Flows décrivent le trading de la **veille** : vérifier l'alignement des dates.
+- Flows : la date des flux est `REPORTED_FLOW_DATES`, pas `DATE` (flux censurés < 7 exécutions publiés plus tard, parfois agrégés sur plusieurs jours). Pour pbb, les 213 jours sont alignés (aucun décalage).
+- Flows : la colonne `VOLUME` du fichier compte achat + vente (×2) ; utiliser `load_flows()["volume"]` (actions, comptées une fois).
