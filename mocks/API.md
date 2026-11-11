@@ -35,6 +35,8 @@ En attendant l'API, utilise `mocks/*.json` et `shared/types.ts` : même format.
 | 14 | 🆕 v0.3 : nouvelles anomalies **`price_move`** (« notable day ») et **`level_break`** (champs `level_type`, `level_price`) | Libellés, icônes |
 | 15 | 🆕 v0.3 : **`detail_url`** sur chaque anomalie (impact card de l'événement, sinon du jour) | Utiliser ce lien au clic |
 | 16 | 🆕 v0.3 : seuils `large_trade` / `aggressor_sweep` relevés (10 % de l'ADTV, ≥ 3 exécutions) : beaucoup moins d'alertes | Aucun |
+| 18 | 🆕 v0.3 : `report.sections[].kpis[].change_basis` (`previous_period` \| `first_half`) ; si la période précédente n'a pas de données (rapport qui commence le 02.01), la variation compare la **2e moitié à la 1re moitié** de la période. `trend` vaut `null` si la variation reste inconnue (plus jamais `"flat"` par défaut) | Afficher « vs first half of the period » quand `change_basis = first_half` |
+| 19 | 🆕 v0.3 : `compare.filter.index` peut valoir `"ALL"` | Aucun |
 | 17 | 🆕 v0.3 : bloc **`pre_disclosure_activity`** dans l'impact card des notifications `voting_rights` (§5.4) | Petit encadré « Before the disclosure » |
 
 ---
@@ -145,6 +147,7 @@ Nombre de jours d'alerte sur pbb (213 séances, 02.01–30.10.2026) : `large_tra
 - `compare.summary.median_*`
 - `dashboard.series[].auction_share`, `dashboard.peers_series[].*`
 - `report.sections[].items[].volume_ratio`, `price_change_pct`, `spread_change_pct`
+- 🆕 `report.sections[].kpis[].trend`, `change_pct`, `change_basis` (variation inconnue)
 
 ### 4.3 `_data_status` 🆕
 

@@ -73,15 +73,37 @@ def profile_text(kpis: list[dict]) -> str:
     for k in kpis:
         if k.get("change_pct") is None:
             continue
-        parts.append(f"{k['label']}: {k['value']} {k['unit']} ({k['change_pct']:+.1f}% vs previous period)")
+        basis = "vs first half of the period" if k.get("change_basis") == "first_half" else "vs previous period"
+        parts.append(f"{k['label']}: {k['value']} {k['unit']} ({k['change_pct']:+.1f}% {basis})")
     return "; ".join(parts) + "." if parts else ""
 
 
-def peers_text(own: float | None, peers: float | None, n_peers: int) -> str:
+# Secteur (config.SECTORS) -> adjectif pour « … peers » ; secteur inconnu -> « peers » tout court
+SECTOR_ADJECTIVE = {
+    "Financials": "financial",
+    "Technology": "technology",
+    "Industrials": "industrial",
+    "Consumer": "consumer",
+    "Healthcare": "healthcare",
+    "Utilities": "utility",
+    "Real Estate": "real estate",
+    "Materials": "materials",
+    "Energy": "energy",
+    "Telecommunications": "telecom",
+}
+
+
+def peers_label(sector: str | None) -> str:
+    """'financial peers' pour Financials, 'peers' si le secteur est vide ou inconnu."""
+    adj = SECTOR_ADJECTIVE.get((sector or "").strip())
+    return f"{adj} peers" if adj else "peers"
+
+
+def peers_text(own: float | None, peers: float | None, n_peers: int, sector: str | None = None) -> str:
     if own is None or peers is None:
         return ""
     rel = "tighter" if own < peers else "wider"
-    return f"Average spread of {own:.1f} bps is {rel} than the median of its {n_peers} peers ({peers:.1f} bps)."
+    return f"Average spread of {own:.1f} bps is {rel} than the median of its {n_peers} {peers_label(sector)} ({peers:.1f} bps)."
 
 
 def report_headline(report: dict) -> str:
@@ -90,7 +112,8 @@ def report_headline(report: dict) -> str:
     peer = report["sections"][1]["kpis"][0] if report["sections"][1].get("kpis") else None
     bits = []
     if sp and sp.get("change_pct") is not None:
-        bits.append(f"Spreads {'tightened' if sp['change_pct'] < 0 else 'widened'} {abs(sp['change_pct']):.1f}% vs the previous period")
+        basis = "the first half of the period" if sp.get("change_basis") == "first_half" else "the previous period"
+        bits.append(f"Spreads {'tightened' if sp['change_pct'] < 0 else 'widened'} {abs(sp['change_pct']):.1f}% vs {basis}")
     if peer:
         bits.append(f"{abs(peer['value']):.1f} bps {'tighter' if peer['value'] < 0 else 'wider'} than peers")
     return (", ".join(bits) + ".") if bits else "Trading profile for the selected period."

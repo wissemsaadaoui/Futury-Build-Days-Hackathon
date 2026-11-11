@@ -1,102 +1,282 @@
 {
-  "_endpoint": "GET /stocks/{isin}/report?from=2026-01-01&to=2026-10-31   (IR snapshot)",
+  "_endpoint": "GET /stocks/{isin}/report?from=2026-01-02&to=2026-10-30   (IR snapshot)",
   "stock": {
-    "isin": "DE000A1K0235",
-    "name": "SUSS MicroTec SE",
-    "index": "MDAX",
-    "sector": "Technology"
+    "isin": "DE0008019001",
+    "name": "Deutsche Pfandbriefbank AG",
+    "index": "SDAX",
+    "sector": "Financials"
   },
   "period": {
-    "from": "2026-01-01",
-    "to": "2026-10-31"
+    "from": "2026-01-02",
+    "to": "2026-10-30"
   },
-  "headline": "SUSS MicroTec moved from SDAX to MDAX on 22 June 2026; the report compares its trading profile with its peers.",
+  "headline": "Spreads widened 31.2% vs the first half of the period, 7.6 bps tighter than peers.",
   "sections": [
     {
       "title": "Trading profile",
       "kpis": [
         {
           "label": "Avg daily volume",
-          "value": 412000,
+          "value": 440981,
           "unit": "shares",
-          "trend": "up",
-          "change_pct": 9.5
+          "trend": "down",
+          "change_pct": -42.3,
+          "change_basis": "first_half"
         },
         {
           "label": "Avg daily turnover",
-          "value": 18900000,
+          "value": 1484142,
           "unit": "EUR",
-          "trend": "up",
-          "change_pct": 12.1
+          "trend": "down",
+          "change_pct": -43.7,
+          "change_basis": "first_half"
         },
         {
-          "label": "Avg spread",
-          "value": 8.4,
+          "label": "Avg spread (25k EUR)",
+          "value": 69.9,
           "unit": "bps",
-          "trend": "down",
-          "change_pct": -6.0
+          "trend": "up",
+          "change_pct": 31.2,
+          "change_basis": "first_half"
         },
         {
           "label": "Auction share",
-          "value": 0.21,
+          "value": 0.31,
           "unit": "ratio",
-          "trend": "flat",
-          "change_pct": 0.5
+          "trend": "up",
+          "change_pct": 26.6,
+          "change_basis": "first_half"
         }
       ],
-      "text": "Average daily volume rose by 9.5% versus the previous period while spreads tightened by 6%."
+      "text": "Avg daily volume: 440981 shares (-42.3% vs first half of the period); Avg daily turnover: 1484142 EUR (-43.7% vs first half of the period); Avg spread (25k EUR): 69.9 bps (+31.2% vs first half of the period); Auction share: 0.31 ratio (+26.6% vs first half of the period)."
     },
     {
       "title": "Peer comparison",
       "kpis": [
         {
           "label": "Spread vs peers",
-          "value": 8.4,
+          "value": -7.6,
           "unit": "bps",
-          "trend": "worse"
-        },
-        {
-          "label": "Volume vs peers",
-          "value": 1.12,
-          "unit": "ratio",
           "trend": "better"
         }
       ],
-      "text": "The share trades with wider spreads than its peer group (+8.4 bps at 25,000 EUR) and slightly higher relative volume."
+      "text": "Average spread of 69.9 bps is tighter than the median of its 6 financial peers (77.5 bps)."
     },
     {
       "title": "Notable events",
       "items": [
         {
+          "event_id": "evt_001",
+          "date": "2026-01-05",
+          "title": "Acquisition of Deutsche Investment Group completed",
+          "volume_ratio": null,
+          "price_change_pct": 1.0,
+          "spread_change_pct": null
+        },
+        {
+          "event_id": "evt_002",
+          "date": "2026-02-13",
+          "title": "Ad hoc: guidance for FY 2026 (profit before taxes EUR 30-40m) and preliminary FY 2025 figures",
+          "volume_ratio": 15.02,
+          "price_change_pct": -10.3,
+          "spread_change_pct": -2.2
+        },
+        {
+          "event_id": "evt_003",
+          "date": "2026-03-05",
+          "title": "FY 2025 results (US exit shapes 2025 results)",
+          "volume_ratio": 3.17,
+          "price_change_pct": -7.9,
+          "spread_change_pct": -1.5
+        },
+        {
           "event_id": "evt_004",
-          "date": "2026-06-04",
-          "title": "MDAX inclusion announced (effective 22 Jun 2026)",
-          "volume_ratio": 3.21,
-          "price_change_pct": 8.15,
-          "spread_change_pct": -3.9
+          "date": "2026-03-17",
+          "title": "Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.",
+          "volume_ratio": 0.87,
+          "price_change_pct": -1.1,
+          "spread_change_pct": 9.4
+        },
+        {
+          "event_id": "evt_005",
+          "date": "2026-03-17",
+          "title": "Directors' dealings: Barkha Mehmedagic (buy)",
+          "volume_ratio": 0.87,
+          "price_change_pct": -1.1,
+          "spread_change_pct": 9.4
         },
         {
           "event_id": "evt_006",
-          "date": "2026-06-19",
-          "title": "Index rebalancing day (last closing auction before MDAX entry)",
-          "volume_ratio": 4.1,
-          "price_change_pct": 1.2,
-          "spread_change_pct": 2.8
+          "date": "2026-03-18",
+          "title": "Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.",
+          "volume_ratio": 1.43,
+          "price_change_pct": 7.7,
+          "spread_change_pct": 5.5
+        },
+        {
+          "event_id": "evt_007",
+          "date": "2026-03-18",
+          "title": "Directors' dealings: Kay Wolf (buy)",
+          "volume_ratio": 1.43,
+          "price_change_pct": 7.7,
+          "spread_change_pct": 5.5
         },
         {
           "event_id": "evt_008",
-          "date": "2026-10-27",
-          "title": "Production network optimisation and FY 2026 guidance update",
-          "volume_ratio": 3.8,
-          "price_change_pct": -9.6,
-          "spread_change_pct": -13.0
+          "date": "2026-03-18",
+          "title": "Directors' dealings: Jörn Joseph (buy)",
+          "volume_ratio": 1.43,
+          "price_change_pct": 7.7,
+          "spread_change_pct": 5.5
+        },
+        {
+          "event_id": "evt_009",
+          "date": "2026-03-18",
+          "title": "Directors' dealings: Jörn Joseph (buy)",
+          "volume_ratio": 1.43,
+          "price_change_pct": 7.7,
+          "spread_change_pct": 5.5
+        },
+        {
+          "event_id": "evt_010",
+          "date": "2026-03-18",
+          "title": "Directors' dealings: Dr. Pamela Hoerr (buy)",
+          "volume_ratio": 1.43,
+          "price_change_pct": 7.7,
+          "spread_change_pct": 5.5
+        },
+        {
+          "event_id": "evt_011",
+          "date": "2026-03-18",
+          "title": "Supervisory Board: Dr Louis Hagen leaving; Jan Kupfer to be nominated as chair",
+          "volume_ratio": 1.43,
+          "price_change_pct": 7.7,
+          "spread_change_pct": 5.5
+        },
+        {
+          "event_id": "evt_012",
+          "date": "2026-03-19",
+          "title": "Directors' dealings: Marcus Schulte (buy)",
+          "volume_ratio": 0.7,
+          "price_change_pct": -5.6,
+          "spread_change_pct": 18.3
+        },
+        {
+          "event_id": "evt_013",
+          "date": "2026-03-23",
+          "title": "Annual Report 2025 published",
+          "volume_ratio": 1.35,
+          "price_change_pct": 7.3,
+          "spread_change_pct": 15.2
+        },
+        {
+          "event_id": "evt_014",
+          "date": "2026-04-01",
+          "title": "Management Board: CFO Marcus Schulte extends contract early",
+          "volume_ratio": 0.45,
+          "price_change_pct": 4.6,
+          "spread_change_pct": 8.0
+        },
+        {
+          "event_id": "evt_015",
+          "date": "2026-04-02",
+          "title": "Convening notice for the AGM on 21 May 2026",
+          "volume_ratio": 0.33,
+          "price_change_pct": -2.8,
+          "spread_change_pct": 4.5
+        },
+        {
+          "event_id": "evt_016",
+          "date": "2026-05-12",
+          "title": "Q1 2026 results",
+          "volume_ratio": 1.36,
+          "price_change_pct": -6.0,
+          "spread_change_pct": 15.5
+        },
+        {
+          "event_id": "evt_017",
+          "date": "2026-05-21",
+          "title": "Annual General Meeting",
+          "volume_ratio": 1.8,
+          "price_change_pct": 2.7,
+          "spread_change_pct": -12.4
+        },
+        {
+          "event_id": "evt_018",
+          "date": "2026-08-13",
+          "title": "H1 2026 results",
+          "volume_ratio": 2.52,
+          "price_change_pct": 2.4,
+          "spread_change_pct": 7.9
+        },
+        {
+          "event_id": "evt_019",
+          "date": "2026-09-04",
+          "title": "Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.",
+          "volume_ratio": 0.61,
+          "price_change_pct": 4.1,
+          "spread_change_pct": -7.4
+        },
+        {
+          "event_id": "evt_020",
+          "date": "2026-09-08",
+          "title": "Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.",
+          "volume_ratio": 0.16,
+          "price_change_pct": -0.3,
+          "spread_change_pct": -6.6
+        },
+        {
+          "event_id": "evt_021",
+          "date": "2026-09-08",
+          "title": "Voting rights notification (WpHG s.40): Bank of America Corporation",
+          "volume_ratio": 0.16,
+          "price_change_pct": -0.3,
+          "spread_change_pct": -6.6
+        },
+        {
+          "event_id": "evt_022",
+          "date": "2026-09-08",
+          "title": "Voting rights notification (WpHG s.40): Bank of America Corporation",
+          "volume_ratio": 0.16,
+          "price_change_pct": -0.3,
+          "spread_change_pct": -6.6
+        },
+        {
+          "event_id": "evt_023",
+          "date": "2026-09-08",
+          "title": "Voting rights notification (WpHG s.40): Bank of America Corporation",
+          "volume_ratio": 0.16,
+          "price_change_pct": -0.3,
+          "spread_change_pct": -6.6
+        },
+        {
+          "event_id": "evt_024",
+          "date": "2026-09-16",
+          "title": "Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.",
+          "volume_ratio": 0.31,
+          "price_change_pct": -0.5,
+          "spread_change_pct": -0.2
+        },
+        {
+          "event_id": "evt_025",
+          "date": "2026-09-18",
+          "title": "Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.",
+          "volume_ratio": 0.77,
+          "price_change_pct": -2.6,
+          "spread_change_pct": 5.6
         }
       ]
     }
   ],
   "disclaimer": "Descriptive analysis of historical Xetra trading data. Not investment advice.",
-  "generated_at": "2026-11-11T15:40:00+01:00",
+  "generated_at": "2026-11-11T22:19:02+01:00",
   "export": {
-    "pdf_url": "/stocks/DE000A1K0235/report.pdf"
-  }
+    "pdf_url": "/stocks/DE0008019001/report.pdf"
+  },
+  "_data_status": {
+    "spreads": "real",
+    "ohlc": "real",
+    "flows": "real"
+  },
+  "_note": "Généré depuis les vraies données pbb – v0.3 : pas de données avant le 02.01, d'où change_basis = first_half."
 }
