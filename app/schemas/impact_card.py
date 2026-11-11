@@ -14,9 +14,11 @@ from app.schemas.common import (
     MarketMode,
     OptNumber,
     ParticipantType,
+    Period,
     Schema,
     StockRef,
 )
+from app.schemas.dashboard import AnomalyType
 
 
 class ImpactEvent(Schema):
@@ -150,6 +152,24 @@ class IntradayBlock(Schema):
     price_change_pct: IntradayPriceChange
 
 
+# v0.3 : activité des séances AVANT une notification de droits de vote (WpHG art. 40), mocks/API.md §5.4
+class PreDisclosureWindow(Period):  # Period gère déjà l'alias "from"
+    sessions: int
+
+
+class PreDisclosureDay(Schema):
+    date: ISODate
+    anomaly_types: list[AnomalyType]
+    volume_ratio: OptNumber
+    agent_net_flow_eur: OptNumber  # flux net AGENT en € ; null sans Flows
+
+
+class PreDisclosureActivity(Schema):
+    window: PreDisclosureWindow
+    days: list[PreDisclosureDay]
+    summary: str  # phrase neutre, ne désigne jamais l'investisseur notifié
+
+
 class ImpactCardResponse(DataStatusMixin, Schema):
     card_id: str
     stock: StockRef
@@ -161,6 +181,7 @@ class ImpactCardResponse(DataStatusMixin, Schema):
     vs_peers: ImpactVsPeers
     technical_context: TechnicalContext
     intraday: Optional[IntradayBlock] = None  # v0.2 : null si pas de trades ce jour-là
+    pre_disclosure_activity: Optional[PreDisclosureActivity] = None  # v0.3 : voting_rights uniquement
     ai_summary: str
     generated_at: ISODateTime
     export: ExportLinks
