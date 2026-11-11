@@ -207,3 +207,25 @@ def test_pre_disclosure_activity_only_on_voting_rights() -> None:
     assert pre and pre["window"]["sessions"] > 0 and pre["summary"]
     assert pre["window"]["from"] <= pre["window"]["to"] < voting["event"]["trading_day"]
     assert _get("/events/evt_002/impact-card")["pre_disclosure_activity"] is None
+
+
+# ---------- Phase 4 : PDF des day cards (scènes c–f de la démo) ----------
+@needs_data
+def test_day_card_pdf_url_downloads_pdf() -> None:
+    card = _get(f"/days/{PBB}/2026-02-12/impact-card")
+    assert card["export"]["pdf_url"] == f"/days/{PBB}/2026-02-12/impact-card.pdf"
+    r = _pdf(card["export"]["pdf_url"])
+    assert r.headers["content-disposition"] == 'attachment; filename="pbb_impact_2026-02-12.pdf"'
+    assert re.search(rb"/Count (\d+)", r.content).group(1) == b"1"
+
+
+@needs_data
+def test_voting_rights_pdf_with_pre_disclosure_fits_one_page() -> None:
+    r = _pdf("/events/evt_019/impact-card.pdf")
+    assert re.search(rb"/Count (\d+)", r.content).group(1) == b"1"
+
+
+@pytest.mark.parametrize("url", [f"/days/{PBB}/2026-06-06/impact-card.pdf", "/days/XX0000000000/2026-06-05/impact-card.pdf"])
+@needs_data
+def test_day_card_pdf_not_found(url: str) -> None:
+    assert "detail" in _get(url, 404)
