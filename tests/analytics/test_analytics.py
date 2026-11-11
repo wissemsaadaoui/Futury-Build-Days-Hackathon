@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 
 import numpy as np
 import pandas as pd
@@ -10,7 +11,7 @@ import pytest
 from app import analytics as A
 from app import etl
 from app.analytics import _util, data, events, indicators, metrics
-from app.assistant import guard
+from app.assistant import guard, templates
 
 PBB = "DE0008019001"
 
@@ -932,3 +933,50 @@ def test_report_alerts_section_on_quiet_period(monkeypatch):
         assert all(k["unit"] == "count" for k in sec["kpis"])
     finally:
         data.clear_caches()
+
+
+# ---------- Formatage IR des textes (assistant.fmt) ----------
+def test_fmt_units():
+    from app.assistant import fmt
+
+    assert fmt.value(440981, "shares") == "440,981 shares"
+    assert fmt.value(1_234_567, "EUR") == "EUR 1.2m"
+    assert fmt.value(640_000, "EUR") == "EUR 640,000"
+    assert fmt.value(0.31, "ratio") == "31.0%"
+    assert fmt.value(25.24, "bps") == "25.2 bps"
+    assert fmt.value(12, "count") == "12"
+    assert fmt.value(None, "bps") == "n/a"
+
+
+def test_profile_text_is_formatted_and_guarded():
+    from app.assistant import facts as F
+
+    kpis = [
+        {"label": "Avg daily volume", "value": 440981, "unit": "shares", "change_pct": 12.3, "change_basis": "previous_period"},
+        {"label": "Avg daily turnover", "value": 1234567, "unit": "EUR", "change_pct": -4.0, "change_basis": "previous_period"},
+        {"label": "Avg spread (25k EUR)", "value": 25.2, "unit": "bps", "change_pct": 3.1, "change_basis": "first_half"},
+        {"label": "Auction share", "value": 0.31, "unit": "ratio", "change_pct": 1.0, "change_basis": "previous_period"},
+    ]
+    txt = templates.profile_text(kpis)
+    assert "440,981 shares" in txt and "EUR 1.2m" in txt and "25.2 bps" in txt and "31.0%" in txt
+    assert "ratio" not in txt and "0.31" not in txt
+    report = {"stock": {"name": "X"}, "period": {}, "sections": [{"title": "Trading profile", "kpis": kpis}]}
+    assert guard.check(txt, F.report_facts(report))
+
+
+def test_guard_accepts_formatted_numbers_only_from_facts():
+    facts = {"share": 0.31, "turnover": 1234567, "volume": 440981}
+    assert guard.check("Auctions were 31.0% of volume, turnover EUR 1.2m, 440,981 shares.", facts)
+    assert not guard.check("Auctions were 47.0% of volume.", facts)
+    assert not guard.check("Turnover reached EUR 3.4m.", facts)
+    assert not guard.check("Volume was 512,300 shares.", facts)
+
+
+def test_report_texts_use_ir_formats():
+    rep = A.build_report(PBB, "2026-01-02", "2026-10-30")
+    prof = next(s for s in rep["sections"] if s["title"] == "Trading profile")
+    assert " ratio" not in prof["text"] and re.search(r"\d{1,3},\d{3} shares", prof["text"])
+    assert re.search(r"EUR \d+(\.\d)?m|EUR \d{1,3}(,\d{3})+", prof["text"])
+    assert re.search(r"Auction share: \d+\.\d%", prof["text"])
+    share = next(k for k in prof["kpis"] if k["unit"] == "ratio")
+    assert 0 <= share["value"] <= 1  # la valeur JSON reste un ratio

@@ -1,4 +1,7 @@
-"""Garde-fou anti-hallucination : chaque nombre du texte doit exister dans les faits."""
+"""Garde-fou anti-hallucination : chaque nombre du texte doit exister dans les faits.
+
+Formes acceptées en plus du nombre brut (voir assistant.fmt) : séparateurs de milliers (440,981),
+ratio 0–1 x 100 (0.31 -> 31.0%), montants >= 1 million en millions (EUR 1.2m)."""
 from __future__ import annotations
 
 import json
@@ -29,6 +32,11 @@ def allowed_numbers(facts: dict) -> set[float]:
     for n in base:
         for v in (n, abs(n)):
             out.update({v, round(v, 1), round(v, 0), round(v, 2)})
+        a = abs(n)
+        if 0 < a <= 1:  # ratio 0–1 écrit en pourcentage (fmt.ratio_pct) : 0.31 -> 31.0%
+            out.update({round(a * 100, 1), round(a * 100, 0)})
+        if a >= 1e6:  # montant écrit en millions (fmt.eur) : 1,234,567 -> EUR 1.2m
+            out.update({round(a / 1e6, 1), round(a / 1e6, 2)})
     out.update({float(i) for i in range(0, 11)})  # petits entiers ("three sessions", "1 day")
     out.update({20.0, 25.0, 25000.0})  # baseline 20 jours, notional 25k
     return out

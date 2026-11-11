@@ -1,6 +1,7 @@
 """Résumés de secours (sans LLM) : déterministes, toujours disponibles."""
 from __future__ import annotations
 
+from app.assistant import fmt
 from app.assistant.facts import impact_facts, preview_facts
 
 
@@ -33,8 +34,8 @@ def impact_summary(card: dict) -> str:
         chg = sp.get("change_pct") or 0
         direction = "widened" if chg > 0 else "tightened"
         subject = "The round-trip cost" if parts else f"{lead}'s round-trip cost"
-        s2 = (f"{subject} for a 25,000 EUR trade {direction} to {_f(sp['event_day'])} bps "
-              f"versus a 20-day average of {_f(sp['baseline'])} bps ({_f(sp.get('change_pct'))}%)")
+        s2 = (f"{subject} for a {fmt.eur(25_000)} trade {direction} to {fmt.bps(sp['event_day'])} "
+              f"versus a 20-day average of {fmt.bps(sp['baseline'])} ({_f(sp.get('change_pct'))}%)")
         n = sp.get("sessions_until_back_to_normal")
         if chg > 10 and n is not None:  # « retour à la normale » n'a de sens qu'après un écartement
             s2 += f" and returned to normal after {n} session{'s' if n > 1 else ''}"
@@ -74,7 +75,7 @@ def profile_text(kpis: list[dict]) -> str:
         if k.get("change_pct") is None:
             continue
         basis = "vs first half of the period" if k.get("change_basis") == "first_half" else "vs previous period"
-        parts.append(f"{k['label']}: {k['value']} {k['unit']} ({k['change_pct']:+.1f}% {basis})")
+        parts.append(f"{k['label']}: {fmt.value(k['value'], k['unit'])} ({k['change_pct']:+.1f}% {basis})")
     return "; ".join(parts) + "." if parts else ""
 
 
@@ -103,7 +104,8 @@ def peers_text(own: float | None, peers: float | None, n_peers: int, sector: str
     if own is None or peers is None:
         return ""
     rel = "tighter" if own < peers else "wider"
-    return f"Average spread of {own:.1f} bps is {rel} than the median of its {n_peers} {peers_label(sector)} ({peers:.1f} bps)."
+    return (f"Average spread of {fmt.bps(own)} is {rel} than the median of its {n_peers} {peers_label(sector)} "
+            f"({fmt.bps(peers)}).")
 
 
 def report_headline(report: dict) -> str:
@@ -115,7 +117,7 @@ def report_headline(report: dict) -> str:
         basis = "the first half of the period" if sp.get("change_basis") == "first_half" else "the previous period"
         bits.append(f"Spreads {'tightened' if sp['change_pct'] < 0 else 'widened'} {abs(sp['change_pct']):.1f}% vs {basis}")
     if peer:
-        bits.append(f"{abs(peer['value']):.1f} bps {'tighter' if peer['value'] < 0 else 'wider'} than peers")
+        bits.append(f"{fmt.bps(abs(peer['value']))} {'tighter' if peer['value'] < 0 else 'wider'} than peers")
     return (", ".join(bits) + ".") if bits else "Trading profile for the selected period."
 
 
