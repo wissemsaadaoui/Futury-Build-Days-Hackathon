@@ -4,11 +4,13 @@ Lancer : uvicorn app.main:app --reload --port 8000  (doc : /docs, spec : /openap
 """
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app import config
-from app.api import health
+from app.analytics import NotFound
+from app.api import compare, health, impact_cards, stocks
 
 app = FastAPI(
     title="Issuer Intelligence Hub API",
@@ -24,4 +26,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(health.router)
+
+
+@app.exception_handler(NotFound)
+async def not_found(_: Request, exc: NotFound) -> JSONResponse:
+    """ISIN, event_id ou jour inconnu (levé par app.analytics) -> 404 {"detail": "..."}."""
+    return JSONResponse(status_code=404, content={"detail": exc.args[0] if exc.args else "Not found"})
+
+
+for module in (health, stocks, impact_cards, compare):
+    app.include_router(module.router)
