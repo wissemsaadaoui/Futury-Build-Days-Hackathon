@@ -685,3 +685,250 @@ def test_pre_disclosure_null_when_quiet_or_not_voting_rights():
     vr = [e["event_id"] for e in A.list_events(PBB)["events"] if e["type"] == "voting_rights"]
     blocks = [A.build_impact_card(e)["pre_disclosure_activity"] for e in vr]
     assert any(b is None for b in blocks) and any(b is not None for b in blocks)
+
+
+# ---------- Bug reports : peers_text et KPIs sans période précédente ----------
+def test_peers_text_uses_sector_label():
+    from app import config
+    from app.assistant import templates
+
+    assert config.SECTORS[PBB] == "Financials"
+    txt = templates.peers_text(69.9, 77.5, 6, "Financials")
+    assert "6 financial peers" in txt and "industrial" not in txt
+    assert "its 6 peers (" in templates.peers_text(69.9, 77.5, 6, None)
+    assert "its 6 peers (" in templates.peers_text(69.9, 77.5, 6, "Unknown sector")
+    r = A.build_report(PBB, "2026-01-02", "2026-10-30")
+    peer_txt = next(s for s in r["sections"] if s["title"] == "Peer comparison")["text"]
+    assert "financial peers" in peer_txt and "industrial" not in peer_txt
+
+
+def test_report_without_previous_period_compares_halves():
+    r = A.build_report(PBB, "2026-01-02", "2026-10-30")  # aucune donnée avant le 02.01
+    prof = r["sections"][0]
+    days = data.trading_days()
+    rng = days[(days >= "2026-01-02") & (days <= "2026-10-30")]
+    first, second = rng[: len(rng) // 2], rng[len(rng) // 2 :]
+    sp = data.spread_series(PBB)
+    for k in prof["kpis"]:
+        assert k["change_basis"] == "first_half"
+        assert k["change_pct"] is not None and k["trend"] in {"up", "down", "flat"}
+    spread_kpi = next(k for k in prof["kpis"] if k["label"].startswith("Avg spread"))
+    assert spread_kpi["change_pct"] == pytest.approx((sp.reindex(second).mean() / sp.reindex(first).mean() - 1) * 100, abs=0.06)
+    assert "vs first half of the period" in prof["text"] and "vs previous period" not in prof["text"]
+    assert "first half of the period" in r["headline"]
+
+
+def test_report_with_previous_period_keeps_it():
+    r = A.build_report(PBB, "2026-07-01", "2026-10-30")
+    for k in r["sections"][0]["kpis"]:
+        assert k["change_basis"] == "previous_period"
+    assert "vs previous period" in r["sections"][0]["text"]
+
+
+def test_unknown_change_is_never_flat():
+    from app.analytics import report
+
+    assert report._trend(None) is None
+    assert report._trend(1.0) == "flat" and report._trend(5.0) == "up" and report._trend(-5.0) == "down"
+    empty = pd.Series(dtype=float)
+    days = data.trading_days()[:10]
+    assert report._change(empty, days, days[:0]) == (None, None)
+    kpi = report._kpi("X", 1, "ratio", (None, None))
+    assert kpi["trend"] is None and kpi["change_pct"] is None and kpi["change_basis"] is None
+
+
+# ---------- Event preview : assistant et garde-fou ----------
+def _stat(vals):
+    vals = [v for v in vals if v is not None]
+    if not vals:
+        return {"n": 0, "median": None, "min": None, "max": None}
+    return {"n": len(vals), "median": float(np.median(vals)), "min": min(vals), "max": max(vals)}
+
+
+def _fake_preview(spreads, vols, stns, event_type="quarterly_results"):
+    own = {"n": len(spreads), "events": []}
+    own["spread_change_pct"] = _stat(spreads)
+    own["volume_ratio"] = _stat(vols)
+    own["sessions_to_normal"] = _stat(stns)
+    for k in ("price_abs_change_pct", "auction_share_change_pts", "first_15min_ratio"):
+        own[k] = _stat([])
+    return {
+        "stock": {"isin": PBB, "name": "Deutsche Pfandbriefbank AG", "index": "SDAX"},
+        "event_type": event_type, "own_history": own,
+        "peers": {"n": 0, "spread_change_pct": _stat([])},
+        "confidence": "low", "note": "Based on 2026 data only (Jan–Oct).",
+    }
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "The share price will rise after the Q3 results.",
+        "We expect the price to recover.",
+        "Analysts see upside of 12.0%.",
+        "The downside is limited.",
+        "Our target is EUR 4.",
+        "The stock will fall on the release.",
+    ],
+)
+def test_guard_rejects_price_predictions(text):
+    assert not guard.check(text, {"x": 12.0, "y": 4})
+
+
+def test_preview_template_past_reactions_only():
+    from app.assistant import facts as F, templates
+
+    p = _fake_preview([7.9, 15.5], [1.36, 2.52], [0, 1])
+    s = templates.preview_summary(p)
+    assert s.startswith("In its past 2 quarterly results releases")
+    assert "+11.7%" in s and "7.9% to 15.5%" in s
+    assert 2 <= len(__import__("re").findall(r"[.!?](?:\s|$)", s)) <= 4
+    assert guard.check(s, F.preview_facts(p))
+    p1 = _fake_preview([-2.2], [15.0], [0], "ad_hoc")
+    one = templates.preview_summary(p1)
+    assert one.startswith("In its only past ad hoc announcement") and "median" not in one
+    assert guard.check(one, F.preview_facts(p1))
+    p0 = _fake_preview([], [], [], "dividend")
+    none = templates.preview_summary(p0)
+    assert none.startswith("No past dividend announcements") and guard.check(none, F.preview_facts(p0))
+
+
+def test_llm_price_prediction_in_preview_falls_back(monkeypatch):
+    from app import assistant
+    from app.assistant import llm, templates
+
+    p = _fake_preview([7.9, 15.5], [1.36, 2.52], [0, 1])
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: "In its past 2 quarterly results releases, the price will rise 11.7%.")
+    assert assistant.summarize_event_preview(p) == templates.preview_summary(p)
+
+
+# ---------- Event preview ----------
+def test_preview_never_uses_events_after_day():
+    from app.analytics import preview as PV
+
+    before = A.build_event_preview(PBB, "quarterly_results", "2026-08-13")  # H1 publié le 13.08 : exclu
+    assert before["as_of"] == "2026-08-13"
+    assert [e["event_id"] for e in before["own_history"]["events"]] == ["evt_016"]
+    assert all(e["date"] < "2026-08-13" for e in before["own_history"]["events"])
+    after = A.build_event_preview(PBB, "quarterly_results", "2026-08-14")
+    assert [e["event_id"] for e in after["own_history"]["events"]] == ["evt_016", "evt_018"]
+    # upcoming = prochain événement du type à partir de `day`
+    assert before["upcoming"]["event_id"] == "evt_018"
+    assert PV._upcoming(PBB, "quarterly_results", pd.Timestamp("2026-12-01")) == {
+        "date": "2026-12-01", "title": None, "event_id": None, "source_url": None}
+
+
+def test_preview_stats_on_synthetic_events(monkeypatch):
+    from app.analytics import preview as PV
+
+    days = ["2026-04-14", "2026-06-16", "2026-07-14", "2026-09-15"]
+    _with_extra_events(monkeypatch, [
+        {"event_id": f"syn_{i}", "isin": PBB, "date": d, "time": "07:00", "type": "m_and_a", "title": "synthetic"}
+        for i, d in enumerate(days)
+    ])
+    p = A.build_event_preview(PBB, "m_and_a")
+    own = p["own_history"]
+    assert own["n"] == 4 and p["confidence"] == "medium"
+    for k in PV.METRICS:
+        vals = [e[k] for e in own["events"] if e[k] is not None]
+        st = own[k]
+        assert st["n"] == len(vals)
+        if vals:
+            assert st["median"] == pytest.approx(np.median(vals), abs=0.06)  # médiane arrondie à 0,1
+            assert st["min"] == pytest.approx(min(vals), abs=0.01) and st["max"] == pytest.approx(max(vals), abs=0.01)
+    # chaque événement = son impact card
+    card = A.build_impact_card("syn_0")
+    e0 = own["events"][0]
+    assert e0["spread_change_pct"] == card["metrics"]["spread_bps"]["change_pct"]
+    assert e0["volume_ratio"] == card["metrics"]["volume"]["ratio"]
+    _no_nan(p)
+
+
+def test_stats_and_confidence_rules():
+    from app.analytics import preview as PV
+
+    assert PV._stats([3.0, 1.0, 2.0, None]) == {"n": 3, "median": 2.0, "min": 1.0, "max": 3.0}
+    assert PV._stats([]) == {"n": 0, "median": None, "min": None, "max": None}
+    assert [PV._confidence(n) for n in (0, 2, 3, 5, 6)] == ["low", "low", "medium", "medium", "high"]
+
+
+def test_preview_with_no_past_event_is_all_null():
+    p = A.build_event_preview(PBB, "dividend")
+    assert p["own_history"]["n"] == 0 and p["own_history"]["events"] == []
+    from app.analytics import preview as PV
+
+    for k in PV.METRICS:
+        assert p["own_history"][k] == {"n": 0, "median": None, "min": None, "max": None}
+    assert p["attention_points"] == [] and p["confidence"] == "low" and p["ai_summary"]
+    assert p["peers"]["n"] == 0 and p["peers"]["peers_note"] == "No peer events of this type in the event calendar"
+    _no_nan(p)
+    with pytest.raises(A.NotFound):
+        A.build_event_preview("XX0000000000", "dividend")
+
+
+def test_attention_points_rules():
+    from app.analytics import preview as PV
+
+    def st(m):
+        return {"n": 1 if m is not None else 0, "median": m, "min": m, "max": m}
+
+    own = {"spread_change_pct": st(30.0), "sessions_to_normal": st(2), "first_15min_ratio": st(6.0)}
+    peers = {"spread_change_pct": st(15.0)}
+    pts = PV._attention_points(own, peers)
+    assert len(pts) == 4 and pts[-1] == "The stock reacts more strongly than its peers."
+    assert PV._attention_points({"spread_change_pct": st(10.0), "sessions_to_normal": st(1), "first_15min_ratio": st(2.0)},
+                                {"spread_change_pct": st(None)}) == []
+    # réel : l'ad hoc du 13.02 -> 136x en 15 min
+    assert "Most of the reaction happens in the first 15 minutes after publication." in A.build_event_preview(PBB, "ad_hoc")["attention_points"]
+
+
+def test_price_abs_change_never_negative_and_no_direction():
+    for t in ("quarterly_results", "annual_results", "ad_hoc", "agm", "voting_rights", "directors_dealings"):
+        p = A.build_event_preview(PBB, t)
+        for e in p["own_history"]["events"]:
+            assert e["price_abs_change_pct"] is None or e["price_abs_change_pct"] >= 0
+            assert "price_change_pct" not in e  # jamais de rendement signé
+        s = p["ai_summary"].lower()
+        assert not any(w in s for w in ("will rise", "will fall", "target", "upside", "downside", "expect the price"))
+    ah = A.build_event_preview(PBB, "ad_hoc")["own_history"]["events"][0]
+    assert ah["price_abs_change_pct"] == abs(A.build_impact_card("evt_002")["metrics"]["price"]["change_pct"])
+
+
+# ---------- Report : section Alerts ----------
+def test_report_alerts_section_matches_dashboard():
+    from collections import Counter
+
+    r = A.build_report(PBB, "2026-01-02", "2026-10-30")
+    sec = next(s for s in r["sections"] if s["title"] == "Alerts")
+    d = A.build_dashboard(PBB, "2026-01-02", "2026-10-30")
+    counts = Counter(a["type"] for a in d["anomalies"])
+    assert {k["alert_type"]: k["value"] for k in sec["kpis"]} == dict(counts)
+    for k in sec["kpis"]:
+        assert k["unit"] == "count" and k["trend"] is None
+    top = sec["alert_days"]
+    assert len(top) == 5
+    by_day = {}
+    for a in d["anomalies"]:
+        by_day.setdefault(a["date"], []).append(a)
+    key = lambda day: (sum(a["severity"] == "high" for a in by_day[day]), len(by_day[day]))  # noqa: E731
+    assert [key(t["date"]) for t in top] == sorted([key(t["date"]) for t in top], reverse=True)
+    best_other = max(key(dd) for dd in by_day if dd not in {t["date"] for t in top})
+    assert key(top[-1]["date"]) >= best_other
+    for t in top:
+        assert t["n_alerts"] == len(by_day[t["date"]])
+        assert t["detail_url"].endswith("/impact-card")
+    assert sec["text"].startswith(f"{sum(counts.values())} alerts on {len(by_day)} of ")
+    _no_nan(r)
+
+
+def test_report_alerts_section_on_quiet_period(monkeypatch):
+    monkeypatch.setattr(etl, "load_ohlc", lambda: pd.DataFrame(columns=etl.OHLC_COLS))
+    monkeypatch.setattr(etl, "load_flows", lambda: pd.DataFrame(columns=etl.FLOWS_COLS))
+    data.clear_caches()
+    try:
+        r = A.build_report(PBB, "2026-04-01", "2026-04-30")
+        sec = next(s for s in r["sections"] if s["title"] == "Alerts")
+        assert isinstance(sec["kpis"], list) and isinstance(sec["alert_days"], list)
+        assert all(k["unit"] == "count" for k in sec["kpis"])
+    finally:
+        data.clear_caches()

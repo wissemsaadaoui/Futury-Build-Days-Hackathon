@@ -266,7 +266,7 @@ export interface PreDisclosureActivity {
 
 // ---------- GET /compare ----------
 export interface CompareResponse {
-  filter: { type: EventType; index: Index; from: ISODate; to: ISODate };
+  filter: { type: EventType; index: Index | "ALL"; from: ISODate; to: ISODate };  // "ALL" = tous indices
   summary: {
     n_events: number;
     median_volume_ratio: number | null;
@@ -291,9 +291,22 @@ export type Trend = "up" | "down" | "flat" | "better" | "worse";
 export interface ReportKpi {
   label: string;
   value: number;
-  unit: "shares" | "EUR" | "bps" | "ratio" | "pct";
-  trend: Trend;
-  change_pct?: number;
+  unit: "shares" | "EUR" | "bps" | "ratio" | "pct" | "count";  // 🆕 v0.4 : "count" (section Alerts)
+  trend: Trend | null;      // 🆕 v0.3 : null si la variation est inconnue (jamais "flat" faute de données)
+  change_pct?: number | null;
+  change_basis?: "previous_period" | "first_half" | null;  // 🆕 v0.3 : base de la variation (first_half = 2e moitié vs 1re moitié)
+  alert_type?: AnomalyType | null;  // 🆕 v0.4 : section Alerts, type compté
+}
+
+// 🆕 v0.4 – section « Alerts » du report : les 5 jours les plus marquants
+export interface ReportAlertDay {
+  date: ISODate;
+  n_alerts: number;
+  n_high: number;
+  types: AnomalyType[];
+  top_description: string;
+  linked_event_id: string | null;
+  detail_url: string;  // impact card de l'événement, sinon du jour
 }
 
 export interface ReportSection {
@@ -307,6 +320,7 @@ export interface ReportSection {
     price_change_pct: number | null;
     spread_change_pct: number | null;
   }[];
+  alert_days?: ReportAlertDay[];  // 🆕 v0.4 : section « Alerts » uniquement
   text?: string;
 }
 
@@ -318,4 +332,50 @@ export interface ReportResponse {
   disclaimer: string;
   generated_at: ISODateTime;
   export: ExportLinks;
+}
+
+// ---------- 🆕 v0.4 – GET /stocks/{isin}/event-preview?type=&date=  (mocks/API.md §5.3) ----------
+// Réactions PASSÉES du trading (liquidité, volume, enchères) aux annonces du même type.
+// Pas une prédiction de prix : aucune direction de cours, aucun prix cible, aucune recommandation.
+export interface PreviewStat {
+  n: number;              // nombre de valeurs disponibles
+  median: number | null;  // null si n = 0
+  min: number | null;
+  max: number | null;
+}
+
+export interface PreviewEvent {
+  event_id: string;
+  date: ISODate;                           // trading_day
+  spread_change_pct: number | null;
+  volume_ratio: number | null;
+  price_abs_change_pct: number | null;     // amplitude ABSOLUE (jamais signée)
+  sessions_to_normal: number | null;       // 0 = spread resté <= 110 % de sa baseline ; null = pas revenu en 5 séances
+  auction_share_change_pts: number | null;
+  first_15min_ratio: number | null;        // null si pas d'intraday
+}
+
+export interface PreviewHistory {
+  n: number;
+  events: PreviewEvent[];
+  spread_change_pct: PreviewStat;
+  volume_ratio: PreviewStat;
+  price_abs_change_pct: PreviewStat;
+  sessions_to_normal: PreviewStat;
+  auction_share_change_pts: PreviewStat;
+  first_15min_ratio: PreviewStat;
+}
+
+export interface EventPreviewResponse {
+  stock: StockRef;
+  event_type: EventType;
+  as_of: ISODate | null;  // `date` demandé : seuls les événements AVANT cette date sont utilisés ; null = tous
+  upcoming: { date: ISODate; title: string | null; event_id: string | null; source_url: string | null } | null;
+  own_history: PreviewHistory;
+  peers: PreviewHistory & { peers_note?: string };  // peers_note si aucun événement de peer
+  attention_points: string[];
+  confidence: "low" | "medium" | "high";  // low : n < 3, medium : 3–5, high : > 5
+  note: string;
+  ai_summary: string;
+  _data_status?: Record<string, "real" | "mock" | "missing">;
 }

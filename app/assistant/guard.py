@@ -6,7 +6,11 @@ import re
 from typing import Any
 
 _NUM = re.compile(r"\d[\d,]*(?:\.\d+)?")
-_BANNED = re.compile(r"\b(buy|sell|hold|recommend\w*|forecast\w*|predict\w*|target price|will (rise|fall|increase|decrease))\b", re.I)
+_BANNED = re.compile(
+    r"\b(buy|sell|hold|recommend\w*|forecast\w*|predict\w*|targets?|upside|downside"
+    r"|will (rise|fall|increase|decrease|go up|go down)|expects? the (share )?price)\b",
+    re.I,
+)
 
 
 def _numbers_in(obj: Any) -> set[float]:

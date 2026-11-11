@@ -127,7 +127,8 @@ def list_events(isin: str) -> dict:                                     # = mock
 def build_impact_card(event_id: str) -> dict:                            # = mocks/impact-card.json
 def build_day_card(isin: str, day: date) -> dict:                        # idem, avec "event": None
 def compare_events(event_type: str, index: str, start: date, end: date) -> dict:  # = mocks/compare.json
-def build_report(isin: str, start: date, end: date) -> dict:             # = mocks/report.json
+def build_report(isin: str, start: date, end: date) -> dict:             # = mocks/report.json (section « Alerts » incluse)
+def build_event_preview(isin: str, event_type: str, day: date | None = None) -> dict:  # = mocks/event-preview.json
 ```
 
 ### Assistant (Alfred)
@@ -136,6 +137,7 @@ def build_report(isin: str, start: date, end: date) -> dict:             # = moc
 # app/assistant/__init__.py
 def summarize_impact_card(card: dict) -> str:   # remplit card["ai_summary"]
 def summarize_report(report: dict) -> str:      # remplit report["headline"] et les textes
+def summarize_event_preview(preview: dict) -> str:  # remplit preview["ai_summary"] (réactions PASSÉES uniquement)
 ```
 
 `build_impact_card` et `build_report` appellent l'assistant eux-mêmes. Si le LLM échoue ou si aucune clé n'est configurée, ils renvoient un **résumé de secours généré par template** : l'API ne doit jamais planter à cause du LLM.
@@ -157,6 +159,7 @@ Tant qu'une fonction n'est pas prête, elle renvoie le mock correspondant (`json
 | `GET /stocks/{isin}/report?from=&to=` | `build_report` | `ReportResponse` |
 | `GET /events/{event_id}/impact-card.pdf` | `build_impact_card` + `export` | PDF |
 | `GET /stocks/{isin}/report.pdf` | `build_report` + `export` | PDF |
+| `GET /stocks/{isin}/event-preview?type=&date=` | `build_event_preview(isin, type, date)` (`date` optionnel) | `EventPreviewResponse` |
 
 Erreurs : `404` si l'ISIN ou l'event_id est inconnu, `422` pour des dates invalides (FastAPI le fait automatiquement), réponse JSON `{"detail": "..."}`.
 

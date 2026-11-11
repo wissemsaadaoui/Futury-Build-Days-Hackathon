@@ -1,7 +1,7 @@
 """Résumés de secours (sans LLM) : déterministes, toujours disponibles."""
 from __future__ import annotations
 
-from app.assistant.facts import impact_facts
+from app.assistant.facts import impact_facts, preview_facts
 
 
 def ev_is_title(f: dict) -> bool:
@@ -73,15 +73,37 @@ def profile_text(kpis: list[dict]) -> str:
     for k in kpis:
         if k.get("change_pct") is None:
             continue
-        parts.append(f"{k['label']}: {k['value']} {k['unit']} ({k['change_pct']:+.1f}% vs previous period)")
+        basis = "vs first half of the period" if k.get("change_basis") == "first_half" else "vs previous period"
+        parts.append(f"{k['label']}: {k['value']} {k['unit']} ({k['change_pct']:+.1f}% {basis})")
     return "; ".join(parts) + "." if parts else ""
 
 
-def peers_text(own: float | None, peers: float | None, n_peers: int) -> str:
+# Secteur (config.SECTORS) -> adjectif pour « … peers » ; secteur inconnu -> « peers » tout court
+SECTOR_ADJECTIVE = {
+    "Financials": "financial",
+    "Technology": "technology",
+    "Industrials": "industrial",
+    "Consumer": "consumer",
+    "Healthcare": "healthcare",
+    "Utilities": "utility",
+    "Real Estate": "real estate",
+    "Materials": "materials",
+    "Energy": "energy",
+    "Telecommunications": "telecom",
+}
+
+
+def peers_label(sector: str | None) -> str:
+    """'financial peers' pour Financials, 'peers' si le secteur est vide ou inconnu."""
+    adj = SECTOR_ADJECTIVE.get((sector or "").strip())
+    return f"{adj} peers" if adj else "peers"
+
+
+def peers_text(own: float | None, peers: float | None, n_peers: int, sector: str | None = None) -> str:
     if own is None or peers is None:
         return ""
     rel = "tighter" if own < peers else "wider"
-    return f"Average spread of {own:.1f} bps is {rel} than the median of its {n_peers} peers ({peers:.1f} bps)."
+    return f"Average spread of {own:.1f} bps is {rel} than the median of its {n_peers} {peers_label(sector)} ({peers:.1f} bps)."
 
 
 def report_headline(report: dict) -> str:
@@ -90,7 +112,69 @@ def report_headline(report: dict) -> str:
     peer = report["sections"][1]["kpis"][0] if report["sections"][1].get("kpis") else None
     bits = []
     if sp and sp.get("change_pct") is not None:
-        bits.append(f"Spreads {'tightened' if sp['change_pct'] < 0 else 'widened'} {abs(sp['change_pct']):.1f}% vs the previous period")
+        basis = "the first half of the period" if sp.get("change_basis") == "first_half" else "the previous period"
+        bits.append(f"Spreads {'tightened' if sp['change_pct'] < 0 else 'widened'} {abs(sp['change_pct']):.1f}% vs {basis}")
     if peer:
         bits.append(f"{abs(peer['value']):.1f} bps {'tighter' if peer['value'] < 0 else 'wider'} than peers")
     return (", ".join(bits) + ".") if bits else "Trading profile for the selected period."
+
+
+# Pluriel « releases » par type d'événement (event preview)
+PLURAL = {
+    "ad_hoc": ("ad hoc announcement", "ad hoc announcements"),
+    "agm": ("annual general meeting", "annual general meetings"),
+    "voting_rights": ("voting rights notification", "voting rights notifications"),
+    "directors_dealings": ("directors' dealings notification", "directors' dealings notifications"),
+    "press_release": ("press release", "press releases"),
+    "dividend": ("dividend announcement", "dividend announcements"),
+    "m_and_a": ("M&A announcement", "M&A announcements"),
+    "index_change": ("index change", "index changes"),
+}
+
+
+def _noun(event_type: str, label: str, n: int) -> str:
+    one, many = PLURAL.get(event_type, (f"{label} release", f"{label} releases"))
+    return one if n == 1 else many
+
+
+def _num(x: float, nd: int = 1) -> str:
+    return f"{x:.0f}" if float(x).is_integer() else f"{x:.{nd}f}"
+
+
+def _rng(st: dict, unit: str = "", nd: int = 1) -> str:
+    return f"{st['min']:.{nd}f}{unit} to {st['max']:.{nd}f}{unit}"
+
+
+def preview_summary(preview: dict) -> str:
+    """2 à 4 phrases sur les réactions PASSÉES du trading (aucune projection de prix)."""
+    f = preview_facts(preview)
+    n, label, et = f["past_events_n"], f["event_type"], preview["event_type"]
+    who = f["company"]
+    if n == 0:
+        return (f"No past {_noun(et, label, 2)} are available in the 2026 data for {who}, "
+                f"so there is no reference trading reaction to show.")
+    sp, vr, stn = f.get("spread_change_pct"), f.get("volume_ratio"), f.get("sessions_to_normal")
+    parts = []
+    if n == 1:
+        lead = f"In its only past {_noun(et, label, 1)} in the 2026 data, {who}'s"
+        if sp:
+            parts.append(f"{lead} spread on the publication day changed by {sp['median']:+.1f}% versus its 20-day average.")
+        if vr:
+            parts.append(f"Volume reached {vr['median']:.1f}x its usual level.")
+    else:
+        lead = f"In its past {n} {_noun(et, label, n)}, {who}'s"
+        if sp:
+            parts.append(f"{lead} spread on the publication day changed by a median of {sp['median']:+.1f}% "
+                         f"({_rng(sp, '%')}) versus its 20-day average.")
+        if vr:
+            parts.append(f"Volume reached a median of {vr['median']:.1f}x its usual level ({_rng(vr, 'x')}).")
+    if stn:
+        if stn["max"] == 0:
+            parts.append("The spread stayed within 10% of its normal level on the publication day.")
+        else:
+            parts.append(f"Liquidity was back to normal within {_num(stn['max'])} session(s) at most"
+                         + (f" (median {_num(stn['median'])})." if n > 1 else "."))
+    if f.get("peer_events_n"):
+        p = f["peers_spread_change_pct"]
+        parts.append(f"Across {f['peer_events_n']} peer releases, the median spread change was {p['median']:+.1f}%.")
+    return " ".join(parts[:4])

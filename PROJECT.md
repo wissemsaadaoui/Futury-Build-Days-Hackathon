@@ -152,9 +152,59 @@ Comparaison janv.–mars → août–oct. :
 
 ## 6. Scénario de la démo (Deutsche Pfandbriefbank AG (pbb))
 
-> ⏳ À construire une fois `data/events.csv` constitué pour pbb (résultats annuels/trimestriels, AG, ad hoc, éventuels changements d'indice).
+**Storyline du pitch :** « Responsable IR de pbb : pourquoi notre action est-elle devenue presque deux fois plus chère à trader cette année ? Quels jours, quels événements, quels flux ? » En six clics, l'outil sépare l'effet mécanique du prix d'un vrai recul de liquidité, montre la réaction minute par minute à l'ad hoc, et repère les journées inhabituelles **sans annonce**.
 
-**Storyline du pitch :** à définir.
+Tous les chiffres ci-dessous sont recalculés depuis les données réelles (spreads XLM à 25 000 €, OHLC, Flows, trades). Ils décrivent des **exécutions**, jamais des investisseurs identifiés.
+
+| # | Écran | Date | Ce qu'on montre |
+|---|---|---|---|
+| 1 | Dashboard | janv. → oct. | Spread 54 → 97 bps + décomposition prix / liquidité |
+| 2 | Impact card + intraday | 13.02 | Ad hoc 12:26 : la réaction minute par minute |
+| 3 | Day card | 12.02 | La veille de l'ad hoc, une journée déjà inhabituelle |
+| 4 | Impact cards | 17–18.03 | Directors' dealings et notifications de droits de vote |
+| 5 | Day card | 31.08 | Clôture géante, le jour de la revue MSCI d'août |
+| 6 | Dashboard (zoom) | 29.09 | La rupture du spread, sans annonce |
+
+### 1. Dashboard : le spread passe de 54 à 97 bps
+
+- Spread médian à 25 k€ : **54,3 bps en janvier → 97,4 bps en octobre** (+79 %), soit 135,8 € → 243,4 € pour 25 000 € échangés. En janvier, pbb est moins chère à trader que la médiane SDAX (70 bps) ; en octobre, nettement plus chère (71 bps).
+- **Décomposition** (`pricing.decompose`) : le cours moyen passe de 4,26 € à 2,92 €. À coût constant en € par action, le spread serait monté à 79 bps : **+25,0 bps d'effet prix (58 %) et +18,0 bps de vrai recul de liquidité (42 %)**. Le coût par action passe de 0,023 € à 0,028 € (23 → 28 ticks de 0,001 €).
+- Message : environ la moitié de la hausse est mécanique, l'autre moitié est propre à pbb (la médiane SDAX et la plupart des peers voient leur liquidité s'améliorer sur la même période, cf. §5.2).
+
+### 2. 13.02, ad hoc de 12:26 (guidance 2026) : impact card evt_002 + intraday
+
+- Sur la journée : volume **15,0×** la normale, cours **−10,3 %** (−9,6 points vs la médiane des peers), turnover 13,7 M€ (11,6× l'ADTV 30 j de 1,18 M€). Le spread reste stable (57,7 vs 59,0 bps) : le carnet absorbe le choc.
+- **Intraday** : dans les 15 minutes après 12:26, **136×** le volume habituel de ce créneau (390 727 actions vs 2 866) ; cours **−2,9 % à +5 min, −9,5 % à +30 min, −7,7 % à +60 min**. Cinq interruptions de volatilité entre 12:29 et 13:42.
+- Flux : les ordres pour compte de clients (AGENT) sont vendeurs nets de 2,4 M€, le trading pour compte propre (PROP) acheteur net de 2,5 M€. Closing auction 7,4× sa taille habituelle.
+- Montrer le résumé IA (template, chiffres vérifiés par le garde-fou) et l'export PDF.
+
+### 3. 12.02, la veille : day card « notable day »
+
+- Aucune annonce ce jour-là, mais volume **1,9×** la normale et quatre alertes d'exécution : rafale d'ordres vendeurs agressifs (25 exécutions, 187 k€ en 0,9 s à 09:31), exécution unique de 129 k€ à 15:51, AGENT acheteur net de 381 k€ et PROP vendeur net de 302 k€. Cours −2,5 %.
+- Rester factuel à l'oral : l'outil **signale** une journée inhabituelle, il ne l'explique pas et ne suggère rien sur son origine.
+
+### 4. 17–18.03 : directors' dealings et notifications de droits de vote
+
+- 17.03 : notification Goldman Sachs (07:05) puis achat de Barkha Mehmedagic (16:48). 18.03 : nouvelle notification Goldman Sachs (07:24), quatre directors' dealings (Kay Wolf, Jörn Joseph ×2, Dr. Pamela Hoerr) et le changement au Conseil de surveillance ; Marcus Schulte le 19.03.
+- 18.03 : cours **+7,7 %** (+7,6 points vs peers) sur 1,4× le volume ; rafale d'**ordres acheteurs agressifs de 693 k€ en 0,2 s à 10:19** (24 % de l'ADTV) ; AGENT vendeur net de 1,1 M€, PROP acheteur net de 1,1 M€. Pas de `price_move` : le volume (1,43×) reste sous le seuil de 1,5×.
+- Bloc **`pre_disclosure_activity`** de la notification du 17.03 (evt_004) : sur les 7 séances avant (06–16.03), une seule séance signalée, le 09.03 (`price_move`, 1,5× le volume, AGENT vendeur net de 42 k€). Signal faible, présenté comme tel : « may coincide with », jamais attribué au déclarant.
+
+### 5. 31.08 : la plus grosse closing auction de l'année
+
+- Volume **22,7×** la normale, turnover 24,9 M€. La closing auction exécute **6,9 M d'actions, 94 % du volume du jour**, 75× sa taille habituelle. Flux nets en miroir : AGENT acheteur net de 6,9 M€ (≈ 2,0 M d'actions), PROP vendeur net du même montant.
+- Ce jour **coïncide avec la prise d'effet de la revue d'indices MSCI d'août 2026** (à la clôture du lundi 31.08). On ne dit **pas** que pbb était concernée : seulement que la date coïncide. À vérifier dans la liste MSCI avant d'en dire plus.
+- La notification Goldman Sachs du 04.09 (evt_019) a ce jour-là dans sa fenêtre `pre_disclosure_activity` (`mocks/impact-card-voting-rights.json`).
+
+### 6. 29.09 : la rupture du spread
+
+- Médiane **69,4 bps du 01 au 28.09, puis 95,3 bps du 29.09 au 30.10** (77,9–118,9 bps), sans annonce de pbb. Trois anomalies `spread_widening` (29.09, 02.10, 06.10, sévérité high), puis un `price_move` le 08.10.
+- Décomposition de la rupture : **+25,9 bps, dont 17,6 de liquidité (68 %)** et 8,2 d'effet prix (cours 3,28 → 2,93 €). C'est le cœur de la réponse à la question de départ.
+- Le 29.09, le volume est faible (0,6×) et aucune alerte d'exécution ne se déclenche : le spread s'écarte sans vague d'exécutions. Les données décrivent ce constat ; elles ne disent pas pourquoi la liquidité offerte s'est réduite.
+
+**Phrase de conclusion :** « La moitié de la hausse de notre coût de trading vient de la baisse du cours ; l'autre moitié est un vrai recul de liquidité, concentré sur la fin septembre. L'outil nous montre où regarder, en minutes, sans terminal ni analyste. »
+
+> Disclaimer à l'écran : *Descriptive analysis of historical Xetra trading data. Not investment advice.*
+> Sources externes : calendrier IR et communiqués pbb, EQS (ad hoc, directors' dealings, droits de vote), [communiqué MSCI de la revue d'août 2026](https://app2.msci.com/eqb/pressreleases/archive/MSCI_Aug26_QIRPR.pdf) (prise d'effet à la clôture du 31.08.2026).
 
 ## 7. Architecture
 

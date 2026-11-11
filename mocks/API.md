@@ -1,4 +1,4 @@
-# Issuer Intelligence Hub – API pour le front-end (v0.3)
+# Issuer Intelligence Hub – API pour le front-end (v0.4)
 
 > Pour Yassine · Démo : **Deutsche Pfandbriefbank AG (pbb)**, ISIN `DE0008019001`, SDAX
 > Ce document remplace `mocks/API.md` v0.1. Les changements depuis la v0.1 sont marqués **🆕**, et ce qui arrive bientôt est marqué **🔜**.
@@ -31,10 +31,13 @@ En attendant l'API, utilise `mocks/*.json` et `shared/types.ts` : même format.
 | 11 | 🆕 `event.published_at` peut valoir `null` (heure de publication non vérifiée) | Afficher seulement la date |
 | 12 | 🆕 `dashboard.series[].spread_eur` (coût en € pour 25 000 €) et `spread_ticks` (coût par action en ticks Xetra), nullable | Option : 2e axe « € » sur le graphique spread |
 | 13 | 🆕 `_data_status` de l'impact card : clés `opening_closing_auction` et `intraday` en plus | Aucun |
-| 10 | 🔜 Nouvel endpoint **`/event-preview`** : anticiper l'impact d'une annonce à venir | Nouvelle carte « What to expect » |
+| 10 | 🆕 v0.4 : endpoint **`/event-preview`** : réactions passées du trading au même type d'annonce (§5.3) | Nouvelle carte « What to expect » |
 | 14 | 🆕 v0.3 : nouvelles anomalies **`price_move`** (« notable day ») et **`level_break`** (champs `level_type`, `level_price`) | Libellés, icônes |
 | 15 | 🆕 v0.3 : **`detail_url`** sur chaque anomalie (impact card de l'événement, sinon du jour) | Utiliser ce lien au clic |
 | 16 | 🆕 v0.3 : seuils `large_trade` / `aggressor_sweep` relevés (10 % de l'ADTV, ≥ 3 exécutions) : beaucoup moins d'alertes | Aucun |
+| 18 | 🆕 v0.3 : `report.sections[].kpis[].change_basis` (`previous_period` \| `first_half`) ; si la période précédente n'a pas de données (rapport qui commence le 02.01), la variation compare la **2e moitié à la 1re moitié** de la période. `trend` vaut `null` si la variation reste inconnue (plus jamais `"flat"` par défaut) | Afficher « vs first half of the period » quand `change_basis = first_half` |
+| 19 | 🆕 v0.3 : `compare.filter.index` peut valoir `"ALL"` | Aucun |
+| 20 | 🆕 v0.4 : section **« Alerts »** dans le report : `kpis[]` avec `unit: "count"` (+ `alert_type`, `trend: null`) et `alert_days[]` (top 5 jours) | Tableau des alertes + 5 jours cliquables (`detail_url`) |
 | 17 | 🆕 v0.3 : bloc **`pre_disclosure_activity`** dans l'impact card des notifications `voting_rights` (§5.4) | Petit encadré « Before the disclosure » |
 
 ---
@@ -52,7 +55,7 @@ En attendant l'API, utilise `mocks/*.json` et `shared/types.ts` : même format.
 | GET | `/stocks/{isin}/report?from=&to=` | `ReportResponse` | IR snapshot |
 | GET | `/events/{event_id}/impact-card.pdf` | PDF | Bouton export |
 | GET | `/stocks/{isin}/report.pdf` | PDF | Bouton export |
-| GET | 🔜 `/stocks/{isin}/event-preview?type=&date=` | `EventPreviewResponse` | Carte « What to expect » |
+| GET | 🆕 `/stocks/{isin}/event-preview?type=&date=` | `EventPreviewResponse` | Carte « What to expect » (🔜 route côté backend) |
 
 - `from` / `to` : `YYYY-MM-DD`. Données disponibles du **2026-01-02 au 2026-10-30**.
 - `index` dans `/compare` : `DAX`, `MDAX`, `SDAX` ou `ALL`.
@@ -145,6 +148,7 @@ Nombre de jours d'alerte sur pbb (213 séances, 02.01–30.10.2026) : `large_tra
 - `compare.summary.median_*`
 - `dashboard.series[].auction_share`, `dashboard.peers_series[].*`
 - `report.sections[].items[].volume_ratio`, `price_change_pct`, `spread_change_pct`
+- 🆕 `report.sections[].kpis[].trend`, `change_pct`, `change_basis` (variation inconnue)
 
 ### 4.3 `_data_status` 🆕
 
@@ -245,52 +249,64 @@ Le franchissement d'un seuil de droits de vote **précède** la notification : l
 
 Exemple complet : `mocks/impact-card-voting-rights.json` (evt_019, notification Goldman Sachs du 04.09.2026). **Ne jamais** présenter ce trading comme celui de l'investisseur notifié : « may coincide with ».
 
-### 5.3 Event preview : anticiper l'impact d'une annonce à venir
+### 5.3 🆕 v0.4 – Event preview : anticiper l'impact d'une annonce à venir sur le TRADING
 
-**L'idée** : avant une annonce (ex. résultats du Q3), montrer à l'IR **comment le trading a réagi lors des annonces passées du même type**, pour s'y préparer : prévenir les market makers, choisir l'heure de publication… Ce n'est **pas** une prédiction de prix : seulement des statistiques sur des réactions passées (liquidité, volume).
+**L'idée** : avant une annonce (ex. résultats du Q3), montrer à l'IR **comment le trading a réagi lors des annonces passées du même type**, pour s'y préparer : prévenir le designated sponsor / les market makers, choisir l'heure de publication… Ce n'est **pas** une prédiction de prix : aucun prix cible, aucune direction de cours, aucune recommandation. Le mouvement de prix n'apparaît qu'en **amplitude absolue** (`price_abs_change_pct`).
 
-`GET /stocks/{isin}/event-preview?type=quarterly_results&date=2026-11-05`
+`GET /stocks/{isin}/event-preview?type=quarterly_results[&date=2026-11-12]` → `build_event_preview(isin, event_type, day)`
+
+- `type` : un `EventType`. `date` (optionnel) : seuls les événements **avant** cette date sont utilisés, et `upcoming` = prochain événement du type à partir de cette date (sinon `{date, title: null, …}`). Sans `date` : tous les événements des données, `upcoming` = prochain événement après le 30.10.2026 dans le calendrier, ou `null`.
+- Chaque événement passé est mesuré comme son impact card. `sessions_to_normal` : `0` si le spread est resté ≤ 110 % de sa baseline le jour même, sinon nombre de séances pour y revenir (`null` si pas revenu en 5 séances).
+- Chaque statistique est `{n, median, min, max}` ; `median/min/max` valent `null` si `n = 0`.
+- `peers` : même calcul sur les événements des peers présents dans le calendrier. Aujourd'hui le calendrier ne contient que pbb → `n: 0`, valeurs `null` et `peers_note`.
+- `confidence` : `low` (n < 3), `medium` (3–5), `high` (> 5), sur `own_history.n`.
+- `attention_points` (règles fixes, sans LLM) : spread médian > +25 % → briefing designated sponsor / market makers ; `sessions_to_normal` médian ≥ 2 ; `first_15min_ratio` médian > 5 ; spread médian > peers de plus de 10 points.
+
+Sortie **réelle** pour pbb (`mocks/event-preview.json`, `type=quarterly_results`, sans `date`) :
 
 ```json
 {
   "stock": { "isin": "DE0008019001", "name": "Deutsche Pfandbriefbank AG", "index": "SDAX" },
   "event_type": "quarterly_results",
-  "upcoming": { "date": "2026-11-05", "title": "Q3 2026 results" },
+  "as_of": null,
+  "upcoming": { "date": "2026-11-12", "title": "Q3 2026 results", "event_id": "evt_026",
+                "source_url": "https://www.pfandbriefbank.com/en/investors/financial-calendar.html" },
   "own_history": {
-    "n": 3,
+    "n": 2,
     "events": [
-      { "event_id": "evt_007", "date": "2026-05-07", "spread_change_pct": 18.0, "volume_ratio": 2.1, "sessions_to_normal": 1 }
+      { "event_id": "evt_016", "date": "2026-05-12", "spread_change_pct": 15.5, "volume_ratio": 1.36,
+        "price_abs_change_pct": 6.0, "sessions_to_normal": 1, "auction_share_change_pts": -0.11, "first_15min_ratio": 1.34 },
+      { "event_id": "evt_018", "date": "2026-08-13", "spread_change_pct": 7.9, "volume_ratio": 2.52,
+        "price_abs_change_pct": 2.4, "sessions_to_normal": 0, "auction_share_change_pts": -0.06, "first_15min_ratio": 5.93 }
     ],
-    "spread_change_pct": { "median": 22.0, "min": 9.4, "max": 38.0 },
-    "volume_ratio":      { "median": 2.1,  "min": 1.6, "max": 2.8 },
-    "sessions_to_normal":{ "median": 1,    "min": 1,   "max": 3 },
-    "price_abs_change_pct": { "median": 2.9, "min": 1.1, "max": 4.2 }
+    "spread_change_pct":        { "n": 2, "median": 11.7,  "min": 7.9,   "max": 15.5 },
+    "volume_ratio":             { "n": 2, "median": 1.94,  "min": 1.36,  "max": 2.52 },
+    "price_abs_change_pct":     { "n": 2, "median": 4.2,   "min": 2.4,   "max": 6.0 },
+    "sessions_to_normal":       { "n": 2, "median": 0.5,   "min": 0.0,   "max": 1.0 },
+    "auction_share_change_pts": { "n": 2, "median": -0.08, "min": -0.11, "max": -0.06 },
+    "first_15min_ratio":        { "n": 2, "median": 3.63,  "min": 1.34,  "max": 5.93 }
   },
   "peers": {
-    "n": 5,
-    "spread_change_pct": { "median": 15.0, "min": 3.0, "max": 31.0 },
-    "volume_ratio":      { "median": 1.8,  "min": 1.2, "max": 2.6 }
+    "n": 0, "events": [],
+    "spread_change_pct": { "n": 0, "median": null, "min": null, "max": null },
+    "…": "idem pour les 5 autres métriques",
+    "peers_note": "No peer events of this type in the event calendar"
   },
-  "attention_points": [
-    "Liquidity usually takes 2+ sessions to normalise.",
-    "The stock reacts more strongly than its peers."
-  ],
-  "confidence": "medium",
+  "attention_points": [],
+  "confidence": "low",
   "note": "Based on 2026 data only (Jan–Oct).",
-  "ai_summary": "In its past 3 quarterly results releases, pbb's spread widened by a median of 22% …",
-  "_data_status": { "spreads": "real", "ohlc": "real", "flows": "real" }
+  "ai_summary": "In its past 2 quarterly results releases, Deutsche Pfandbriefbank AG's spread on the publication day changed by a median of +11.7% (7.9% to 15.5%) versus its 20-day average. Volume reached a median of 1.9x its usual level (1.4x to 2.5x). Liquidity was back to normal within 1 session(s) at most (median 0.5).",
+  "_data_status": { "spreads": "real", "ohlc": "real", "flows": "real", "intraday": "real" }
 }
 ```
 
-- Chaque statistique `{median, min, max}` peut valoir `null` si `n = 0`.
-- `confidence` : `low` (n < 3), `medium` (3–5), `high` (> 5).
-
 **UI suggérée** : une carte **« What to expect »** à côté de la timeline, pour la prochaine annonce :
-- en haut, `upcoming.title` et la date ;
-- 3 tuiles en **fourchettes** : « Spread +22 % (9–38 %) », « Volume 2.1× (1.6–2.8×) », « Back to normal in ~1 session » ;
-- une comparaison avec les peers (petite barre ou texte « vs peers +15 % ») ;
+- en haut, `upcoming.title` et la date (masquer la carte si `upcoming` est `null` et qu'aucune date n'est choisie) ;
+- 3 tuiles en **fourchettes** : « Spread +11.7 % (7.9–15.5 %) », « Volume 1.9× (1.4–2.5×) », « Back to normal within 1 session » ;
+- la comparaison peers seulement si `peers.n > 0` (sinon afficher `peers_note`) ;
 - les `attention_points` en liste ;
-- un badge `confidence` et la mention « based on n past events » : important, pour ne pas donner l'impression d'une certitude.
+- un badge `confidence` + « based on n past events » : important, pour ne pas donner l'impression d'une certitude ;
+- ne jamais afficher de flèche de direction de cours.
 
 ---
 

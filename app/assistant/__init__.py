@@ -9,7 +9,7 @@ import json
 import re
 
 from app.assistant import guard, llm, prompts, templates
-from app.assistant.facts import impact_facts, report_facts
+from app.assistant.facts import impact_facts, preview_facts, report_facts
 
 
 # Les données décrivent des exécutions, pas des investisseurs (en plus du garde-fou, inchangé)
@@ -31,4 +31,9 @@ def summarize_report(report: dict) -> str:
     return _generate(prompts.REPORT_USER, report_facts(report), templates.report_headline(report), max_tokens=120)
 
 
-__all__ = ["summarize_impact_card", "summarize_report"]
+def summarize_event_preview(preview: dict) -> str:
+    """Réactions passées du trading au type d'annonce ; LLM vérifié par le garde-fou, sinon template."""
+    return _generate(prompts.PREVIEW_USER, preview_facts(preview), templates.preview_summary(preview), max_tokens=220)
+
+
+__all__ = ["summarize_impact_card", "summarize_report", "summarize_event_preview"]
