@@ -75,3 +75,29 @@ class ImpactCardResponse(DataStatusMixin, Schema):
 - `/events/evt_019/impact-card` → `pre_disclosure_activity` non nul ; `/events/evt_002/impact-card` → `null`.
 - Ensuite, je pourrai régénérer `mocks/dashboard.json` sur une fenêtre qui inclut le 13.08 (exclu pour l'instant, sinon
   `test_mock_validates[dashboard]` échoue).
+
+## 4. `app/schemas/report.py` (ajout v0.3, branche `alfred/report-fixes`)
+
+```python
+class ReportKpi(Schema):
+    label: str
+    value: OptNumber
+    unit: Literal["shares", "EUR", "bps", "ratio", "pct"]
+    trend: Optional[Trend]  # v0.3 : None si la variation est inconnue (au lieu de "flat")
+    change_pct: OptNumber = None
+    change_basis: Optional[Literal["previous_period", "first_half"]] = None  # v0.3
+```
+
+Aujourd'hui `trend: Trend` est obligatoire : un KPI sans variation calculable ferait échouer la validation (cas rare depuis
+le repli « 2e moitié vs 1re moitié », mais possible sur une période sans OHLC ou Flows dans une moitié).
+`change_basis` est supprimé par `extra="ignore"` tant qu'il n'est pas déclaré.
+
+## 5. `app/schemas/compare.py`
+
+`CompareFilter.index` est typé `Index = Literal["DAX", "MDAX", "SDAX"]` (common.py) : une réponse avec
+`"index": "ALL"` échoue la validation. Remplacer par `index: Literal["DAX", "MDAX", "SDAX", "ALL"]` dans `CompareFilter`
+(garder `Index` tel quel ailleurs).
+
+Constat : `GET /compare?type=voting_rights&index=ALL&from=2026-01-01&to=2026-10-30` renvoie aujourd'hui **422** : le paramètre
+`index` de la route (`app/api/compare.py` / `params.py`) refuse déjà `ALL`, alors que `compare_events(..., "ALL", ...)` le gère
+(tous indices) et que le contrat (`mocks/API.md` §2) l'annonce. À ouvrir côté route et côté `CompareFilter`.

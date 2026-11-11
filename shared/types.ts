@@ -266,7 +266,7 @@ export interface PreDisclosureActivity {
 
 // ---------- GET /compare ----------
 export interface CompareResponse {
-  filter: { type: EventType; index: Index; from: ISODate; to: ISODate };
+  filter: { type: EventType; index: Index | "ALL"; from: ISODate; to: ISODate };  // "ALL" = tous indices
   summary: {
     n_events: number;
     median_volume_ratio: number | null;
@@ -292,8 +292,9 @@ export interface ReportKpi {
   label: string;
   value: number;
   unit: "shares" | "EUR" | "bps" | "ratio" | "pct";
-  trend: Trend;
-  change_pct?: number;
+  trend: Trend | null;      // 🆕 v0.3 : null si la variation est inconnue (jamais "flat" faute de données)
+  change_pct?: number | null;
+  change_basis?: "previous_period" | "first_half" | null;  // 🆕 v0.3 : base de la variation (first_half = 2e moitié vs 1re moitié)
 }
 
 export interface ReportSection {

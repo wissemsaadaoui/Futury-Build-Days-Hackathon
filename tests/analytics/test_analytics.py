@@ -685,3 +685,53 @@ def test_pre_disclosure_null_when_quiet_or_not_voting_rights():
     vr = [e["event_id"] for e in A.list_events(PBB)["events"] if e["type"] == "voting_rights"]
     blocks = [A.build_impact_card(e)["pre_disclosure_activity"] for e in vr]
     assert any(b is None for b in blocks) and any(b is not None for b in blocks)
+
+
+# ---------- Bug reports : peers_text et KPIs sans période précédente ----------
+def test_peers_text_uses_sector_label():
+    from app import config
+    from app.assistant import templates
+
+    assert config.SECTORS[PBB] == "Financials"
+    txt = templates.peers_text(69.9, 77.5, 6, "Financials")
+    assert "6 financial peers" in txt and "industrial" not in txt
+    assert "its 6 peers (" in templates.peers_text(69.9, 77.5, 6, None)
+    assert "its 6 peers (" in templates.peers_text(69.9, 77.5, 6, "Unknown sector")
+    r = A.build_report(PBB, "2026-01-02", "2026-10-30")
+    peer_txt = next(s for s in r["sections"] if s["title"] == "Peer comparison")["text"]
+    assert "financial peers" in peer_txt and "industrial" not in peer_txt
+
+
+def test_report_without_previous_period_compares_halves():
+    r = A.build_report(PBB, "2026-01-02", "2026-10-30")  # aucune donnée avant le 02.01
+    prof = r["sections"][0]
+    days = data.trading_days()
+    rng = days[(days >= "2026-01-02") & (days <= "2026-10-30")]
+    first, second = rng[: len(rng) // 2], rng[len(rng) // 2 :]
+    sp = data.spread_series(PBB)
+    for k in prof["kpis"]:
+        assert k["change_basis"] == "first_half"
+        assert k["change_pct"] is not None and k["trend"] in {"up", "down", "flat"}
+    spread_kpi = next(k for k in prof["kpis"] if k["label"].startswith("Avg spread"))
+    assert spread_kpi["change_pct"] == pytest.approx((sp.reindex(second).mean() / sp.reindex(first).mean() - 1) * 100, abs=0.06)
+    assert "vs first half of the period" in prof["text"] and "vs previous period" not in prof["text"]
+    assert "first half of the period" in r["headline"]
+
+
+def test_report_with_previous_period_keeps_it():
+    r = A.build_report(PBB, "2026-07-01", "2026-10-30")
+    for k in r["sections"][0]["kpis"]:
+        assert k["change_basis"] == "previous_period"
+    assert "vs previous period" in r["sections"][0]["text"]
+
+
+def test_unknown_change_is_never_flat():
+    from app.analytics import report
+
+    assert report._trend(None) is None
+    assert report._trend(1.0) == "flat" and report._trend(5.0) == "up" and report._trend(-5.0) == "down"
+    empty = pd.Series(dtype=float)
+    days = data.trading_days()[:10]
+    assert report._change(empty, days, days[:0]) == (None, None)
+    kpi = report._kpi("X", 1, "ratio", (None, None))
+    assert kpi["trend"] is None and kpi["change_pct"] is None and kpi["change_basis"] is None
