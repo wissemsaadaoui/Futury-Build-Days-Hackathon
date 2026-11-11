@@ -70,6 +70,16 @@ NAMES: dict[str, str] = {
 # modifié par Alfred – démo pbb
 SECTORS: dict[str, str] = {isin: "Financials" for isin in NAMES}
 
+# Alertes sur les exécutions (ajouté par Alfred – mocks/API.md v0.2 §3 et §5.2)
+# Ce sont des EXÉCUTIONS (trades on-book), pas des investisseurs identifiés.
+ALERT_ADTV_DAYS = 30                 # ADTV = moyenne du turnover_eur (OHLC) des 30 séances précédentes
+ALERT_LARGE_TRADE_EUR = 500_000.0    # large_trade : exécution unique >= 500 k€ ...
+ALERT_LARGE_TRADE_ADTV_SHARE = 0.05  # ... OU >= 5 % de l'ADTV 30 jours
+ALERT_SWEEP_WINDOW_S = 1.0           # aggressor_sweep : exécutions consécutives du même côté en <= 1 s (mêmes seuils)
+ALERT_NET_FLOW_ADTV_SHARE = 0.20     # net_flow : |net AGENT ou PROP en €| > 20 % de l'ADTV 30 jours (Flows n_days == 1)
+ALERT_AUCTION_SPIKE_RATIO = 2.0      # auction_spike : part de la closing auction > 2 x sa baseline 20 jours
+ALERT_HIGH_FACTOR = 2.0              # severity "high" si la valeur dépasse 2 x le seuil
+
 # LLM (assistant)
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "")  # "anthropic" | "openai" | "" (= templates seulement)
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")

@@ -95,7 +95,20 @@ def _flows_blocks(isin: str, days: pd.DatetimeIndex, td: pd.Timestamp, card: dic
     tot = day["volume"].sum()
     by_m = [{"mode": mo, "share": r2(day.loc[day["mode"] == mo, "volume"].sum() / tot if tot else np.nan)} for mo in ("AGGRESSIVE", "PASSIVE", "AUCTION")]
     card["flows"] = {"by_participant": by_p, "by_mode": by_m}
-    # opening/closing auction : seulement si les Flows les distinguent (à vérifier dans NOTES.md)
+    return True
+
+
+def _auction_blocks(isin: str, days: pd.DatetimeIndex, td: pd.Timestamp, card: dict) -> bool:
+    """Opening / closing auction depuis les trades (les Flows regroupent toutes les enchères dans AUCTION).
+    volume = actions exécutées dans l'enchère ce jour-là, baseline = moyenne des 20 séances précédentes."""
+    if not data.has_trades(isin):
+        return False
+    for kind, key in (("opening", "opening_auction"), ("closing", "closing_auction")):
+        s = data.auction_volume_series(isin, kind)
+        if td not in s.index:
+            return False
+        mean, _ = metrics.baseline_at(s, days, td)
+        card["metrics"][key] = {"volume": r0(s.at[td]), "baseline": r0(mean), "ratio": r2(ratio(s.at[td], mean))}
     return True
 
 
@@ -136,6 +149,8 @@ def _build(isin: str, td: pd.Timestamp, event_row: dict | None) -> dict:
         status["ohlc"] = "real"
     if data.has_flows() and _flows_blocks(isin, days, td, card):
         status["flows"] = "real"
+    if _auction_blocks(isin, days, td, card):
+        status["opening_closing_auction"] = "real"
 
     card["_data_status"] = status
     card["generated_at"] = now_iso()

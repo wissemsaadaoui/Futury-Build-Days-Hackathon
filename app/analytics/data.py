@@ -75,12 +75,87 @@ def ohlc(isin: str) -> pd.DataFrame:
 
 @lru_cache(maxsize=256)
 def flows(isin: str) -> pd.DataFrame:
+    """Flows JOURNALIERS d'une action : uniquement les lignes n_days == 1.
+    Une ligne multi-jours (n_days > 1, flux censuré publié plus tard) mélangerait plusieurs séances :
+    elle est exclue de toutes les métriques journalières (auction_share, net flow, by_participant)."""
     df = etl.load_flows()
     if df.empty:
         return df
     d = df[df["isin"] == isin].copy()
+    if "n_days" in d.columns:
+        d = d[d["n_days"].fillna(1).astype(int) == 1]
     d["date"] = pd.to_datetime(d["date"])
+    for col in ("participant", "mode", "side"):
+        d[col] = d[col].astype(str)
     return d
+
+
+# ---------- trades (on-book Xetra) ----------
+SESSION_OPEN = "09:00"
+SESSION_CLOSE = "17:30"   # fin du continu ; la closing auction suit (~17:30–17:35)
+SESSION_END = "17:36"     # après : impressions hors séance (exclues)
+
+
+@lru_cache(maxsize=64)
+def trades(isin: str) -> pd.DataFrame:
+    """Trades on-book d'une action pendant la séance Xetra (09:00–17:36, enchères comprises).
+    Les impressions avant 09:00 ou après 17:36 (hors séance, sans agresseur) sont exclues."""
+    t = etl.load_trades(isin)
+    if t.empty:
+        return t
+    hm = t["ts_local"].dt.strftime("%H:%M")
+    t = t[(hm >= SESSION_OPEN) & (hm < SESSION_END)].copy()
+    t["side"] = t["side"].fillna("").astype(str)
+    t["auction_type"] = t["auction_type"].fillna("").astype(str)
+    return t.reset_index(drop=True)
+
+
+def has_trades(isin: str) -> bool:
+    return not trades(isin).empty
+
+
+@lru_cache(maxsize=64)
+def continuous_trades(isin: str) -> pd.DataFrame:
+    """Exécutions du trading continu avec un côté agresseur connu (BUY|SELL), hors enchères."""
+    t = trades(isin)
+    if t.empty:
+        return t
+    hm = t["ts_local"].dt.strftime("%H:%M")
+    keep = t["side"].isin(["BUY", "SELL"]) & (t["auction_type"] == "") & (hm < SESSION_CLOSE)
+    return t[keep].reset_index(drop=True)
+
+
+@lru_cache(maxsize=256)
+def auction_volume_series(isin: str, kind: str) -> pd.Series:
+    """Volume (actions) de l'enchère `kind` (opening|midday|closing) par jour de trading.
+    0 si l'enchère n'a rien exécuté ce jour-là (jours présents dans les trades)."""
+    t = trades(isin)
+    if t.empty:
+        return pd.Series(dtype=float)
+    days = pd.DatetimeIndex(sorted(t["date"].unique()))
+    v = t[t["auction_type"] == kind].groupby("date")["qty"].sum().astype(float)
+    return v.reindex(days, fill_value=0.0)
+
+
+@lru_cache(maxsize=256)
+def closing_auction_share_series(isin: str) -> pd.Series:
+    """Part du volume du jour exécutée dans la closing auction (0–1) : volume closing (trades) ÷ volume OHLC."""
+    px = ohlc(isin)
+    ca = auction_volume_series(isin, "closing")
+    if px.empty or ca.empty:
+        return pd.Series(dtype=float)
+    vol = px["volume"].astype(float).reindex(ca.index)
+    return (ca / vol.where(vol > 0)).dropna()
+
+
+@lru_cache(maxsize=256)
+def adtv_series(isin: str, n: int = config.ALERT_ADTV_DAYS) -> pd.Series:
+    """ADTV en € : moyenne du turnover_eur (OHLC) des n jours de trading PRÉCÉDENTS (jour courant exclu)."""
+    px = ohlc(isin)
+    if px.empty:
+        return pd.Series(dtype=float)
+    t = px["turnover_eur"].astype(float)
+    return t.rolling(n, min_periods=max(5, n // 3)).mean().shift(1)
 
 
 @lru_cache(maxsize=256)
@@ -106,5 +181,6 @@ def stock_ref(isin: str, day: pd.Timestamp | None = None) -> dict:
 
 def clear_caches() -> None:
     """À appeler si les données ETL changent (tests)."""
-    for fn in (trading_days, spread_series, index_series, ohlc, flows, auction_share_series):
+    for fn in (trading_days, spread_series, index_series, ohlc, flows, auction_share_series, trades, continuous_trades,
+               auction_volume_series, closing_auction_share_series, adtv_series):
         fn.cache_clear()

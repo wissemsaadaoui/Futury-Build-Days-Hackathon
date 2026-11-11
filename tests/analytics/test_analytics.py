@@ -235,3 +235,51 @@ def test_summary_falls_back_without_llm(monkeypatch):
     card = A.build_impact_card("evt_003")
     spread = f"{_xlm_spread(PBB, '2026-03-05'):.1f}"
     assert "999" not in card["ai_summary"] and spread in card["ai_summary"]
+
+
+# ---------- Partie B : vraies données (OHLC, Flows n_days == 1, enchères depuis les trades) ----------
+def test_real_data_status_on_pbb():
+    card = A.build_impact_card("evt_002")
+    assert card["_data_status"] == {"spreads": "real", "ohlc": "real", "flows": "real", "opening_closing_auction": "real"}
+    d = A.build_dashboard(PBB, "2026-01-01", "2026-10-30")
+    assert d["_data_status"] == {"spreads": "real", "ohlc": "real", "flows": "real"}
+    r = A.build_report(PBB, "2026-01-01", "2026-10-30")
+    assert r["_data_status"]["ohlc"] == "real" and r["_data_status"]["flows"] == "real"
+
+
+def test_auction_blocks_match_trades():
+    card = A.build_impact_card("evt_002")
+    tr = etl.load_trades(PBB)
+    day = tr[tr["date"] == pd.Timestamp(card["event"]["trading_day"])]
+    for kind in ("opening", "closing"):
+        expected = day.loc[day["auction_type"] == kind, "qty"].sum()
+        assert card["metrics"][f"{kind}_auction"]["volume"] == expected
+        assert card["metrics"][f"{kind}_auction"]["baseline"] is not None
+
+
+def test_turnover_comes_from_ohlc():
+    card = A.build_impact_card("evt_002")
+    px = etl.load_ohlc()
+    row = px[(px["isin"] == PBB) & (px["date"] == pd.Timestamp("2026-02-13"))]
+    assert card["metrics"]["turnover_eur"]["event"] == round(float(row["turnover_eur"].iloc[0]))
+
+
+def test_flows_ignore_multi_day_rows(monkeypatch):
+    real = etl.load_flows()
+    day = pd.Timestamp("2026-02-13")
+    one = real[(real["isin"] == PBB) & (real["date"] == day)].copy()
+    multi = one.copy()
+    multi["volume"] = multi["volume"] * 1000  # ligne agrégée sur 2 jours : ne doit rien changer
+    multi["notional_eur"] = multi["notional_eur"] * 1000
+    multi["n_days"] = 2
+    monkeypatch.setattr(etl, "load_flows", lambda: pd.concat([real, multi], ignore_index=True))
+    data.clear_caches()
+    try:
+        f = data.flows(PBB)
+        assert (f["n_days"] == 1).all()
+        got = A.build_impact_card("evt_002")["flows"]["by_participant"]
+        agent = one[one["participant"] == "AGENT"]
+        buy = agent.loc[agent["side"] == "BUY", "volume"].sum()
+        assert next(p for p in got if p["type"] == "AGENT")["buy"] == round(buy)
+    finally:
+        data.clear_caches()
