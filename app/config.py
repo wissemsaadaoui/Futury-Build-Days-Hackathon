@@ -1,7 +1,7 @@
-"""Configuration.
+"""Configuration – propriétaire : partenaire back-end.
 
-TEMPORAIRE (créé par Alfred pour démarrer l'analyse) – propriétaire : partenaire back-end.
-Il peut le réécrire librement en gardant les noms ci-dessous, utilisés par app/analytics.
+Lit `.env` (voir `.env.example`). Les noms ci-dessous sont utilisés par app/analytics et
+app/assistant (Alfred) : ne pas les renommer sans prévenir.
 """
 from __future__ import annotations
 
@@ -16,12 +16,25 @@ except ImportError:  # python-dotenv optionnel
     pass
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = Path(os.getenv("DATA_DIR", ROOT / "data" / "raw"))
-EVENTS_CSV = Path(os.getenv("EVENTS_CSV", ROOT / "data" / "events.csv"))
+
+
+def _path(env: str, default: Path) -> Path:
+    """Chemin lu dans `.env` ; un chemin relatif part de la racine du repo (pas du dossier courant)."""
+    p = Path(os.getenv(env) or default)
+    return p if p.is_absolute() else ROOT / p
+
+
+# Données
+DATA_DIR = _path("DATA_DIR", ROOT / "data" / "raw")  # spreads/, XETRA/, EUREX/, index_constituents/
+PROCESSED_DIR = _path("PROCESSED_DIR", ROOT / "data" / "processed")  # sorties de scripts/ (trades_<ISIN>.csv.gz)
+EVENTS_CSV = _path("EVENTS_CSV", ROOT / "data" / "events.csv")
 MOCKS_DIR = ROOT / "mocks"
 
+# API
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")  # plusieurs origines : séparées par des virgules
+
 TZ = "Europe/Berlin"
-DEMO_ISINS = ["DE000A1K0235"]  # SUSS MicroTec SE  (modifié par Alfred – démo SUSS)
+DEMO_ISINS = ["DE0008019001"]  # Deutsche Pfandbriefbank AG (pbb), SDAX
 
 # Notional de référence pour spread_bps (colonne Impact_bps du XLM)
 REF_NOTIONAL = 25_000.0
@@ -29,28 +42,18 @@ BASELINE_DAYS = 20
 WINDOW_DAYS = 5
 MARKET_CLOSE = "17:30"  # annonce après cette heure -> jour de trading suivant
 
-# Peers choisis à la main (pas de colonne secteur dans les données)
-# modifié par Alfred – démo SUSS : équipementiers / semi-conducteurs MDAX/SDAX
+# Peers choisis à la main (pas de colonne secteur dans les données) – à remplir (Alfred)
 PEERS: dict[str, list[str]] = {
-    "DE000A1K0235": [
-        "DE000A0WMPJ6",  # Aixtron (AIXA)
-        "DE000A2NB601",  # Jenoptik (JEN)
-        "DE000WAF3001",  # Siltronic (WAF)
-        "DE0005677108",  # Elmos Semiconductor (ELG)
-    ],
+    "DE0008019001": [],
 }
 
-# modifié par Alfred – démo SUSS
 NAMES: dict[str, str] = {
-    "DE000A1K0235": "SUSS MicroTec SE",
-    "DE000A0WMPJ6": "AIXTRON SE",
-    "DE000A2NB601": "JENOPTIK AG",
-    "DE000WAF3001": "Siltronic AG",
-    "DE0005677108": "Elmos Semiconductor SE",
+    "DE0008019001": "Deutsche Pfandbriefbank AG",
 }
 
-# modifié par Alfred – démo SUSS (semiconductor equipment)
-SECTORS: dict[str, str] = {isin: "Technology" for isin in NAMES}
+SECTORS: dict[str, str] = {
+    "DE0008019001": "Financials",
+}
 
 # LLM (assistant)
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "")  # "anthropic" | "openai" | "" (= templates seulement)
