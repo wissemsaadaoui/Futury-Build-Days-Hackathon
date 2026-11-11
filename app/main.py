@@ -4,15 +4,27 @@ Lancer : uvicorn app.main:app --reload --port 8000  (doc : /docs, spec : /openap
 """
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app import config
+from app import config, etl
 from app.analytics import NotFound
 from app.api import compare, health, impact_cards, stocks
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Charge toutes les données une seule fois au démarrage (~5 s) : les requêtes sont ensuite rapides."""
+    etl.warm_up()
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="Issuer Intelligence Hub API",
     description="Xetra trading analytics and impact cards for Investor Relations teams. "
     "Descriptive analysis of historical Xetra trading data. Not investment advice.",

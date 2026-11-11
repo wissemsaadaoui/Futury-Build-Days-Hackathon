@@ -63,11 +63,20 @@ Constituants DAX, MDAX et SDAX, 2026. Maximum 3 actions pour le challenge.
 | Dataset | Contenu | Statut |
 |---|---|---|
 | **Spreads (XLM)** | `dax_mdax_sdax_xlm.YYYYMMDD.csv` | ✅ Reçu et analysé |
-| **OHLC** | Open, high, low, close + statistiques dont le volume, par action et par jour | ⏳ À télécharger |
-| **Xetra/Eurex Flows** | Trading de la veille par participant type, market mode et side (BUY/SELL) | ⏳ À télécharger |
-| **Open interest** | Dérivés Eurex par participant type et LONG/SHORT | ⏳ Optionnel |
+| **OHLC** | `XETRA/XETRA_OHLC` : open/high/low/close (mid), volume, turnover, VWAP, prix et heures des 3 enchères | ✅ `load_ohlc()` |
+| **Xetra Flows (equity)** | `XETRA/XETRA_FLOW_DYNAMICS_EQUITY` : volume par participant type, market mode et side | ✅ `load_flows()` |
+| **Trades on-book** | `XETRA/XETRA_ONBOOK_TRADES` : chaque trade (~400k/jour), horodatage UTC ns, side de l'agresseur | ✅ `scripts/extract_trades.py` → `load_trades(isin)` |
+| **Index constituents** | `index_constituents` : composition DAX/MDAX/SDAX par jour (mnemonic, ISIN ; pas de nom ni de secteur) | ✅ `get_universe()`, `index_on_date()` |
+| **Eurex, ETP, TES off-book** | Dérivés, open interest, ETP, trades hors carnet | ⏸ Ignorés pour l'instant |
 
-Chaque dossier est censé contenir un **PDF** (description des colonnes) et un **NOTES.md**. **À lire en premier.**
+Chaque dossier contient un **PDF** (description des colonnes) et un **NOTES.md**. **À lire en premier.**
+
+**Points importants et surprises (ETL, pbb `DE0008019001`)** :
+- **OHLC** : une ligne par instrument **et devise** → filtre `EQUITIES` + `EUR`. `OPEN/HIGH/LOW/CLOSE_PRICE` sont des **prix mid cotés**, pas des prix de trade ; `close` = prix de la closing auction (présent les 213 jours pour pbb). `ADJUSTED_PRICE` est obsolète et faux : ignoré.
+- **Flows** : `AUCTION` regroupe **toutes** les enchères (pas de séparation opening/closing) → on passe par les trades. La date est `REPORTED_FLOW_DATES` (pas `DATE`) ; pour pbb les 213 jours sont alignés, sans censure ni ligne différée. La colonne `VOLUME` du fichier compte achat + vente (×2). Contrôle : achats totaux pbb du 29.09 = 163 670 actions = volume OHLC.
+- **Trades** : horodatage **UTC** (closing auction à 15:35 UTC en été = 17:35 Francfort). Side vide = pas d'agresseur (enchères). pbb : **76 317 trades** sur 213 jours (~360/jour, titre peu liquide). Les trades « opening » et « closing » ont exactement le prix d'enchère de l'OHLC ; part des enchères 32 % du volume (= Flows), dont **30 % en closing auction**. 474 trades sans agresseur hors des 3 enchères (08:00, après 17:40 : heures étendues / interruptions de volatilité) → `auction_type` vide. Le 11.09, la somme des trades est inférieure de 4 666 actions au volume OHLC.
+- **Index constituents** : 174 ISIN, identiques au XLM. Pas de nom (→ `config.NAMES` puis `INSTRUMENT_NAME` de l'OHLC). pbb en SDAX toute l'année ; ProCredit entre en SDAX le 14.10, W&W en sort après le 05.10.
+- **Temps de chargement** : XLM 0,5 s · OHLC 2,1 s · Flows 1,8 s (2,6 M lignes) · univers 0,4 s · trades pbb 0,1 s · extraction des trades (7 ISIN, 213 fichiers) 30 s.
 
 ### 4.2 Dataset Spreads – détails
 
@@ -212,7 +221,7 @@ Base URL locale : `http://localhost:8000`. Détails de chaque champ : `mocks/API
 
 1. ✅ Mocks JSON + `API.md` + `types.ts` → le front peut démarrer
 2. ✅ Analyse du dataset Spreads
-3. ⏳ Télécharger OHLC et Flows, lire les NOTES.md
+3. ✅ OHLC, Flows, trades et index constituents chargés (ETL), NOTES.md lus
 4. ⏳ Constituer `events.csv` pour pbb
 5. ⏳ ETL + analytics (Part A) → remplacer le mock `dashboard`
 6. ⏳ Event engine + impact card (Part B) → remplacer le mock `impact-card`
@@ -232,6 +241,6 @@ Base URL locale : `http://localhost:8000`. Détails de chaque champ : `mocks/API
 
 - [x] Back-end en Python (FastAPI + pandas)
 - [ ] Quel fournisseur LLM (et qui a une clé API) ?
-- [ ] Peers de pbb (banques / immobilier commercial cotés dans DAX/MDAX/SDAX)
-- [ ] Les Flows séparent-ils opening et closing auction ? (vérifier dans NOTES.md)
+- [x] Peers de pbb (config.PEERS, Alfred) : GRENKE, Hypoport, MLP, ProCredit, W&W, flatexDEGIRO
+- [x] Les Flows séparent-ils opening et closing auction ? **Non** (`AUCTION` = toutes les enchères) → `load_trades(isin)["auction_type"]`
 - [ ] Heures exactes des annonces pbb
