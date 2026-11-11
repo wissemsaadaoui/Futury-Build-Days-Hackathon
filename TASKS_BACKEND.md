@@ -50,7 +50,7 @@ Tu ne modifies pas `app/analytics/` ni `app/assistant/` sans prévenir Alfred.
   ```
 
 ### T3. App FastAPI minimale
-- [ ] `app/config.py` : lit `.env`, expose `DATA_DIR`, `FRONTEND_ORIGIN`, `DEMO_ISINS = ["DE000A1K0235"]` (SUSS MicroTec SE, SMHN), `PEERS = {...}` (rempli par Alfred : Aixtron, Jenoptik, Siltronic, Elmos)
+- [ ] `app/config.py` : lit `.env`, expose `DATA_DIR`, `FRONTEND_ORIGIN`, `DEMO_ISINS = ["DE0008019001"]` (pbb), `PEERS = {...}` (vide pour l'instant, Alfred le remplit)
 - [ ] `app/main.py` : crée l'app, ajoute **CORS** pour `FRONTEND_ORIGIN`, inclut les routers, route `GET /health` → `{"status": "ok"}`
 
 **Fini quand :** `uvicorn app.main:app --reload --port 8000` démarre et `http://localhost:8000/docs` s'affiche.
@@ -110,7 +110,7 @@ Les signatures et colonnes sont **fixées dans `CLAUDE.md`** : Alfred code ses a
 - [ ] Lit tous les `data/raw/spreads/dax_mdax_sdax_xlm.*.csv`
 - [ ] Renomme : `Date→date` (datetime), `ISIN→isin`, `Mnemonic→mnemonic`, `Index→index`, `Notional_CCY→notional`, `Impact_bps→impact_bps`
 - [ ] Garde les `NaN` (carnet pas assez profond), ne pas remplacer par 0
-- [ ] Vérif : 213 jours, 174 ISIN, SUSS MicroTec (SMHN) en SDAX jusqu'au 19.06 puis MDAX dès le 22.06
+- [ ] Vérif : 213 jours, 174 ISIN, vérifier l'historique d'indice de pbb (colonne `Index`)
 
 ### T10. `load_ohlc()`
 - [ ] Colonnes de sortie : `date, isin, open, high, low, close, volume, turnover_eur` (+ autres utiles selon NOTES.md)
@@ -137,7 +137,7 @@ Les signatures et colonnes sont **fixées dans `CLAUDE.md`** : Alfred code ses a
 
 ### T14. Impact card PDF
 - [ ] `GET /events/{event_id}/impact-card.pdf` : appelle `build_impact_card`, rend un template HTML simple (titre, tuiles de chiffres, `ai_summary`, disclaimer), convertit en PDF
-- [ ] Header `Content-Disposition: attachment; filename="suss_impact_<date>.pdf"`
+- [ ] Header `Content-Disposition: attachment; filename="pbb_impact_<date>.pdf"`
 
 ### T15. IR snapshot PDF
 - [ ] `GET /stocks/{isin}/report.pdf` : même principe avec `build_report`
@@ -155,7 +155,7 @@ Les signatures et colonnes sont **fixées dans `CLAUDE.md`** : Alfred code ses a
 ## Phase 5 – Robustesse et démo (~1 h)
 
 ### T17. Tests (`tests/api/`)
-- [ ] Chaque route renvoie `200` pour SUSS MicroTec et un JSON valide selon son schéma
+- [ ] Chaque route renvoie `200` pour pbb et un JSON valide selon son schéma
 - [ ] `404` pour un ISIN inconnu
 - [ ] Les fonctions ETL renvoient les bonnes colonnes
 
@@ -196,7 +196,7 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7      ← Yassine débloqué
 ## Definition of Done (global)
 
 - [ ] `uvicorn app.main:app` démarre sans erreur
-- [ ] Les 7 routes JSON + 2 routes PDF fonctionnent pour SUSS MicroTec
+- [ ] Les 7 routes JSON + 2 routes PDF fonctionnent pour pbb
 - [ ] Le front appelle la vraie API (plus les mocks)
 - [ ] `pytest` passe
 - [ ] La démo tourne de bout en bout sur le laptop de présentation

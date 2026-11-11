@@ -18,7 +18,7 @@ Toutes les réponses sont en JSON. Les fichiers `*.json` dans ce dossier sont de
 ## Conventions
 
 - **Dates** : `YYYY-MM-DD`. Timestamps : ISO 8601 avec fuseau (`+01:00`).
-- **isin** : identifiant unique de l'action (démo : SUSS MicroTec SE = `DE000A1K0235`, mnemonic SMHN).
+- **isin** : identifiant unique de l'action (démo : Deutsche Pfandbriefbank AG (pbb) = `DE0008019001`, mnemonic PBB).
 - **volume** : nombre d'actions. **turnover_eur** : montant en euros.
 - **spread_bps** : spread en basis points (1 bp = 0,01 %), basé sur le XLM (colonne "impact").
 - **auction_share** : part du volume exécutée en enchère (0–1).

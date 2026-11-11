@@ -1,8 +1,19 @@
+# Données Deutsche Börse (jamais committées) – sans « / » pour couvrir aussi un lien symbolique
 data/raw
-data/raw/
-data/processed/
+
+# Secrets (garder .env.example)
 .env
+
+# Python
 .venv/
 __pycache__/
 .pytest_cache/
+
+# Exports générés
+*.pdf
+
+# Sorties générées par scripts/
+data/processed/
+
+# macOS
 .DS_Store
