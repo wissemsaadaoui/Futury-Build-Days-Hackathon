@@ -1,5 +1,5 @@
 {
-  "_endpoint": "GET /stocks/{isin}/dashboard?from=2026-08-24&to=2026-10-09",
+  "_endpoint": "GET /stocks/{isin}/dashboard?from=2026-08-17&to=2026-10-09",
   "stock": {
     "isin": "DE0008019001",
     "name": "Deutsche Pfandbriefbank AG",
@@ -7,23 +7,123 @@
     "sector": "Financials"
   },
   "period": {
-    "from": "2026-08-24",
+    "from": "2026-08-17",
     "to": "2026-10-09"
   },
   "kpis": {
-    "avg_daily_volume": 468122,
-    "avg_daily_turnover_eur": 1549274,
-    "avg_spread_bps": 74.0,
-    "avg_auction_share": 0.37,
-    "price_change_pct": -12.1,
-    "anomaly_days": 13,
+    "avg_daily_volume": 453966,
+    "avg_daily_turnover_eur": 1505545,
+    "avg_spread_bps": 73.7,
+    "avg_auction_share": 0.36,
+    "price_change_pct": -17.8,
+    "anomaly_days": 9,
     "vs_peers": {
-      "volume_ratio": 1.26,
-      "spread_diff_bps": 6.1,
-      "auction_share_diff": 0.08
+      "volume_ratio": 1.27,
+      "spread_diff_bps": 5.0,
+      "auction_share_diff": 0.07
     }
   },
   "series": [
+    {
+      "date": "2026-08-17",
+      "open": 3.62,
+      "high": 3.62,
+      "low": 3.45,
+      "close": 3.52,
+      "volume": 328353,
+      "turnover_eur": 1154574,
+      "volume_ratio": 1.42,
+      "spread_bps": 76.6,
+      "spread_eur": 191.4,
+      "spread_ticks": 27.0,
+      "auction_share": 0.19,
+      "ema_20": 3.49,
+      "ema_50": 3.46,
+      "macd": 0.028,
+      "macd_signal": 0.015,
+      "macd_hist": 0.013,
+      "anomaly": false
+    },
+    {
+      "date": "2026-08-18",
+      "open": 3.46,
+      "high": 3.6,
+      "low": 3.4,
+      "close": 3.41,
+      "volume": 337761,
+      "turnover_eur": 1160265,
+      "volume_ratio": 1.4,
+      "spread_bps": 79.5,
+      "spread_eur": 198.7,
+      "spread_ticks": 27.1,
+      "auction_share": 0.36,
+      "ema_20": 3.48,
+      "ema_50": 3.45,
+      "macd": 0.018,
+      "macd_signal": 0.016,
+      "macd_hist": 0.003,
+      "anomaly": true
+    },
+    {
+      "date": "2026-08-19",
+      "open": 3.4,
+      "high": 3.46,
+      "low": 3.38,
+      "close": 3.41,
+      "volume": 167148,
+      "turnover_eur": 570191,
+      "volume_ratio": 0.67,
+      "spread_bps": 77.1,
+      "spread_eur": 192.8,
+      "spread_ticks": 26.3,
+      "auction_share": 0.55,
+      "ema_20": 3.48,
+      "ema_50": 3.45,
+      "macd": 0.011,
+      "macd_signal": 0.015,
+      "macd_hist": -0.004,
+      "anomaly": false
+    },
+    {
+      "date": "2026-08-20",
+      "open": 3.39,
+      "high": 3.43,
+      "low": 3.33,
+      "close": 3.36,
+      "volume": 420468,
+      "turnover_eur": 1418526,
+      "volume_ratio": 1.7,
+      "spread_bps": 69.7,
+      "spread_eur": 174.2,
+      "spread_ticks": 23.4,
+      "auction_share": 0.3,
+      "ema_20": 3.46,
+      "ema_50": 3.45,
+      "macd": 0.0,
+      "macd_signal": 0.012,
+      "macd_hist": -0.011,
+      "anomaly": true
+    },
+    {
+      "date": "2026-08-21",
+      "open": 3.35,
+      "high": 3.37,
+      "low": 3.2,
+      "close": 3.21,
+      "volume": 520651,
+      "turnover_eur": 1693672,
+      "volume_ratio": 1.99,
+      "spread_bps": 56.0,
+      "spread_eur": 140.1,
+      "spread_ticks": 18.0,
+      "auction_share": 0.13,
+      "ema_20": 3.44,
+      "ema_50": 3.44,
+      "macd": -0.019,
+      "macd_signal": 0.006,
+      "macd_hist": -0.025,
+      "anomaly": true
+    },
     {
       "date": "2026-08-24",
       "open": 3.22,
@@ -42,7 +142,7 @@
       "macd": -0.028,
       "macd_signal": -0.001,
       "macd_hist": -0.027,
-      "anomaly": true
+      "anomaly": false
     },
     {
       "date": "2026-08-25",
@@ -62,7 +162,7 @@
       "macd": -0.032,
       "macd_signal": -0.007,
       "macd_hist": -0.025,
-      "anomaly": true
+      "anomaly": false
     },
     {
       "date": "2026-08-26",
@@ -82,7 +182,7 @@
       "macd": -0.031,
       "macd_signal": -0.012,
       "macd_hist": -0.019,
-      "anomaly": true
+      "anomaly": false
     },
     {
       "date": "2026-08-27",
@@ -362,7 +462,7 @@
       "macd": -0.023,
       "macd_signal": -0.023,
       "macd_hist": -0.0,
-      "anomaly": true
+      "anomaly": false
     },
     {
       "date": "2026-09-16",
@@ -402,7 +502,7 @@
       "macd": -0.03,
       "macd_signal": -0.025,
       "macd_hist": -0.005,
-      "anomaly": true
+      "anomaly": false
     },
     {
       "date": "2026-09-18",
@@ -502,7 +602,7 @@
       "macd": -0.063,
       "macd_signal": -0.043,
       "macd_hist": -0.019,
-      "anomaly": true
+      "anomaly": false
     },
     {
       "date": "2026-09-25",
@@ -682,7 +782,7 @@
       "macd": -0.082,
       "macd_signal": -0.075,
       "macd_hist": -0.007,
-      "anomaly": true
+      "anomaly": false
     },
     {
       "date": "2026-10-08",
@@ -702,7 +802,7 @@
       "macd": -0.092,
       "macd_signal": -0.078,
       "macd_hist": -0.014,
-      "anomaly": false
+      "anomaly": true
     },
     {
       "date": "2026-10-09",
@@ -722,10 +822,40 @@
       "macd": -0.1,
       "macd_signal": -0.083,
       "macd_hist": -0.017,
-      "anomaly": true
+      "anomaly": false
     }
   ],
   "peers_series": [
+    {
+      "date": "2026-08-17",
+      "volume_ratio": 1.73,
+      "spread_bps": 72.0,
+      "auction_share": 0.21
+    },
+    {
+      "date": "2026-08-18",
+      "volume_ratio": 0.96,
+      "spread_bps": 77.1,
+      "auction_share": 0.25
+    },
+    {
+      "date": "2026-08-19",
+      "volume_ratio": 0.9,
+      "spread_bps": 70.2,
+      "auction_share": 0.29
+    },
+    {
+      "date": "2026-08-20",
+      "volume_ratio": 1.04,
+      "spread_bps": 72.6,
+      "auction_share": 0.22
+    },
+    {
+      "date": "2026-08-21",
+      "volume_ratio": 0.8,
+      "spread_bps": 79.9,
+      "auction_share": 0.21
+    },
     {
       "date": "2026-08-24",
       "volume_ratio": 0.93,
@@ -939,59 +1069,67 @@
   ],
   "anomalies": [
     {
-      "date": "2026-08-24",
-      "type": "aggressor_sweep",
-      "severity": "high",
-      "value": 0.1,
-      "description": "Aggressive sell orders swept the order book: 2 executions worth EUR 90k at the same timestamp at 09:05 (10% of 30-day average daily turnover)",
-      "time": "09:05:54",
-      "side": "SELL",
-      "notional_eur": 89646,
-      "linked_event_id": null
-    },
-    {
-      "date": "2026-08-24",
-      "type": "large_trade",
-      "severity": "medium",
-      "value": 0.1,
-      "description": "A single sell-initiated execution of EUR 86k (10% of 30-day average daily turnover) at 09:05",
-      "time": "09:05:54",
-      "side": "SELL",
-      "notional_eur": 86442,
-      "linked_event_id": null
-    },
-    {
-      "date": "2026-08-25",
+      "date": "2026-08-18",
       "type": "aggressor_sweep",
       "severity": "medium",
-      "value": 0.1,
-      "description": "Aggressive sell orders swept the order book: 5 executions worth EUR 87k at the same timestamp at 17:25 (10% of 30-day average daily turnover)",
-      "time": "17:25:57",
-      "side": "SELL",
-      "notional_eur": 87166,
-      "linked_event_id": null
-    },
-    {
-      "date": "2026-08-25",
-      "type": "large_trade",
-      "severity": "medium",
-      "value": 0.06,
-      "description": "A single sell-initiated execution of EUR 55k (6% of 30-day average daily turnover) at 17:25",
-      "time": "17:25:57",
-      "side": "SELL",
-      "notional_eur": 54937,
-      "linked_event_id": null
-    },
-    {
-      "date": "2026-08-26",
-      "type": "aggressor_sweep",
-      "severity": "medium",
-      "value": 0.08,
-      "description": "Aggressive buy orders swept the order book: 23 executions worth EUR 69k at the same timestamp at 09:07 (8% of 30-day average daily turnover)",
-      "time": "09:07:22",
+      "value": 0.12,
+      "description": "Aggressive buy orders swept the order book: 20 executions worth EUR 94k at the same timestamp at 09:33 (12% of 30-day average daily turnover)",
+      "time": "09:33:59",
       "side": "BUY",
-      "notional_eur": 68705,
-      "linked_event_id": null
+      "notional_eur": 93723,
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-18/impact-card"
+    },
+    {
+      "date": "2026-08-18",
+      "type": "net_flow",
+      "severity": "medium",
+      "value": 0.32,
+      "description": "Proprietary trading flow was net buying EUR 256k (32% of 30-day average daily turnover)",
+      "side": "BUY",
+      "notional_eur": 256105,
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-18/impact-card"
+    },
+    {
+      "date": "2026-08-20",
+      "type": "net_flow",
+      "severity": "medium",
+      "value": -0.27,
+      "description": "Agency flow (orders on behalf of clients) was net selling EUR 221k (27% of 30-day average daily turnover)",
+      "side": "SELL",
+      "notional_eur": 221246,
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-20/impact-card"
+    },
+    {
+      "date": "2026-08-20",
+      "type": "net_flow",
+      "severity": "medium",
+      "value": 0.24,
+      "description": "Proprietary trading flow was net buying EUR 196k (24% of 30-day average daily turnover)",
+      "side": "BUY",
+      "notional_eur": 195913,
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-20/impact-card"
+    },
+    {
+      "date": "2026-08-21",
+      "type": "price_move",
+      "severity": "high",
+      "value": -5.84,
+      "description": "Price moved -5.8% vs peers on 2.0x usual volume",
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-21/impact-card"
+    },
+    {
+      "date": "2026-08-21",
+      "type": "volume_spike",
+      "severity": "medium",
+      "value": 1.99,
+      "description": "Volume 2.0x above 20-day baseline",
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-21/impact-card"
     },
     {
       "date": "2026-08-27",
@@ -1001,18 +1139,20 @@
       "description": "Agency flow (orders on behalf of clients) was net selling EUR 205k (22% of 30-day average daily turnover)",
       "side": "SELL",
       "notional_eur": 205183,
-      "linked_event_id": null
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-27/impact-card"
     },
     {
       "date": "2026-08-31",
       "type": "aggressor_sweep",
-      "severity": "high",
+      "severity": "medium",
       "value": 0.19,
       "description": "Aggressive sell orders swept the order book: 30 executions worth EUR 176k at the same timestamp at 14:39 (19% of 30-day average daily turnover)",
       "time": "14:39:53",
       "side": "SELL",
       "notional_eur": 176083,
-      "linked_event_id": null
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
     },
     {
       "date": "2026-08-31",
@@ -1020,18 +1160,20 @@
       "severity": "medium",
       "value": 3.04,
       "description": "Closing auction executed 94% of the day's volume (3.0x its 20-day average share)",
-      "linked_event_id": null
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
     },
     {
       "date": "2026-08-31",
       "type": "large_trade",
-      "severity": "high",
+      "severity": "medium",
       "value": 0.11,
       "description": "A single buy-initiated execution of EUR 101k (11% of 30-day average daily turnover) at 09:44",
       "time": "09:44:33",
       "side": "BUY",
       "notional_eur": 100650,
-      "linked_event_id": null
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
     },
     {
       "date": "2026-08-31",
@@ -1041,7 +1183,8 @@
       "description": "Agency flow (orders on behalf of clients) was net buying EUR 6.9m (734% of 30-day average daily turnover)",
       "side": "BUY",
       "notional_eur": 6869279,
-      "linked_event_id": null
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
     },
     {
       "date": "2026-08-31",
@@ -1051,7 +1194,17 @@
       "description": "Proprietary trading flow was net selling EUR 6.9m (735% of 30-day average daily turnover)",
       "side": "SELL",
       "notional_eur": 6878560,
-      "linked_event_id": null
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
+    },
+    {
+      "date": "2026-08-31",
+      "type": "price_move",
+      "severity": "medium",
+      "value": -3.06,
+      "description": "Price moved -3.1% vs peers on 22.7x usual volume",
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
     },
     {
       "date": "2026-08-31",
@@ -1059,51 +1212,8 @@
       "severity": "high",
       "value": 22.74,
       "description": "Volume 22.7x above 20-day baseline",
-      "linked_event_id": null
-    },
-    {
-      "date": "2026-09-15",
-      "type": "aggressor_sweep",
-      "severity": "medium",
-      "value": 0.09,
-      "description": "Aggressive sell orders swept the order book: 10 executions worth EUR 168k at the same timestamp at 13:02 (9% of 30-day average daily turnover)",
-      "time": "13:02:14",
-      "side": "SELL",
-      "notional_eur": 167500,
-      "linked_event_id": null
-    },
-    {
-      "date": "2026-09-17",
-      "type": "aggressor_sweep",
-      "severity": "medium",
-      "value": 0.08,
-      "description": "Aggressive sell orders swept the order book: 2 executions worth EUR 140k at the same timestamp at 16:51 (8% of 30-day average daily turnover)",
-      "time": "16:51:16",
-      "side": "SELL",
-      "notional_eur": 139764,
-      "linked_event_id": null
-    },
-    {
-      "date": "2026-09-17",
-      "type": "large_trade",
-      "severity": "medium",
-      "value": 0.08,
-      "description": "A single sell-initiated execution of EUR 139k (8% of 30-day average daily turnover) at 16:51",
-      "time": "16:51:16",
-      "side": "SELL",
-      "notional_eur": 138904,
-      "linked_event_id": null
-    },
-    {
-      "date": "2026-09-24",
-      "type": "aggressor_sweep",
-      "severity": "medium",
-      "value": 0.06,
-      "description": "Aggressive sell orders swept the order book: 5 executions worth EUR 116k at the same timestamp at 11:44 (6% of 30-day average daily turnover)",
-      "time": "11:44:21",
-      "side": "SELL",
-      "notional_eur": 116128,
-      "linked_event_id": null
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
     },
     {
       "date": "2026-09-29",
@@ -1111,7 +1221,8 @@
       "severity": "high",
       "value": 1.21,
       "description": "Spread 1.2x its 20-day baseline",
-      "linked_event_id": null
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-09-29/impact-card"
     },
     {
       "date": "2026-10-02",
@@ -1119,18 +1230,8 @@
       "severity": "high",
       "value": 1.41,
       "description": "Spread 1.4x its 20-day baseline",
-      "linked_event_id": null
-    },
-    {
-      "date": "2026-10-06",
-      "type": "aggressor_sweep",
-      "severity": "medium",
-      "value": 0.05,
-      "description": "Aggressive sell orders swept the order book: 7 executions worth EUR 88k within 0.2 s at 11:34 (5% of 30-day average daily turnover)",
-      "time": "11:34:15",
-      "side": "SELL",
-      "notional_eur": 87788,
-      "linked_event_id": null
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-10-02/impact-card"
     },
     {
       "date": "2026-10-06",
@@ -1138,29 +1239,17 @@
       "severity": "high",
       "value": 1.55,
       "description": "Spread 1.6x its 20-day baseline",
-      "linked_event_id": null
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-10-06/impact-card"
     },
     {
-      "date": "2026-10-07",
-      "type": "aggressor_sweep",
+      "date": "2026-10-08",
+      "type": "price_move",
       "severity": "medium",
-      "value": 0.08,
-      "description": "Aggressive sell orders swept the order book: 7 executions worth EUR 133k at the same timestamp at 17:26 (8% of 30-day average daily turnover)",
-      "time": "17:26:07",
-      "side": "SELL",
-      "notional_eur": 132714,
-      "linked_event_id": null
-    },
-    {
-      "date": "2026-10-09",
-      "type": "aggressor_sweep",
-      "severity": "medium",
-      "value": 0.05,
-      "description": "Aggressive sell orders swept the order book: 13 executions worth EUR 84k at the same timestamp at 09:40 (5% of 30-day average daily turnover)",
-      "time": "09:40:26",
-      "side": "SELL",
-      "notional_eur": 84472,
-      "linked_event_id": null
+      "value": -2.71,
+      "description": "Price moved -2.7% vs peers on 1.5x usual volume",
+      "linked_event_id": null,
+      "detail_url": "/days/DE0008019001/2026-10-08/impact-card"
     }
   ],
   "support_resistance": {
@@ -1185,5 +1274,5 @@
     "ohlc": "real",
     "flows": "real"
   },
-  "_note": "Généré depuis les vraies données pbb (closing auction du 31.08, rupture du spread le 29.09) – v0.2 avec alertes."
+  "_note": "Généré depuis les vraies données pbb (closing auction du 31.08, rupture du spread le 29.09) – v0.3 (price_move, detail_url). level_break : exemple dans API.md §5.2 (schéma backend à mettre à jour)."
 }

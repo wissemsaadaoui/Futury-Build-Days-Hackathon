@@ -1,4 +1,4 @@
-# Issuer Intelligence Hub – API pour le front-end (v0.2)
+# Issuer Intelligence Hub – API pour le front-end (v0.3)
 
 > Pour Yassine · Démo : **Deutsche Pfandbriefbank AG (pbb)**, ISIN `DE0008019001`, SDAX
 > Ce document remplace `mocks/API.md` v0.1. Les changements depuis la v0.1 sont marqués **🆕**, et ce qui arrive bientôt est marqué **🔜**.
@@ -32,6 +32,10 @@ En attendant l'API, utilise `mocks/*.json` et `shared/types.ts` : même format.
 | 12 | 🆕 `dashboard.series[].spread_eur` (coût en € pour 25 000 €) et `spread_ticks` (coût par action en ticks Xetra), nullable | Option : 2e axe « € » sur le graphique spread |
 | 13 | 🆕 `_data_status` de l'impact card : clés `opening_closing_auction` et `intraday` en plus | Aucun |
 | 10 | 🔜 Nouvel endpoint **`/event-preview`** : anticiper l'impact d'une annonce à venir | Nouvelle carte « What to expect » |
+| 14 | 🆕 v0.3 : nouvelles anomalies **`price_move`** (« notable day ») et **`level_break`** (champs `level_type`, `level_price`) | Libellés, icônes |
+| 15 | 🆕 v0.3 : **`detail_url`** sur chaque anomalie (impact card de l'événement, sinon du jour) | Utiliser ce lien au clic |
+| 16 | 🆕 v0.3 : seuils `large_trade` / `aggressor_sweep` relevés (10 % de l'ADTV, ≥ 3 exécutions) : beaucoup moins d'alertes | Aucun |
+| 17 | 🆕 v0.3 : bloc **`pre_disclosure_activity`** dans l'impact card des notifications `voting_rights` (§5.4) | Petit encadré « Before the disclosure » |
 
 ---
 
@@ -97,12 +101,16 @@ Arrondis côté API : prix et ratios à 2 décimales, bps et % à 1 décimale. P
 |---|---|---|
 | `volume_spike` | Volume très au-dessus de la normale | ✅ |
 | `spread_widening` | Spread très au-dessus de la normale (action plus chère à trader) | ✅ |
-| `large_trade` | Une exécution unique très grosse (≥ 500 k€ ou ≥ 5 % de l'ADTV 30 j) | ✅ |
-| `aggressor_sweep` | Rafale d'exécutions consécutives du même côté en ≤ 1 s, somme ≥ mêmes seuils (proxy d'un gros ordre) | ✅ |
+| `large_trade` | Une exécution unique très grosse (≥ 10 % de l'ADTV 30 j) | ✅ v0.3 |
+| `aggressor_sweep` | Rafale d'au moins 3 exécutions consécutives du même côté en ≤ 1 s, somme ≥ 10 % de l'ADTV 30 j (proxy d'un gros ordre) | ✅ v0.3 |
 | `net_flow` | Flux net AGENT ou PROP (en €) > 20 % de l'ADTV 30 j (Flows journaliers uniquement) | ✅ |
 | `auction_spike` | Part de la closing auction > 2 × sa moyenne des 20 séances précédentes | ✅ |
+| `price_move` | « Notable day » : \|rendement excédentaire vs médiane des peers\| > 2,5 % **et** volume > 1,5 × la normale (une journée où tout le secteur bouge ne compte pas) | 🆕 v0.3 |
+| `level_break` | Clôture qui franchit un support ou une résistance (calculés sur l'historique avant le jour), volume > 1,5 × la normale **et** un `large_trade` ou `aggressor_sweep` le même jour. Descriptif uniquement, aucune projection de prix | 🆕 v0.3 |
 
-`severity` : `medium` ou `high`. `linked_event_id` : l'annonce du même jour, ou `null` → jour inhabituel **sans explication connue**. Un clic ouvre `/days/{isin}/{date}/impact-card`.
+Nombre de jours d'alerte sur pbb (213 séances, 02.01–30.10.2026) : `large_trade` 13, `aggressor_sweep` 38, `net_flow` 34, `price_move` 15, `auction_spike` 5, `level_break` 1.
+
+`severity` : `medium` ou `high`. `linked_event_id` : l'annonce du même jour, ou `null` → jour inhabituel **sans explication connue**. 🆕 `detail_url` : lien à ouvrir au clic (`/events/{event_id}/impact-card` si `linked_event_id`, sinon `/days/{isin}/{date}/impact-card`).
 
 ---
 
@@ -188,13 +196,54 @@ Même format que les anomalies actuelles, avec quelques champs en plus selon le 
   "value": 0.08,                       // ici : part de l'ADTV 30 jours
   "description": "A single execution of EUR 640k (8% of 30-day average daily turnover) at 10:42",
   "linked_event_id": null,
+  "detail_url": "/days/DE0008019001/2026-10-02/impact-card",   // 🆕 v0.3, sur toutes les anomalies
   "time": "10:42:13",                  // large_trade / aggressor_sweep uniquement
   "side": "SELL",                      // côté agresseur (trades) ou sens du flux net (net_flow)
   "notional_eur": 640000               // exécution / rafale / flux net (large_trade, aggressor_sweep, net_flow)
 }
 ```
 
+🆕 v0.3 – `price_move` et `level_break` (exemples réels pbb) :
+
+```json
+{
+  "date": "2026-05-13", "type": "price_move", "severity": "high",
+  "value": 12.1,                       // rendement excédentaire vs médiane des peers, en %
+  "description": "Price moved +12.1% vs peers on 2.5x usual volume",
+  "linked_event_id": null,
+  "detail_url": "/days/DE0008019001/2026-05-13/impact-card"
+}
+{
+  "date": "2026-08-13", "type": "level_break", "severity": "medium",
+  "value": 2.52,                       // volume_ratio du jour
+  "description": "Close of EUR 3.60 rose above the resistance at EUR 3.59 (2 previous touches) on 2.5x usual volume, confirmed by unusually large executions",
+  "linked_event_id": "evt_018",
+  "detail_url": "/events/evt_018/impact-card",
+  "level_type": "resistance",          // support | resistance
+  "level_price": 3.59
+}
+```
+
+Wording `level_break` : « confirmed by unusually large executions » ; jamais « institutional » ni « retail » (les données ne permettent pas de les distinguer).
+
 Wording : les textes parlent toujours d'« executions » ou d'« aggressive buy orders », **jamais d'« un investisseur »**. Les données ne disent pas qui a passé l'ordre.
+
+### 5.4 🆕 v0.3 – `pre_disclosure_activity` (impact card des `voting_rights`)
+
+Le franchissement d'un seuil de droits de vote **précède** la notification : l'investisseur a jusqu'à 4 jours de bourse pour notifier l'émetteur, qui publie ensuite. Le bloc liste les anomalies et alertes des **7 séances avant le jour de publication** (jour de publication exclu). `null` si rien d'inhabituel, et pour tous les autres types d'événements.
+
+```json
+"pre_disclosure_activity": {
+  "window": { "from": "2026-08-26", "to": "2026-09-03", "sessions": 7 },
+  "days": [
+    { "date": "2026-08-31", "anomaly_types": ["aggressor_sweep", "auction_spike", "large_trade", "net_flow", "price_move", "volume_spike"],
+      "volume_ratio": 22.74, "agent_net_flow_eur": 6869279 }
+  ],
+  "summary": "Unusual activity in the 7 sessions before the disclosure: 2 flagged sessions (…). This trading may coincide with the position change reported in the notification; the data do not show who traded."
+}
+```
+
+Exemple complet : `mocks/impact-card-voting-rights.json` (evt_019, notification Goldman Sachs du 04.09.2026). **Ne jamais** présenter ce trading comme celui de l'investisseur notifié : « may coincide with ».
 
 ### 5.3 Event preview : anticiper l'impact d'une annonce à venir
 

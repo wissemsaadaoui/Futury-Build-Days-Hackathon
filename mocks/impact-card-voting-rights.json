@@ -1,0 +1,1456 @@
+{
+  "_endpoint": "GET /events/{event_id}/impact-card   (événement voting_rights : bloc pre_disclosure_activity)",
+  "card_id": "card_evt_019",
+  "stock": {
+    "isin": "DE0008019001",
+    "name": "Deutsche Pfandbriefbank AG",
+    "index": "SDAX"
+  },
+  "event": {
+    "event_id": "evt_019",
+    "type": "voting_rights",
+    "title": "Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.",
+    "published_at": "2026-09-04T08:32:00+02:00",
+    "trading_day": "2026-09-04",
+    "source_url": "https://www.eqs-news.com/news/voting-rights/the-goldman-sachs-group-inc-wilmington-de-united-states-of-america-usa/4020af5c-5157-4345-ab73-77034ad58594_en"
+  },
+  "baseline": {
+    "method": "20-day mean before event",
+    "from": "2026-08-07",
+    "to": "2026-09-03"
+  },
+  "metrics": {
+    "volume": {
+      "event": 416600,
+      "baseline": 685379,
+      "ratio": 0.61,
+      "z_score": -0.2
+    },
+    "turnover_eur": {
+      "event": 1432562,
+      "baseline": 2333491,
+      "ratio": 0.61
+    },
+    "price": {
+      "prev_close": 3.29,
+      "open": 3.34,
+      "close": 3.43,
+      "change_pct": 4.1,
+      "intraday_range_pct": 8.6
+    },
+    "spread_bps": {
+      "event": 66.3,
+      "baseline": 71.7,
+      "change_pct": -7.4
+    },
+    "auction_share": {
+      "event": 0.23,
+      "baseline": 0.35,
+      "change_pts": -0.12
+    },
+    "opening_auction": {
+      "volume": 121,
+      "baseline": 2720,
+      "ratio": 0.04
+    },
+    "closing_auction": {
+      "volume": 95126,
+      "baseline": 434998,
+      "ratio": 0.22
+    }
+  },
+  "flows": {
+    "by_participant": [
+      {
+        "type": "AGENT",
+        "buy": 263721,
+        "sell": 188813,
+        "net": 74908
+      },
+      {
+        "type": "PROP",
+        "buy": 121599,
+        "sell": 186779,
+        "net": -65180
+      },
+      {
+        "type": "MARKET_MAKER",
+        "buy": 31280,
+        "sell": 41008,
+        "net": -9728
+      }
+    ],
+    "by_mode": [
+      {
+        "mode": "AGGRESSIVE",
+        "share": 0.38
+      },
+      {
+        "mode": "PASSIVE",
+        "share": 0.38
+      },
+      {
+        "mode": "AUCTION",
+        "share": 0.23
+      }
+    ]
+  },
+  "window": [
+    {
+      "offset": -5,
+      "date": "2026-08-28",
+      "close": 3.49,
+      "volume_ratio": 0.46,
+      "spread_bps": 71.1
+    },
+    {
+      "offset": -4,
+      "date": "2026-08-31",
+      "close": 3.39,
+      "volume_ratio": 10.7,
+      "spread_bps": 56.9
+    },
+    {
+      "offset": -3,
+      "date": "2026-09-01",
+      "close": 3.33,
+      "volume_ratio": 0.57,
+      "spread_bps": 65.5
+    },
+    {
+      "offset": -2,
+      "date": "2026-09-02",
+      "close": 3.31,
+      "volume_ratio": 0.5,
+      "spread_bps": 73.5
+    },
+    {
+      "offset": -1,
+      "date": "2026-09-03",
+      "close": 3.29,
+      "volume_ratio": 0.4,
+      "spread_bps": 75.6
+    },
+    {
+      "offset": 0,
+      "date": "2026-09-04",
+      "close": 3.43,
+      "volume_ratio": 0.61,
+      "spread_bps": 66.3
+    },
+    {
+      "offset": 1,
+      "date": "2026-09-07",
+      "close": 3.37,
+      "volume_ratio": 0.25,
+      "spread_bps": 69.5
+    },
+    {
+      "offset": 2,
+      "date": "2026-09-08",
+      "close": 3.36,
+      "volume_ratio": 0.16,
+      "spread_bps": 66.0
+    },
+    {
+      "offset": 3,
+      "date": "2026-09-09",
+      "close": 3.32,
+      "volume_ratio": 0.46,
+      "spread_bps": 64.8
+    },
+    {
+      "offset": 4,
+      "date": "2026-09-10",
+      "close": 3.36,
+      "volume_ratio": 0.35,
+      "spread_bps": 68.3
+    },
+    {
+      "offset": 5,
+      "date": "2026-09-11",
+      "close": 3.36,
+      "volume_ratio": 0.22,
+      "spread_bps": 68.6
+    }
+  ],
+  "vs_peers": {
+    "peer_avg_volume_ratio": 0.92,
+    "peer_avg_price_change_pct": 1.4,
+    "excess_return_pct": 2.7
+  },
+  "technical_context": {
+    "trend_before": "below_ema50",
+    "macd_before": "bearish",
+    "macd_after": "bullish",
+    "broke_level": null
+  },
+  "ai_summary": "On the day of the event (Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.), Deutsche Pfandbriefbank AG traded 0.6x its usual volume and the share price moved 4.1%, 2.7 percentage points better than the median of its peers. The round-trip cost for a 25,000 EUR trade tightened to 66.3 bps versus a 20-day average of 71.7 bps (-7.4%). In the first 15 minutes after the open (09:00), volume was 0.8x the usual level for that time of day, and the price moved 0.4% after 5 minutes and -1.1% after 30 minutes. Auctions accounted for 23.0% of volume versus 35.0% normally; the closing auction was 0.2x its usual size.",
+  "generated_at": "2026-11-11T21:16:34+01:00",
+  "export": {
+    "pdf_url": "/events/evt_019/impact-card.pdf"
+  },
+  "intraday": {
+    "reference_time": "2026-09-04T09:00:00+02:00",
+    "during_session": false,
+    "minutes": [
+      {
+        "offset_min": -30,
+        "time": "08:30",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -29,
+        "time": "08:31",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -28,
+        "time": "08:32",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -27,
+        "time": "08:33",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -26,
+        "time": "08:34",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -25,
+        "time": "08:35",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -24,
+        "time": "08:36",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -23,
+        "time": "08:37",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -22,
+        "time": "08:38",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -21,
+        "time": "08:39",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -20,
+        "time": "08:40",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -19,
+        "time": "08:41",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -18,
+        "time": "08:42",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -17,
+        "time": "08:43",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -16,
+        "time": "08:44",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -15,
+        "time": "08:45",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -14,
+        "time": "08:46",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -13,
+        "time": "08:47",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -12,
+        "time": "08:48",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -11,
+        "time": "08:49",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -10,
+        "time": "08:50",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -9,
+        "time": "08:51",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -8,
+        "time": "08:52",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -7,
+        "time": "08:53",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -6,
+        "time": "08:54",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -5,
+        "time": "08:55",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -4,
+        "time": "08:56",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -3,
+        "time": "08:57",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -2,
+        "time": "08:58",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": -1,
+        "time": "08:59",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 0,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 0,
+        "time": "09:00",
+        "vwap": 3.32,
+        "volume": 1521,
+        "cum_volume": 1521,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 1,
+        "time": "09:01",
+        "vwap": 3.35,
+        "volume": 2000,
+        "cum_volume": 3521,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 2,
+        "time": "09:02",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 3521,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 3,
+        "time": "09:03",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 3521,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 4,
+        "time": "09:04",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 3521,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 5,
+        "time": "09:05",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 3521,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 6,
+        "time": "09:06",
+        "vwap": 3.28,
+        "volume": 9814,
+        "cum_volume": 13335,
+        "buy_aggressor_share": 0.0
+      },
+      {
+        "offset_min": 7,
+        "time": "09:07",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 13335,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 8,
+        "time": "09:08",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 13335,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 9,
+        "time": "09:09",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 13335,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 10,
+        "time": "09:10",
+        "vwap": 3.28,
+        "volume": 587,
+        "cum_volume": 13922,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 11,
+        "time": "09:11",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 13922,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 12,
+        "time": "09:12",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 13922,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 13,
+        "time": "09:13",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 13922,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 14,
+        "time": "09:14",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 13922,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 15,
+        "time": "09:15",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 13922,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 16,
+        "time": "09:16",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 13922,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 17,
+        "time": "09:17",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 13922,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 18,
+        "time": "09:18",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 13922,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 19,
+        "time": "09:19",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 13922,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 20,
+        "time": "09:20",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 13922,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 21,
+        "time": "09:21",
+        "vwap": 3.29,
+        "volume": 6029,
+        "cum_volume": 19951,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 22,
+        "time": "09:22",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 19951,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 23,
+        "time": "09:23",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 19951,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 24,
+        "time": "09:24",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 19951,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 25,
+        "time": "09:25",
+        "vwap": 3.3,
+        "volume": 758,
+        "cum_volume": 20709,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 26,
+        "time": "09:26",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 20709,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 27,
+        "time": "09:27",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 20709,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 28,
+        "time": "09:28",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 20709,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 29,
+        "time": "09:29",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 20709,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 30,
+        "time": "09:30",
+        "vwap": 3.3,
+        "volume": 891,
+        "cum_volume": 21600,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 31,
+        "time": "09:31",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 21600,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 32,
+        "time": "09:32",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 21600,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 33,
+        "time": "09:33",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 21600,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 34,
+        "time": "09:34",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 21600,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 35,
+        "time": "09:35",
+        "vwap": 3.31,
+        "volume": 5096,
+        "cum_volume": 26696,
+        "buy_aggressor_share": 0.32
+      },
+      {
+        "offset_min": 36,
+        "time": "09:36",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 26696,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 37,
+        "time": "09:37",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 26696,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 38,
+        "time": "09:38",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 26696,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 39,
+        "time": "09:39",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 26696,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 40,
+        "time": "09:40",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 26696,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 41,
+        "time": "09:41",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 26696,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 42,
+        "time": "09:42",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 26696,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 43,
+        "time": "09:43",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 26696,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 44,
+        "time": "09:44",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 26696,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 45,
+        "time": "09:45",
+        "vwap": 3.32,
+        "volume": 618,
+        "cum_volume": 27314,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 46,
+        "time": "09:46",
+        "vwap": 3.31,
+        "volume": 495,
+        "cum_volume": 27809,
+        "buy_aggressor_share": 0.0
+      },
+      {
+        "offset_min": 47,
+        "time": "09:47",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 27809,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 48,
+        "time": "09:48",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 27809,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 49,
+        "time": "09:49",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 27809,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 50,
+        "time": "09:50",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 27809,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 51,
+        "time": "09:51",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 27809,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 52,
+        "time": "09:52",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 27809,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 53,
+        "time": "09:53",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 27809,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 54,
+        "time": "09:54",
+        "vwap": 3.31,
+        "volume": 1000,
+        "cum_volume": 28809,
+        "buy_aggressor_share": 0.0
+      },
+      {
+        "offset_min": 55,
+        "time": "09:55",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 28809,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 56,
+        "time": "09:56",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 28809,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 57,
+        "time": "09:57",
+        "vwap": 3.32,
+        "volume": 387,
+        "cum_volume": 29196,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 58,
+        "time": "09:58",
+        "vwap": 3.33,
+        "volume": 146,
+        "cum_volume": 29342,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 59,
+        "time": "09:59",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 29342,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 60,
+        "time": "10:00",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 29342,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 61,
+        "time": "10:01",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 29342,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 62,
+        "time": "10:02",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 29342,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 63,
+        "time": "10:03",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 29342,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 64,
+        "time": "10:04",
+        "vwap": 3.33,
+        "volume": 6,
+        "cum_volume": 29348,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 65,
+        "time": "10:05",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 29348,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 66,
+        "time": "10:06",
+        "vwap": 3.33,
+        "volume": 80,
+        "cum_volume": 29428,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 67,
+        "time": "10:07",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 29428,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 68,
+        "time": "10:08",
+        "vwap": 3.34,
+        "volume": 4522,
+        "cum_volume": 33950,
+        "buy_aggressor_share": 0.49
+      },
+      {
+        "offset_min": 69,
+        "time": "10:09",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 33950,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 70,
+        "time": "10:10",
+        "vwap": 3.33,
+        "volume": 1314,
+        "cum_volume": 35264,
+        "buy_aggressor_share": 0.0
+      },
+      {
+        "offset_min": 71,
+        "time": "10:11",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 35264,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 72,
+        "time": "10:12",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 35264,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 73,
+        "time": "10:13",
+        "vwap": 3.33,
+        "volume": 747,
+        "cum_volume": 36011,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 74,
+        "time": "10:14",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36011,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 75,
+        "time": "10:15",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36011,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 76,
+        "time": "10:16",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36011,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 77,
+        "time": "10:17",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36011,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 78,
+        "time": "10:18",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36011,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 79,
+        "time": "10:19",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36011,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 80,
+        "time": "10:20",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36011,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 81,
+        "time": "10:21",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36011,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 82,
+        "time": "10:22",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36011,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 83,
+        "time": "10:23",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36011,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 84,
+        "time": "10:24",
+        "vwap": 3.33,
+        "volume": 6,
+        "cum_volume": 36017,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 85,
+        "time": "10:25",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36017,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 86,
+        "time": "10:26",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36017,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 87,
+        "time": "10:27",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36017,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 88,
+        "time": "10:28",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36017,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 89,
+        "time": "10:29",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36017,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 90,
+        "time": "10:30",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 36017,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 91,
+        "time": "10:31",
+        "vwap": 3.33,
+        "volume": 171,
+        "cum_volume": 36188,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 92,
+        "time": "10:32",
+        "vwap": 3.33,
+        "volume": 3644,
+        "cum_volume": 39832,
+        "buy_aggressor_share": 0.36
+      },
+      {
+        "offset_min": 93,
+        "time": "10:33",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 39832,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 94,
+        "time": "10:34",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 39832,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 95,
+        "time": "10:35",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 39832,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 96,
+        "time": "10:36",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 39832,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 97,
+        "time": "10:37",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 39832,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 98,
+        "time": "10:38",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 39832,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 99,
+        "time": "10:39",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 39832,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 100,
+        "time": "10:40",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 39832,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 101,
+        "time": "10:41",
+        "vwap": 3.32,
+        "volume": 132,
+        "cum_volume": 39964,
+        "buy_aggressor_share": 0.0
+      },
+      {
+        "offset_min": 102,
+        "time": "10:42",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 39964,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 103,
+        "time": "10:43",
+        "vwap": 3.32,
+        "volume": 3818,
+        "cum_volume": 43782,
+        "buy_aggressor_share": 0.75
+      },
+      {
+        "offset_min": 104,
+        "time": "10:44",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 43782,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 105,
+        "time": "10:45",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 43782,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 106,
+        "time": "10:46",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 43782,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 107,
+        "time": "10:47",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 43782,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 108,
+        "time": "10:48",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 43782,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 109,
+        "time": "10:49",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 43782,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 110,
+        "time": "10:50",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 43782,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 111,
+        "time": "10:51",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 43782,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 112,
+        "time": "10:52",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 43782,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 113,
+        "time": "10:53",
+        "vwap": 3.32,
+        "volume": 2314,
+        "cum_volume": 46096,
+        "buy_aggressor_share": 1.0
+      },
+      {
+        "offset_min": 114,
+        "time": "10:54",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 46096,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 115,
+        "time": "10:55",
+        "vwap": 3.32,
+        "volume": 2491,
+        "cum_volume": 48587,
+        "buy_aggressor_share": 0.0
+      },
+      {
+        "offset_min": 116,
+        "time": "10:56",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 48587,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 117,
+        "time": "10:57",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 48587,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 118,
+        "time": "10:58",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 48587,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 119,
+        "time": "10:59",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 48587,
+        "buy_aggressor_share": null
+      },
+      {
+        "offset_min": 120,
+        "time": "11:00",
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 48587,
+        "buy_aggressor_share": null
+      }
+    ],
+    "first_15min": {
+      "volume": 13922,
+      "baseline": 16363,
+      "ratio": 0.85
+    },
+    "price_change_pct": {
+      "after_5min": 0.4,
+      "after_30min": -1.1,
+      "after_60min": -0.3
+    }
+  },
+  "pre_disclosure_activity": {
+    "window": {
+      "from": "2026-08-26",
+      "to": "2026-09-03",
+      "sessions": 7
+    },
+    "days": [
+      {
+        "date": "2026-08-27",
+        "anomaly_types": [
+          "net_flow"
+        ],
+        "volume_ratio": 1.19,
+        "agent_net_flow_eur": -205183
+      },
+      {
+        "date": "2026-08-31",
+        "anomaly_types": [
+          "aggressor_sweep",
+          "auction_spike",
+          "large_trade",
+          "net_flow",
+          "price_move",
+          "volume_spike"
+        ],
+        "volume_ratio": 22.74,
+        "agent_net_flow_eur": 6869279
+      }
+    ],
+    "summary": "Unusual activity in the 7 sessions before the disclosure: 2 flagged sessions (volume spike, large single execution, aggressor sweep, unusual net flow, large closing auction, price move vs peers). This trading may coincide with the position change reported in the notification; the data do not show who traded."
+  },
+  "_data_status": {
+    "spreads": "real",
+    "ohlc": "real",
+    "flows": "real",
+    "opening_closing_auction": "real",
+    "intraday": "real"
+  },
+  "_note": "Généré depuis les vraies données pbb (evt_019, notification Goldman Sachs du 04.09.2026) – v0.3."
+}
