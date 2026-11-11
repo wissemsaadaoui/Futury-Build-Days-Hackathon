@@ -99,12 +99,14 @@ SESSION_END = "17:36"     # après : impressions hors séance (exclues)
 @lru_cache(maxsize=64)
 def trades(isin: str) -> pd.DataFrame:
     """Trades on-book d'une action pendant la séance Xetra (09:00–17:36, enchères comprises).
-    Les impressions avant 09:00 ou après 17:36 (hors séance, sans agresseur) sont exclues."""
+    Les impressions avant 09:00 ou après 17:36 (hors séance, sans agresseur) sont exclues, SAUF les enchères
+    identifiées (opening/midday/closing) : une closing auction prolongée peut se terminer après 17:36."""
     t = etl.load_trades(isin)
     if t.empty:
         return t
     hm = t["ts_local"].dt.strftime("%H:%M")
-    t = t[(hm >= SESSION_OPEN) & (hm < SESSION_END)].copy()
+    labelled = t["auction_type"].fillna("").astype(str) != ""
+    t = t[((hm >= SESSION_OPEN) & (hm < SESSION_END)) | labelled].copy()
     t["side"] = t["side"].fillna("").astype(str)
     t["auction_type"] = t["auction_type"].fillna("").astype(str)
     return t.reset_index(drop=True)

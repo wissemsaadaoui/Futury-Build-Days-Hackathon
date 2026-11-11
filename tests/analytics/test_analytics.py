@@ -532,3 +532,12 @@ def test_llm_text_naming_an_investor_is_rejected(monkeypatch):
     spread = f"{card['metrics']['spread_bps']['event']:.1f}"
     monkeypatch.setattr(llm, "complete", lambda *a, **k: f"An investor drove the spread to {spread} bps.")
     assert "investor" not in A.build_impact_card("evt_003")["ai_summary"].lower()
+
+
+def test_extended_closing_auctions_are_kept():
+    """Une closing auction prolongée (après 17:36) compte quand même (ex. 12.02.2026)."""
+    raw = etl.load_trades(PBB)
+    closing = raw[raw["auction_type"] == "closing"].groupby("date")["qty"].sum()
+    s = data.auction_volume_series(PBB, "closing")
+    assert s.reindex(closing.index).tolist() == closing.astype(float).tolist()
+    assert (s > 0).all()

@@ -55,8 +55,8 @@
     },
     "closing_auction": {
       "volume": 491440,
-      "baseline": 63140,
-      "ratio": 7.78
+      "baseline": 66607,
+      "ratio": 7.38
     }
   },
   "flows": {
@@ -185,8 +185,8 @@
     "macd_after": "bearish",
     "broke_level": null
   },
-  "ai_summary": "On the day of the event (Ad hoc: guidance for FY 2026 (profit before taxes EUR 30-40m) and preliminary FY 2025 figures), Deutsche Pfandbriefbank AG traded 15.0x its usual volume and the share price moved -10.3%, 9.6 percentage points worse than the median of its peers. The round-trip cost for a 25,000 EUR trade tightened to 57.7 bps versus a 20-day average of 59.0 bps (-2.2%). In the first 15 minutes after the publication (12:26), volume was 136.3x the usual level for that time of day, and the price moved -2.9% after 5 minutes and -9.5% after 30 minutes. Auctions accounted for 15.0% of volume versus 30.0% normally; the closing auction was 7.8x its usual size. Execution alert: Proprietary trading flow was net buying EUR 2.5m (210% of 30-day average daily turnover).",
-  "generated_at": "2026-11-11T20:40:38+01:00",
+  "ai_summary": "On the day of the event (Ad hoc: guidance for FY 2026 (profit before taxes EUR 30-40m) and preliminary FY 2025 figures), Deutsche Pfandbriefbank AG traded 15.0x its usual volume and the share price moved -10.3%, 9.6 percentage points worse than the median of its peers. The round-trip cost for a 25,000 EUR trade tightened to 57.7 bps versus a 20-day average of 59.0 bps (-2.2%). In the first 15 minutes after the publication (12:26), volume was 136.3x the usual level for that time of day, and the price moved -2.9% after 5 minutes and -9.5% after 30 minutes. Auctions accounted for 15.0% of volume versus 30.0% normally; the closing auction was 7.4x its usual size. Execution alert: Proprietary trading flow was net buying EUR 2.5m (210% of 30-day average daily turnover).",
+  "generated_at": "2026-11-11T20:45:41+01:00",
   "export": {
     "pdf_url": "/events/evt_002/impact-card.pdf"
   },
