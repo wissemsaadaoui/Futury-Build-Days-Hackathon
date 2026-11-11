@@ -240,7 +240,7 @@ def test_summary_falls_back_without_llm(monkeypatch):
 # ---------- Partie B : vraies données (OHLC, Flows n_days == 1, enchères depuis les trades) ----------
 def test_real_data_status_on_pbb():
     card = A.build_impact_card("evt_002")
-    assert card["_data_status"] == {"spreads": "real", "ohlc": "real", "flows": "real", "opening_closing_auction": "real"}
+    assert card["_data_status"] == {"spreads": "real", "ohlc": "real", "flows": "real", "opening_closing_auction": "real", "intraday": "real"}
     d = A.build_dashboard(PBB, "2026-01-01", "2026-10-30")
     assert d["_data_status"] == {"spreads": "real", "ohlc": "real", "flows": "real"}
     r = A.build_report(PBB, "2026-01-01", "2026-10-30")
@@ -312,3 +312,54 @@ def test_dashboard_spread_in_eur_and_ticks():
         if row["spread_bps"] is not None:
             assert row["spread_eur"] == pytest.approx(row["spread_bps"] * 2.5, abs=0.2)  # bps et € arrondis à 0,1 : écart max 0,175
             assert row["spread_ticks"] is not None and row["spread_ticks"] > 0
+
+
+# ---------- Partie C : intraday ----------
+def test_intraday_during_session_evt_002():
+    card = A.build_impact_card("evt_002")  # ad hoc du 13.02 à 12:26
+    it = card["intraday"]
+    assert it["during_session"] is True
+    assert it["reference_time"] == card["event"]["published_at"]
+    offs = [m["offset_min"] for m in it["minutes"]]
+    assert offs == list(range(-30, 121))
+    assert it["minutes"][30]["time"] == "12:26"
+    cum = [m["cum_volume"] for m in it["minutes"]]
+    assert cum == sorted(cum) and cum[-1] == sum(m["volume"] for m in it["minutes"])
+    # volume des 15 premières minutes = somme des trades de la séance dans [12:26, 12:41)
+    t = data.trades(PBB)
+    ref = pd.Timestamp(it["reference_time"])
+    w = t[(t["ts_local"] >= ref) & (t["ts_local"] < ref + pd.Timedelta(minutes=15))]
+    assert it["first_15min"]["volume"] == w["qty"].sum()
+    assert it["first_15min"]["baseline"] is not None
+    # prix à +30 min vs dernier prix avant l'annonce
+    before = t[(t["date"] == pd.Timestamp("2026-02-13")) & (t["ts_local"] < ref)]["price"].iloc[-1]
+    upto = t[(t["date"] == pd.Timestamp("2026-02-13")) & (t["ts_local"] <= ref + pd.Timedelta(minutes=30))]["price"].iloc[-1]
+    assert it["price_change_pct"]["after_30min"] == pytest.approx((upto / before - 1) * 100, abs=0.06)
+    _no_nan(it)
+
+
+def test_intraday_outside_session_starts_at_open():
+    from app.analytics import intraday
+
+    day = pd.Timestamp("2026-03-05")
+    opening = data.trades(PBB)
+    opening = opening[(opening["date"] == day) & (opening["auction_type"] == "opening")]["ts_local"].iloc[0]
+    # annonce la veille à 18:00 -> trading_day suivant, référence = ouverture
+    it = intraday.intraday_block(PBB, day, "2026-03-04T18:00:00+01:00")
+    assert it["during_session"] is False
+    assert pd.Timestamp(it["reference_time"]) == opening.floor("min")
+    # heure inconnue (evt_003) -> idem
+    card_it = A.build_impact_card("evt_003")["intraday"]
+    assert card_it["during_session"] is False and card_it["reference_time"] == it["reference_time"]
+    # annonce à 07:00 le jour même : avant l'ouverture -> ouverture
+    assert intraday.intraday_block(PBB, day, "2026-03-05T07:00:00+01:00")["during_session"] is False
+
+
+def test_intraday_null_without_trades(monkeypatch):
+    monkeypatch.setattr(etl, "load_trades", lambda isin: pd.DataFrame(columns=etl.TRADES_COLS))
+    data.clear_caches()
+    try:
+        card = A.build_impact_card("evt_002")
+        assert card["intraday"] is None and card["_data_status"]["intraday"] == "missing"
+    finally:
+        data.clear_caches()

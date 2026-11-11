@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from app import config
-from app.analytics import data, events, indicators, metrics
+from app.analytics import data, events, indicators, intraday, metrics
 from app.analytics._util import clean, iso, load_mock, nanmedian, now_iso, pct, r0, r1, r2, ratio
 
 
@@ -151,6 +151,8 @@ def _build(isin: str, td: pd.Timestamp, event_row: dict | None) -> dict:
         status["flows"] = "real"
     if _auction_blocks(isin, days, td, card):
         status["opening_closing_auction"] = "real"
+    card["intraday"] = intraday.intraday_block(isin, td, card["event"]["published_at"] if card["event"] else None)
+    status["intraday"] = "real" if card["intraday"] else "missing"
 
     card["_data_status"] = status
     card["generated_at"] = now_iso()

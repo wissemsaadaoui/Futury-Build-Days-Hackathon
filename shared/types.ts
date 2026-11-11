@@ -213,9 +213,28 @@ export interface ImpactCardResponse {
     macd_after: "bullish" | "bearish";
     broke_level: { type: "support" | "resistance"; price: number } | null;
   };
+  intraday: IntradayBlock | null;  // 🆕 v0.2 : réaction minute par minute (null si pas de trades ce jour-là)
   ai_summary: string;
   generated_at: ISODateTime;
   export: ExportLinks;
+}
+
+// 🆕 v0.2 – bloc intraday de l'impact card (mocks/API.md §5.1)
+export interface IntradayMinute {
+  offset_min: number;                  // -30 … +120 (0 = minute de référence)
+  time: string;                        // "HH:MM", heure de Francfort
+  vwap: number | null;                 // null si aucune exécution dans la minute
+  volume: number;                      // actions (0 si aucune exécution)
+  cum_volume: number;                  // cumul depuis offset -30
+  buy_aggressor_share: number | null;  // 0–1, part du volume à l'initiative d'un acheteur
+}
+
+export interface IntradayBlock {
+  reference_time: ISODateTime;  // heure de publication, ou ouverture du trading_day si hors séance
+  during_session: boolean;      // true si l'annonce tombe pendant le continu (09:00–17:30)
+  minutes: IntradayMinute[];
+  first_15min: { volume: number; baseline: number | null; ratio: number | null };  // vs même créneau, 20 séances
+  price_change_pct: { after_5min: number | null; after_30min: number | null; after_60min: number | null };
 }
 
 // ---------- GET /compare ----------
