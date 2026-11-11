@@ -645,3 +645,43 @@ def test_new_alert_wording_on_pbb():
         if a["type"] == "level_break":
             assert a["level_type"] in {"support", "resistance"} and a["level_price"] > 0
             assert "confirmed by unusually large executions" in a["description"]
+
+
+# ---------- pre_disclosure_activity (notifications WpHG) ----------
+def _with_extra_events(monkeypatch, rows: list[dict]):
+    real = etl.load_events()
+    extra = pd.DataFrame([{**{c: "" for c in real.columns}, **r} for r in rows])
+    monkeypatch.setattr(etl, "load_events", lambda: pd.concat([real, extra], ignore_index=True))
+    data.clear_caches()
+
+
+def test_pre_disclosure_looks_only_before_publication(monkeypatch):
+    from app.analytics import disclosure
+
+    # 31.08.2026 est un jour très inhabituel (volume 22x, enchère de clôture, flux nets)
+    _with_extra_events(monkeypatch, [
+        {"event_id": "vr_after", "isin": PBB, "date": "2026-09-01", "time": "08:00", "type": "voting_rights", "title": "VR test"},
+        {"event_id": "vr_same", "isin": PBB, "date": "2026-08-31", "time": "08:00", "type": "voting_rights", "title": "VR test"},
+    ])
+    after = A.build_impact_card("vr_after")["pre_disclosure_activity"]
+    assert "2026-08-31" in [d["date"] for d in after["days"]]
+    days = data.trading_days()
+    i = days.get_loc(pd.Timestamp("2026-09-01"))
+    assert after["window"] == {"from": f"{days[i - 7]:%Y-%m-%d}", "to": "2026-08-31", "sessions": 7}
+    same = A.build_impact_card("vr_same")["pre_disclosure_activity"]
+    assert same is None or all(d["date"] < "2026-08-31" for d in same["days"])  # jour de publication exclu
+    # fenêtre = 7 séances strictement avant
+    win = disclosure.window_before(pd.Timestamp("2026-09-01"))
+    assert len(win) == 7 and win[-1] < pd.Timestamp("2026-09-01")
+    for d in after["days"]:
+        assert pd.Timestamp(d["date"]) in win and d["anomaly_types"]
+    s = after["summary"]
+    assert s.startswith("Unusual activity in the 7 sessions before the disclosure") and "may coincide with" in s
+    assert "investor" not in s.lower()
+
+
+def test_pre_disclosure_null_when_quiet_or_not_voting_rights():
+    assert A.build_impact_card("evt_002")["pre_disclosure_activity"] is None  # ad hoc, pas une notification
+    vr = [e["event_id"] for e in A.list_events(PBB)["events"] if e["type"] == "voting_rights"]
+    blocks = [A.build_impact_card(e)["pre_disclosure_activity"] for e in vr]
+    assert any(b is None for b in blocks) and any(b is not None for b in blocks)

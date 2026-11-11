@@ -151,6 +151,12 @@ def _build(isin: str, td: pd.Timestamp, event_row: dict | None) -> dict:
         status["flows"] = "real"
     if _auction_blocks(isin, days, td, card):
         status["opening_closing_auction"] = "real"
+    # Notifications WpHG : activité des 7 séances AVANT la publication (null pour les autres types)
+    card["pre_disclosure_activity"] = None
+    if event_row and event_row.get("type") == "voting_rights":
+        from app.analytics.disclosure import pre_disclosure_activity  # import tardif (dashboard -> impact)
+
+        card["pre_disclosure_activity"] = pre_disclosure_activity(isin, pd.Timestamp(event_row["date"]))
     card["intraday"] = intraday.intraday_block(isin, td, card["event"]["published_at"] if card["event"] else None)
     status["intraday"] = "real" if card["intraday"] else "missing"
 
