@@ -29,7 +29,6 @@ def complete(system: str, user: str, max_tokens: int = 400) -> str | None:
             msg = client.messages.create(
                 model=model,
                 max_tokens=max_tokens,
-                temperature=0.2,
                 system=system,
                 messages=[{"role": "user", "content": user}],
             )
