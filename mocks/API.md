@@ -1,4 +1,4 @@
-# Issuer Intelligence Hub – API pour le front-end (v0.4)
+# Issuer Intelligence Hub – API pour le front-end (v0.5)
 
 > Pour Yassine · Démo : **Deutsche Pfandbriefbank AG (pbb)**, ISIN `DE0008019001`, SDAX
 > Ce document remplace `mocks/API.md` v0.1. Les changements depuis la v0.1 sont marqués **🆕**, et ce qui arrive bientôt est marqué **🔜**.
@@ -38,6 +38,11 @@ En attendant l'API, utilise `mocks/*.json` et `shared/types.ts` : même format.
 | 18 | 🆕 v0.3 : `report.sections[].kpis[].change_basis` (`previous_period` \| `first_half`) ; si la période précédente n'a pas de données (rapport qui commence le 02.01), la variation compare la **2e moitié à la 1re moitié** de la période. `trend` vaut `null` si la variation reste inconnue (plus jamais `"flat"` par défaut) | Afficher « vs first half of the period » quand `change_basis = first_half` |
 | 19 | 🆕 v0.3 : `compare.filter.index` peut valoir `"ALL"` | Aucun |
 | 20 | 🆕 v0.4 : section **« Alerts »** dans le report : `kpis[]` avec `unit: "count"` (+ `alert_type`, `trend: null`) et `alert_days[]` (top 5 jours) | Tableau des alertes + 5 jours cliquables (`detail_url`) |
+| 21 | 🆕 v0.5 : **`as_of`** (dernière date des données, `"2026-10-30"`) dans `/dashboard`, `/events` et `/event-preview` | Afficher « Data as of 30 Oct 2026 » sans date en dur |
+| 22 | 🆕 v0.5 : `/event-preview` : **`as_of` change de sens** (= dernière date des données) ; la date demandée passe dans **`reference_date`** | Rien si le front n'utilisait pas `as_of` |
+| 23 | 🆕 v0.5 : `/event-preview` : **`checklist: string[]`** (préparation IR par règles, jamais de prédiction) | Liste à cocher dans la carte « What to expect » |
+| 24 | 🆕 v0.5 : résultats 2026 des **6 peers** dans le calendrier → `peers.n` = 13 pour les quarterly_results de pbb | Afficher la comparaison peers (n > 0) |
+| 25 | 🆕 v0.5 : **`POST /assistant/chat`** `{isin, messages}` → `{answer, links[], as_of}` (token requis, 20 req/min) | Page AI Assistant (voir `FRONT_TODO.md`) |
 | 17 | 🆕 v0.3 : bloc **`pre_disclosure_activity`** dans l'impact card des notifications `voting_rights` (§5.4) | Petit encadré « Before the disclosure » |
 
 ---
@@ -268,9 +273,10 @@ Sortie **réelle** pour pbb (`mocks/event-preview.json`, `type=quarterly_results
 {
   "stock": { "isin": "DE0008019001", "name": "Deutsche Pfandbriefbank AG", "index": "SDAX" },
   "event_type": "quarterly_results",
-  "as_of": null,
-  "upcoming": { "date": "2026-11-12", "title": "Q3 2026 results", "event_id": "evt_026",
-                "source_url": "https://www.pfandbriefbank.com/en/investors/financial-calendar.html" },
+  "as_of": "2026-10-30",
+  "reference_date": null,
+  "upcoming": { "date": "2026-11-12", "title": "Q3 2026 results (Quartalsmitteilung)", "event_id": "evt_026",
+                "source_url": "https://www.finanznachrichten.de/nachrichten-2026-10/69890438-eqs-afr-deutsche-pfandbriefbank-ag-vorabbekanntmachung-ueber-die-veroeffentlichung-von-quartalsberichten-und-quartals-zwischenmitteilungen-022.htm" },
   "own_history": {
     "n": 2,
     "events": [
