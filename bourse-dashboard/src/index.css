@@ -4259,3 +4259,9 @@ button.report-event {
   font-size: 14px;
   font-weight: 600;
 }
+
+.chat-link.suggestion {
+  border-style: dashed;
+  border-color: var(--pbb-green);
+  color: #34425a;
+}
