@@ -1,9 +1,9 @@
-"""Login applicatif (remplace le basic auth Caddy) : mot de passe unique, cookie de session signé (HMAC-SHA256).
+"""Login applicatif par Bearer token (fonctionne aussi cross-site : front local -> API du VPS, sans cookie).
 
-POST /auth/login {password} -> cookie HttpOnly, SameSite=Lax, Secure=COOKIE_SECURE, 12 h ; 401 + 1 s sinon
-POST /auth/logout           -> efface le cookie
-GET  /auth/me               -> 200 si connecté, 401 sinon
-`require_session` (middleware) : 401 sur toute route sans cookie valide, sauf /auth/*, /health et OPTIONS.
+POST /auth/login {password} -> {"token", "expires_at"} (token signé HMAC-SHA256, 12 h) ; 401 après 1 s sinon
+GET  /auth/me               -> 200 si "Authorization: Bearer <token>" est valide, 401 sinon
+`require_token` (middleware) : 401 sur toute route sans token valide, sauf /auth/login, /health et OPTIONS
+(/docs et /openapi.json compris). Une seule vérification : `request_is_authenticated`.
 """
 from __future__ import annotations
 
@@ -13,6 +13,8 @@ import hmac
 import secrets
 import time
 from collections.abc import Awaitable, Callable
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
@@ -22,34 +24,45 @@ from app import config
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-COOKIE_NAME = "iih_session"
-SESSION_TTL_S = 12 * 3600
+TOKEN_TTL_S = 12 * 3600
 FAILED_LOGIN_DELAY_S = 1.0
-PUBLIC_PREFIXES = ("/auth/",)
-PUBLIC_PATHS = {"/health"}
+TOKEN_VERSION = "v1"
+PUBLIC_PATHS = {"/auth/login", "/health"}
 
 
 class LoginRequest(BaseModel):
     password: str
 
 
+class LoginResponse(BaseModel):
+    token: str
+    expires_at: str  # ISO 8601, Europe/Berlin
+
+
 def _sign(payload: str) -> str:
     return hmac.new(config.SESSION_SECRET.encode(), payload.encode(), hashlib.sha256).hexdigest()
 
 
-def make_token(now: float | None = None) -> str:
-    """Jeton « <expiration unix>.<signature> » : rien de secret dedans, seule la signature compte."""
-    exp = int((now if now is not None else time.time()) + SESSION_TTL_S)
-    return f"{exp}.{_sign(str(exp))}"
+def make_token(now: float | None = None) -> tuple[str, int]:
+    """Jeton « v1.<expiration unix>.<signature> » (URL-safe) ; rien de secret dedans, seule la signature compte."""
+    exp = int((now if now is not None else time.time()) + TOKEN_TTL_S)
+    payload = f"{TOKEN_VERSION}.{exp}"
+    return f"{payload}.{_sign(payload)}", exp
 
 
-def valid_token(token: str | None, now: float | None = None) -> bool:
-    if not token or "." not in token:
+def token_is_valid(token: str | None, now: float | None = None) -> bool:
+    parts = (token or "").split(".")
+    if len(parts) != 3 or parts[0] != TOKEN_VERSION or not parts[1].isdigit():
         return False
-    exp, sig = token.split(".", 1)
-    if not exp.isdigit() or not hmac.compare_digest(sig, _sign(exp)):
+    if not hmac.compare_digest(parts[2], _sign(f"{parts[0]}.{parts[1]}")):
         return False
-    return int(exp) > (now if now is not None else time.time())
+    return int(parts[1]) > (now if now is not None else time.time())
+
+
+def request_is_authenticated(request: Request) -> bool:
+    """LA vérification, utilisée par le middleware et par /auth/me."""
+    scheme, _, token = request.headers.get("authorization", "").partition(" ")
+    return scheme.lower() == "bearer" and token_is_valid(token.strip())
 
 
 def _password_ok(given: str) -> bool:
@@ -58,40 +71,29 @@ def _password_ok(given: str) -> bool:
     return bool(expected) and secrets.compare_digest(given.encode(), expected.encode())
 
 
-@router.post("/login")
-async def login(body: LoginRequest, response: Response) -> dict[str, bool]:
+@router.post("/login", response_model=LoginResponse)
+async def login(body: LoginRequest) -> LoginResponse:
     if not _password_ok(body.password):
         await asyncio.sleep(FAILED_LOGIN_DELAY_S)  # ralentit le brute force
         raise HTTPException(status_code=401, detail="Invalid password")
-    response.set_cookie(
-        COOKIE_NAME,
-        make_token(),
-        max_age=SESSION_TTL_S,
-        httponly=True,
-        samesite="lax",
-        secure=config.COOKIE_SECURE,
-        path="/",
-    )
-    return {"authenticated": True}
-
-
-@router.post("/logout")
-def logout(response: Response) -> dict[str, bool]:
-    response.delete_cookie(COOKIE_NAME, path="/", httponly=True, samesite="lax", secure=config.COOKIE_SECURE)
-    return {"authenticated": False}
+    token, exp = make_token()
+    return LoginResponse(token=token, expires_at=datetime.fromtimestamp(exp, ZoneInfo(config.TZ)).isoformat())
 
 
 @router.get("/me")
 def me(request: Request) -> dict[str, bool]:
-    if not valid_token(request.cookies.get(COOKIE_NAME)):
+    if not request_is_authenticated(request):  # déjà filtré par le middleware ; gardé si la route est réutilisée
         raise HTTPException(status_code=401, detail="Not authenticated")
     return {"authenticated": True}
 
 
-async def require_session(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
-    """Middleware HTTP : /docs et /openapi.json sont protégés comme le reste."""
-    path = request.url.path
-    public = request.method == "OPTIONS" or path in PUBLIC_PATHS or path.startswith(PUBLIC_PREFIXES)
-    if not public and not valid_token(request.cookies.get(COOKIE_NAME)):
-        return JSONResponse(status_code=401, content={"detail": "Not authenticated"})
+async def require_token(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    """Middleware HTTP : 401 JSON sans token valide (sauf routes publiques et preflight CORS)."""
+    public = request.method == "OPTIONS" or request.url.path in PUBLIC_PATHS
+    if not public and not request_is_authenticated(request):
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Not authenticated"},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return await call_next(request)

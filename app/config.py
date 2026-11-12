@@ -32,12 +32,11 @@ EVENTS_CSV = _path("EVENTS_CSV", ROOT / "data" / "events.csv")
 MOCKS_DIR = ROOT / "mocks"
 
 # API
-FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")  # plusieurs origines : séparées par des virgules
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173,http://localhost:5174")  # plusieurs origines : séparées par des virgules
 
 # Login applicatif (app/api/auth.py) – jamais de valeur réelle dans le code
 APP_PASSWORD = os.getenv("APP_PASSWORD", "")  # vide = aucun login possible
-SESSION_SECRET = os.getenv("SESSION_SECRET") or secrets.token_hex(32)  # vide = aléatoire (sessions perdues au redémarrage)
-COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").strip().lower() not in ("0", "false", "no")  # false en local (http)
+SESSION_SECRET = os.getenv("SESSION_SECRET") or secrets.token_hex(32)  # signe les tokens ; vide = aléatoire (tokens perdus au redémarrage)
 
 TZ = "Europe/Berlin"
 DEMO_ISINS = ["DE0008019001"]  # Deutsche Pfandbriefbank AG (pbb), SDAX

@@ -31,18 +31,17 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Session obligatoire (sauf /auth/*, /health, OPTIONS). Ajouté AVANT CORS : CORS reste la couche externe,
+# Bearer token obligatoire (sauf /auth/login, /health, OPTIONS). Ajouté AVANT CORS : CORS reste la couche externe,
 # donc les 401 portent aussi les en-têtes CORS.
-app.middleware("http")(auth.require_session)
+app.middleware("http")(auth.require_token)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in config.FRONTEND_ORIGIN.split(",") if o.strip()],  # jamais "*" (cookies)
-    allow_credentials=True,
+    allow_origins=[o.strip() for o in config.FRONTEND_ORIGIN.split(",") if o.strip()],  # liste explicite, jamais "*"
+    allow_credentials=False,  # pas de cookie : le token passe dans l'en-tête Authorization
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
-
 
 
 @app.exception_handler(NotFound)
