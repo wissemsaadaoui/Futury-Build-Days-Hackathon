@@ -20,7 +20,6 @@ import type {
   CompareResponse,
   DailyPoint,
   DashboardResponse,
-  DataStatus,
   EventPreviewResponse,
   EventsResponse,
   ImpactCardResponse,
@@ -28,6 +27,22 @@ import type {
   ReportResponse,
 } from './api/types.ts'
 import { useApi } from './api/useApi.ts'
+import { DayDetail } from './components/DayDetail.tsx'
+import { WhatToExpect } from './components/WhatToExpect.tsx'
+import {
+  DISCLAIMER,
+  anomalyLabels,
+  eventLabels,
+  formatAnomalyValue,
+  formatCompact,
+  formatDate,
+  formatEuro,
+  formatNumber,
+  formatPercent,
+  formatRatio,
+  hasDemoData,
+  trendClass,
+} from './format.ts'
 
 type Page =
   | 'home'
@@ -93,30 +108,6 @@ const periodSessions: Record<Period, number> = { '1W': 5, '1M': 21, '3M': 63, YT
 
 // Impact card ouverte par défaut : ad hoc du 13.02.2026 (scène b de la démo)
 const DEFAULT_IMPACT = '/events/evt_002/impact-card'
-
-const anomalyLabels: Record<string, string> = {
-  volume_spike: 'Volume spike',
-  spread_widening: 'Spread widening',
-  price_move: 'Price move vs peers',
-  auction_spike: 'Closing auction spike',
-  large_trade: 'Large single execution',
-  aggressor_sweep: 'Aggressor sweep',
-  net_flow: 'Unusual net flow',
-  level_break: 'Support / resistance break',
-}
-
-const eventLabels: Record<string, string> = {
-  annual_results: 'Annual results',
-  quarterly_results: 'Quarterly results',
-  ad_hoc: 'Ad hoc announcement',
-  dividend: 'Dividend',
-  agm: 'AGM',
-  press_release: 'Press release',
-  index_change: 'Index change',
-  m_and_a: 'M&A',
-  voting_rights: 'Voting rights notification',
-  directors_dealings: "Directors' dealings",
-}
 
 const indicators = [
   {
@@ -190,50 +181,6 @@ const defaultAlertInputs: AlertInputs = {
 
 const holdingThresholds = [3, 5, 10, 15, 20, 25, 30, 50, 75]
 
-function formatNumber(value: number | null | undefined, digits = 2) {
-  if (value === null || value === undefined || Number.isNaN(value)) return '–'
-
-  return value.toLocaleString('en-GB', {
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  })
-}
-
-function formatPercent(value: number | null | undefined) {
-  if (value === null || value === undefined || Number.isNaN(value)) return '–'
-  return `${value > 0 ? '+' : ''}${formatNumber(value, 1)}%`
-}
-
-function formatEuro(value: number | null | undefined) {
-  if (value === null || value === undefined || Number.isNaN(value)) return '–'
-
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 2,
-  }).format(value)
-}
-
-function formatCompact(value: number | null | undefined) {
-  if (value === null || value === undefined || Number.isNaN(value)) return '–'
-  return new Intl.NumberFormat('en-GB', { notation: 'compact' }).format(value)
-}
-
-function formatDate(value: string) {
-  return new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
-function trendClass(value: number | null | undefined) {
-  if (value === null || value === undefined || Math.abs(value) < 0.05) {
-    return 'neutral'
-  }
-  return value > 0 ? 'positive' : 'negative'
-}
-
 // Série quotidienne de l'API -> points du graphique (jours sans prix de clôture ignorés)
 function toStockPoints(series: DailyPoint[]): StockPoint[] {
   return series
@@ -258,24 +205,6 @@ function toStockPoints(series: DailyPoint[]): StockPoint[] {
 
 function byDateDesc<T extends { date: string }>(items: T[]): T[] {
   return [...items].sort((a, b) => b.date.localeCompare(a.date))
-}
-
-function formatRatio(value: number | null | undefined, digits = 1) {
-  return value === null || value === undefined ? '–' : `${formatNumber(value, digits)}×`
-}
-
-// La valeur d'une anomalie dépend de son type (mocks/API.md §5.2)
-function formatAnomalyValue(type: string, value: number | null) {
-  if (value === null) return '–'
-  if (type === 'price_move') return formatPercent(value) // écart vs médiane des peers
-  if (['large_trade', 'aggressor_sweep', 'net_flow'].includes(type)) {
-    return `${value > 0 && type === 'net_flow' ? '+' : ''}${formatNumber(value * 100, 0)}% ADTV` // part du turnover moyen 30 j
-  }
-  return formatRatio(value) // volume, spread, enchère, cassure de niveau : × la normale
-}
-
-function hasDemoData(status: DataStatus | undefined) {
-  return Object.values(status ?? {}).some((value) => value !== 'real')
 }
 
 const DASHBOARD_PATH = `/stocks/${ISIN}/dashboard`
@@ -424,11 +353,11 @@ function Footer() {
           <span className="brand-symbol">pbb</span>
           <div>
             <strong>Issuer Intelligence Hub</strong>
-            <p>Market insight for investor relations teams.</p>
+            <p>Market insight for IR teams.</p>
           </div>
         </div>
         <div className="footer-contact">
-          <span className="footer-label">DEUTSCHE BÖRSE · INVESTOR RELATIONS</span>
+          <span className="footer-label">DEUTSCHE BÖRSE · IR CONTACT</span>
           <a href="mailto:ir@deutsche-boerse.com">ir@deutsche-boerse.com</a>
           <a
             href="https://www.deutsche-boerse.com/dbg-en/investor-relations/contact"
@@ -446,7 +375,7 @@ function Footer() {
       </div>
       <div className="footer-bottom">
         <span>Historical Xetra trading data · 2 Jan–30 Oct 2026 · Source: Deutsche Börse</span>
-        <span>Historical market analysis only. Not investment advice.</span>
+        <span>{DISCLAIMER}</span>
       </div>
     </footer>
   )
@@ -486,7 +415,7 @@ function HomePage({
               <p className="hero-description">
                 A focused market intelligence workspace for Deutsche Pfandbriefbank.
                 Explore trading activity, understand event impact and prepare clear
-                investor relations insights.
+                IR insights.
               </p>
 
               <div className="hero-company">
@@ -553,7 +482,7 @@ function HomePage({
             <Reveal>
               <div className="section-heading">
                 <div>
-                  <p className="eyebrow light">BUILT FOR INVESTOR RELATIONS</p>
+                  <p className="eyebrow light">BUILT FOR IR TEAMS</p>
                   <h2>Market activity, made easier to explain.</h2>
                 </div>
                 <p>
@@ -936,10 +865,12 @@ function AnalysisAssistant({
   point,
   onClose,
   openImpact,
+  openDay,
 }: {
   point: StockPoint
   onClose: () => void
   openImpact: (path: string) => void
+  openDay: (date: string) => void
 }) {
   const [from, setFrom] = useState(point.date)
   const [to, setTo] = useState(point.date)
@@ -981,6 +912,15 @@ function AnalysisAssistant({
           <span>Selected chart point</span>
           <strong>{formatEuro(point.close)}</strong>
           <small>{formatDate(point.date)}</small>
+          <button
+            className="text-button"
+            onClick={() => {
+              onClose()
+              openDay(point.date)
+            }}
+          >
+            Open day details →
+          </button>
         </div>
 
         <form className="analysis-form" onSubmit={submit}>
@@ -1071,7 +1011,7 @@ function AnalysisAssistant({
         )}
 
         <p className="small-note">
-          Summaries generated from historical Xetra data. Not investment advice.
+          {DISCLAIMER}
         </p>
       </section>
     </div>
@@ -1086,6 +1026,7 @@ function DashboardPage({
   selectedPoint,
   setSelectedPoint,
   openImpact,
+  openDay,
 }: {
   navigate: (page: Page) => void
   loggedIn: boolean
@@ -1094,6 +1035,7 @@ function DashboardPage({
   selectedPoint: StockPoint | null
   setSelectedPoint: (point: StockPoint | null) => void
   openImpact: (path: string) => void
+  openDay: (date: string) => void
 }) {
   const [period, setPeriod] = useState<Period>('3M')
   const dashboard = useApi<DashboardResponse>(DASHBOARD_PATH)
@@ -1141,6 +1083,8 @@ function DashboardPage({
               </button>
             </div>
           </div>
+
+          <WhatToExpect isin={ISIN} onOpenFull={() => navigate('preview')} />
 
           <LoadState loading={dashboard.loading} error={dashboard.error} />
 
@@ -1199,8 +1143,8 @@ function DashboardPage({
                         {formatEuro(selectedPoint.close)} · {formatDate(selectedPoint.date)}
                       </strong>
                     </div>
-                    <button className="outline-button" onClick={() => navigate('indicators')}>
-                      View details <span>↗</span>
+                    <button className="outline-button" onClick={() => openDay(selectedPoint.date)}>
+                      View day details <span>↗</span>
                     </button>
                     <button className="primary-button compact" onClick={() => onPointSelect(selectedPoint)}>
                       Analyse with AI <span>✳</span>
@@ -1437,122 +1381,32 @@ function ImpactPage({
   impactPath: string
 }) {
   const { data: card, error, loading } = useApi<ImpactCardResponse>(impactPath)
-  const maxRatio = Math.max(1, ...(card?.window ?? []).map((day) => day.volume_ratio ?? 0))
-  const eventDay = card?.window.find((day) => day.offset === 0)?.date
+  // Badges d'anomalie et alertes du jour : liste `anomalies` du dashboard (l'impact card ne la contient pas)
+  const dashboard = useApi<DashboardResponse>(DASHBOARD_PATH)
+  const day = card?.window.find((w) => w.offset === 0)?.date ?? card?.event?.trading_day
+  const dayAnomalies = useMemo(
+    () => (dashboard.data?.anomalies ?? []).filter((anomaly) => anomaly.date === day),
+    [dashboard.data, day],
+  )
 
   return (
     <>
       <Header page="events" loggedIn={loggedIn} navigate={navigate} logout={logout} />
       <main className="workspace-page">
-        <div className="workspace-container narrow">
+        <div className="workspace-container">
           <PageHeading
-            eyebrow="ONE-CLICK EVENT ANALYSIS"
-            title="Impact card"
-            description="Market reaction around a selected company announcement or unusual trading day."
+            eyebrow="DAY DETAIL · IMPACT CARD"
+            title="Trading day analysis"
+            description="Liquidity, returns, activity, peers, auctions and the linked announcement for one trading day."
+            action={
+              <button className="outline-button" onClick={() => navigate('dashboard')}>
+                ← Back to dashboard
+              </button>
+            }
           />
 
           <LoadState loading={loading} error={error} />
-
-          {card && (
-            <section className="panel impact-card">
-              <div className="timeline-card-top">
-                <span>{card.event ? eventLabels[card.event.type] ?? card.event.type : 'Notable trading day'}</span>
-                {card.event?.source_url ? (
-                  <a href={card.event.source_url} target="_blank" rel="noreferrer">
-                    <small>SOURCE ↗</small>
-                  </a>
-                ) : (
-                  <small>{hasDemoData(card._data_status) ? 'PARTLY DEMO DATA' : 'XETRA DATA'}</small>
-                )}
-              </div>
-              <h2>{card.event ? card.event.title : `Unusual trading on ${formatDate(eventDay ?? '')}`}</h2>
-              <p className="muted">
-                {card.event
-                  ? `${formatDate(card.event.trading_day)} · ${card.event.published_at ? card.event.published_at.slice(11, 16) : 'time unavailable'}`
-                  : 'No announcement on record for this day'}
-              </p>
-
-              <div className="impact-metrics">
-                <Metric label="Price change" value={formatPercent(card.metrics.price.change_pct)} tone={trendClass(card.metrics.price.change_pct)} />
-                <Metric label="Volume vs. average" value={formatRatio(card.metrics.volume.ratio)} />
-                <Metric label="Spread change" value={formatPercent(card.metrics.spread_bps.change_pct)} tone={trendClass(card.metrics.spread_bps.change_pct)} />
-                <Metric
-                  label="Auction participation"
-                  value={card.metrics.auction_share.event === null ? '–' : `${formatNumber(card.metrics.auction_share.event * 100, 1)}%`}
-                />
-              </div>
-
-              <div className="impact-window">
-                <div className="panel-title">
-                  <div>
-                    <span className="kicker">TRADING WINDOW</span>
-                    <h3>Volume before and after the event</h3>
-                  </div>
-                  <span className="muted">−5 to +5 trading days</span>
-                </div>
-                <div className="window-bars">
-                  {card.window.map((day, index) => {
-                    const previous = card.window[index - 1]?.close ?? null
-                    const down = day.close !== null && previous !== null && day.close < previous
-                    return (
-                      <div className="window-column" key={day.offset} title={`${formatDate(day.date)} · ${formatRatio(day.volume_ratio)} volume · ${formatEuro(day.close)}`}>
-                        <i
-                          className={day.offset === 0 ? 'event-day' : down ? 'bar-down' : 'bar-up'}
-                          style={{ height: 20 + ((day.volume_ratio ?? 0) / maxRatio) * 110 }}
-                        />
-                        <small>{day.offset > 0 ? `+${day.offset}` : day.offset}</small>
-                      </div>
-                    )
-                  })}
-                </div>
-                <p className="small-note">
-                  Bar height = volume vs. 20-day average. Offset 0 is the event trading day.
-                </p>
-              </div>
-
-              <div className="ai-summary">
-                <strong>AI summary</strong>
-                <p>{card.ai_summary}</p>
-              </div>
-
-              {card.intraday ? (
-                <div className="ai-summary">
-                  <strong>
-                    Intraday reaction · from{' '}
-                    {card.intraday.during_session ? 'the announcement' : 'the market open'} (
-                    {card.intraday.reference_time.slice(11, 16)})
-                  </strong>
-                  <div className="impact-metrics">
-                    <Metric label="First 15 min volume" value={formatRatio(card.intraday.first_15min.ratio)} />
-                    <Metric label="Price after 5 min" value={formatPercent(card.intraday.price_change_pct.after_5min)} tone={trendClass(card.intraday.price_change_pct.after_5min)} />
-                    <Metric label="Price after 30 min" value={formatPercent(card.intraday.price_change_pct.after_30min)} tone={trendClass(card.intraday.price_change_pct.after_30min)} />
-                    <Metric label="Price after 60 min" value={formatPercent(card.intraday.price_change_pct.after_60min)} tone={trendClass(card.intraday.price_change_pct.after_60min)} />
-                  </div>
-                </div>
-              ) : (
-                <div className="coming-soon">
-                  <strong>Intraday reaction</strong>
-                  <span>No on-book trades available for this day.</span>
-                </div>
-              )}
-
-              {card.pre_disclosure_activity && (
-                <div className="coming-soon">
-                  <strong>Before the disclosure</strong>
-                  <span>{card.pre_disclosure_activity.summary}</span>
-                </div>
-              )}
-
-              <div className="report-actions">
-                <a className="primary-button compact" href={apiUrl(card.export.pdf_url)} target="_blank" rel="noreferrer">
-                  Export PDF ↓
-                </a>
-                <button className="outline-button" onClick={() => navigate('report')}>
-                  Open IR snapshot →
-                </button>
-              </div>
-            </section>
-          )}
+          {card && <DayDetail card={card} dayAnomalies={dayAnomalies} />}
         </div>
       </main>
       <Footer />
@@ -2186,7 +2040,7 @@ function ReportPage({
       <main className="workspace-page">
         <div className="workspace-container narrow">
           <PageHeading
-            eyebrow="INVESTOR RELATIONS SNAPSHOT"
+            eyebrow="IR SNAPSHOT"
             title="Trading report"
             description={`Concise historical summary for ${COMPANY}.`}
           />
@@ -2294,7 +2148,7 @@ function PreviewPage({
           <PageHeading
             eyebrow="HISTORICAL PATTERNS"
             title="What to expect"
-            description="Historical reactions provide context, not a price prediction."
+            description="Statistics on past trading reactions to the same type of announcement."
           />
 
           <div className="compare-controls">
@@ -2360,7 +2214,7 @@ function PreviewPage({
                   </ul>
                 </div>
               )}
-              <p className="small-note">{preview.note} This is not a forecast or investment recommendation.</p>
+              <p className="small-note">{preview.note} Statistics on past trading reactions only.</p>
             </section>
           )}
         </div>
@@ -2410,7 +2264,7 @@ function AssistantPage({
         <section className="panel assistant-card">
           <div className="panel-title">
             <div>
-              <span className="kicker">PBB · INVESTOR RELATIONS</span>
+              <span className="kicker">PBB · IR</span>
               <h1>AI Assistant</h1>
               <p>Ask about trading activity, events or share-price history.</p>
             </div>
@@ -2487,6 +2341,15 @@ function App() {
     [navigate],
   )
 
+  const eventsList = useApi<EventsResponse>(loggedIn ? `/stocks/${ISIN}/events` : null)
+  const openDay = useCallback(
+    (date: string) => {
+      const event = eventsList.data?.events.find((item) => item.trading_day === date)
+      openImpact(event ? `/events/${event.event_id}/impact-card` : `/days/${ISIN}/${date}/impact-card`)
+    },
+    [eventsList.data, openImpact],
+  )
+
   const selectChartPoint = useCallback((point: StockPoint) => {
     setSelectedPoint(point)
     setAssistantPoint(point)
@@ -2524,6 +2387,7 @@ function App() {
         selectedPoint={selectedPoint}
         setSelectedPoint={setSelectedPoint}
         openImpact={openImpact}
+        openDay={openDay}
       />
     )
   } else if (page === 'events') {
@@ -2560,6 +2424,7 @@ function App() {
           point={assistantPoint}
           onClose={() => setAssistantPoint(null)}
           openImpact={openImpact}
+          openDay={openDay}
         />
       )}
     </div>
