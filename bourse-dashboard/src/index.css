@@ -3212,3 +3212,17 @@ button.report-event {
     align-items: flex-start;
   }
 }
+
+/* ---------- Session (GET /auth/me au démarrage) ---------- */
+.auth-checking {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: #8490a0;
+  font-size: 11px;
+}
+
+.login-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

@@ -17,6 +17,11 @@ function load<T>(path: string): Promise<T> {
   return request
 }
 
+// Après login / logout : on ne garde aucune réponse de la session précédente.
+export function clearApiCache() {
+  cache.clear()
+}
+
 // path = null : rien à charger pour l'instant.
 export function useApi<T>(path: string | null): ApiState<T> {
   const [state, setState] = useState<ApiState<T> & { path: string | null }>({

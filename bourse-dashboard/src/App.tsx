@@ -15,7 +15,7 @@ import {
   type UTCTimestamp,
 } from 'lightweight-charts'
 
-import { apiUrl } from './api/clients.ts'
+import { ApiError, UNAUTHORIZED_EVENT, apiGet, apiPost, apiUrl } from './api/clients.ts'
 import type {
   CompareResponse,
   DailyPoint,
@@ -26,7 +26,7 @@ import type {
   PreviewStat,
   ReportResponse,
 } from './api/types.ts'
-import { useApi } from './api/useApi.ts'
+import { clearApiCache, useApi } from './api/useApi.ts'
 import { DayDetail } from './components/DayDetail.tsx'
 import { WhatToExpect } from './components/WhatToExpect.tsx'
 import {
@@ -99,8 +99,6 @@ type AlertInputs = {
 
 const ISIN = 'DE0008019001'
 const COMPANY = 'Deutsche Pfandbriefbank AG'
-const DEMO_EMAIL = 'abc@gmail.com'
-const DEMO_PASSWORD = 'azerty123'
 
 const periods: Period[] = ['1W', '1M', '3M', 'YTD']
 // Nombre de séances par période (le dashboard couvre 2026 jusqu'au 30.10)
@@ -535,26 +533,24 @@ function HomePage({
   )
 }
 
-function LoginPage({
-  onLogin,
-  navigate,
-}: {
-  onLogin: (email: string, password: string) => boolean
-  navigate: (page: Page) => void
-}) {
-  const [email, setEmail] = useState('')
+// Écran de login : le mot de passe part UNE fois vers POST /auth/login ; il n'est ni stocké ni gardé en mémoire
+// après l'envoi. La session est un cookie HttpOnly posé par l'API.
+function LoginPage({ onLogin }: { onLogin: (password: string) => Promise<string | null> }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const accepted = onLogin(email, password)
-    setError(accepted ? '' : 'The email or password is incorrect.')
+    setSubmitting(true)
+    const failure = await onLogin(password)
+    setSubmitting(false)
+    setPassword('')
+    setError(failure ?? '')
   }
 
   return (
     <>
-      <Header page="login" loggedIn={false} navigate={navigate} logout={() => {}} />
       <main className="login-page">
         <section className="login-intro-panel">
           <div className="login-brand">
@@ -573,22 +569,9 @@ function LoginPage({
 
         <section className="login-form-side">
           <form className="login-card" onSubmit={submit}>
-            <p className="eyebrow light">WELCOME BACK</p>
-            <h2>Log in</h2>
-            <p className="login-description">
-              Enter your details to continue to your workspace.
-            </p>
-
-            <label htmlFor="login-email">Email address</label>
-            <input
-              id="login-email"
-              type="email"
-              autoComplete="username"
-              placeholder="name@company.com"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
+            <p className="eyebrow light">WELCOME</p>
+            <h2>Issuer Intelligence Hub</h2>
+            <p className="login-description">Enter the team password to continue to your workspace.</p>
 
             <label htmlFor="login-password">Password</label>
             <input
@@ -599,23 +582,17 @@ function LoginPage({
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               required
+              autoFocus
             />
 
             {error && <p className="login-error">{error}</p>}
 
-            <button className="login-submit" type="submit">
-              Continue <span>→</span>
+            <button className="login-submit" type="submit" disabled={submitting || password === ''}>
+              {submitting ? 'Checking…' : 'Log in'} <span>→</span>
             </button>
 
-            <div className="prototype-credentials">
-              <strong>Prototype credentials</strong>
-              <span>{DEMO_EMAIL}</span>
-              <span>{DEMO_PASSWORD}</span>
-            </div>
-
             <p className="login-security-note">
-              Prototype only. Credentials are stored in frontend code and must not be
-              used for a real account.
+              The session is kept in a secure cookie for 12 hours. Use Log out on a shared computer.
             </p>
           </form>
         </section>
@@ -2295,10 +2272,12 @@ function AssistantPage({
   )
 }
 
+type AuthState = 'checking' | 'in' | 'out'
+
 function App() {
-  const [loggedIn, setLoggedIn] = useState(
-    () => window.localStorage.getItem('pbb-demo-auth') === 'true',
-  )
+  // Source de vérité : l'API (GET /auth/me au démarrage, puis tout 401 renvoie au login)
+  const [auth, setAuth] = useState<AuthState>('checking')
+  const loggedIn = auth === 'in'
   const [page, setPage] = useState<Page>('home')
   const [selectedPoint, setSelectedPoint] = useState<StockPoint | null>(null)
   const [assistantPoint, setAssistantPoint] = useState<StockPoint | null>(null)
@@ -2316,20 +2295,53 @@ function App() {
     [loggedIn],
   )
 
-  const login = useCallback((email: string, password: string) => {
-    if (email !== DEMO_EMAIL || password !== DEMO_PASSWORD) return false
-    window.localStorage.setItem('pbb-demo-auth', 'true')
-    setLoggedIn(true)
-    setPage('dashboard')
-    return true
+  useEffect(() => {
+    try {
+      window.localStorage.removeItem('pbb-demo-auth') // ancien login factice : plus utilisé
+    } catch {
+      // stockage indisponible (navigation privée) : rien à nettoyer
+    }
+    let active = true
+    apiGet('/auth/me')
+      .then(() => active && setAuth('in'))
+      .catch(() => active && setAuth('out'))
+    const onUnauthorized = () => {
+      clearApiCache()
+      setAuth('out')
+    }
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
+    return () => {
+      active = false
+      window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
+    }
   }, [])
 
-  const logout = useCallback(() => {
-    window.localStorage.removeItem('pbb-demo-auth')
-    setLoggedIn(false)
+  // Renvoie un message d'erreur, ou null si le login a réussi
+  const login = useCallback(async (password: string) => {
+    try {
+      await apiPost('/auth/login', { password })
+    } catch (error) {
+      return error instanceof ApiError && error.status === 401
+        ? 'Incorrect password.'
+        : 'Could not reach the server. Please try again.'
+    }
+    clearApiCache()
+    setAuth('in')
+    setPage('dashboard')
+    return null
+  }, [])
+
+  const logout = useCallback(async () => {
+    try {
+      await apiPost('/auth/logout')
+    } catch {
+      // Cookie expiré ou serveur injoignable : on revient quand même à l'écran de login
+    }
+    clearApiCache()
+    setAuth('out')
     setSelectedPoint(null)
     setAssistantPoint(null)
-    setPage('home')
+    setPage('dashboard')
   }, [])
 
   // detail_url d'une anomalie, /events/{id}/impact-card ou /days/{isin}/{date}/impact-card
@@ -2355,28 +2367,12 @@ function App() {
     setAssistantPoint(point)
   }, [])
 
-  useEffect(() => {
-    const protectedPages: Page[] = [
-      'dashboard',
-      'events',
-      'impact',
-      'indicators',
-      'alerts',
-      'compare',
-      'report',
-      'preview',
-      'assistant',
-    ]
-
-    if (!loggedIn && protectedPages.includes(page)) {
-      setPage('login')
-    }
-  }, [loggedIn, page])
-
   let content: ReactNode
 
-  if (page === 'login') {
-    content = <LoginPage onLogin={login} navigate={navigate} />
+  if (auth === 'checking') {
+    content = <main className="auth-checking">Loading…</main>
+  } else if (auth === 'out') {
+    content = <LoginPage onLogin={login} />
   } else if (page === 'dashboard') {
     content = (
       <DashboardPage
