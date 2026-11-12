@@ -1171,3 +1171,74 @@ def test_anomaly_ids_unique_and_rank_order():
     assert all(keys[i][0] < keys[i + 1][0] or (keys[i][0] == keys[i + 1][0] and keys[i][1] >= keys[i + 1][1])
                for i in range(len(keys) - 1))
     assert {r["item_type"] for r in rows} == {"anomaly", "alert"}
+
+
+# ---------------------------------------------------------------- auction_trend (dashboard)
+def test_auction_trend_real_data():
+    import pandas as pd
+
+    from app.analytics import build_dashboard, data
+    from app.analytics.auction_trend import WINDOW
+
+    if not (data.has_ohlc() and data.has_flows()):
+        pytest.skip("needs OHLC + Flows")
+    isin = "DE0008019001"
+    dash = build_dashboard(isin, "2026-01-02", "2026-10-30")
+    tr = dash["auction_trend"]
+    assert len(tr["series"]) == len(dash["series"]) and tr["window"] == WINDOW
+    share = data.auction_share_series(isin)
+    # Part du jour = Flows AUCTION ÷ total (pas de double comptage : même base au numérateur et au dénominateur)
+    f = data.flows(isin)
+    d0 = pd.Timestamp(tr["series"][30]["date"])
+    day = f[f["date"] == d0]
+    expected = day[day["mode"] == "AUCTION"]["volume"].sum() / day["volume"].sum()
+    assert tr["series"][30]["auction_share"] == pytest.approx(expected, abs=0.0051)
+    # Moyenne mobile : null avant 20 valeurs, puis moyenne des 20 dernières séances (jour inclus)
+    assert all(p["baseline_20d"] is None for p in tr["series"][: WINDOW - 1])
+    assert tr["series"][WINDOW - 1]["baseline_20d"] == pytest.approx(share.iloc[:WINDOW].mean(), abs=0.0051)
+    assert tr["latest"]["value"] == tr["series"][-1]["baseline_20d"]
+    assert tr["change_vs_start"] == pytest.approx(tr["latest"]["value"] - tr["start"]["value"], abs=0.011)
+    # Pic = maximum journalier de la période
+    vals = [p["auction_share"] for p in tr["series"] if p["auction_share"] is not None]
+    assert tr["peak"]["value"] == max(vals)
+    assert all(0 <= v <= 1 for v in vals)
+    if tr["has_parts"]:
+        for p in tr["series"]:
+            parts = [p[k] for k in ("opening", "intraday", "closing")]
+            assert all(x is not None and 0 <= x <= 1 for x in parts)
+            assert sum(parts) <= p["auction_share"] + 0.021  # les enchères planifiées ne dépassent pas le total Flows
+
+
+def test_auction_trend_censored_day_is_null_not_zero(monkeypatch):
+    import pandas as pd
+
+    from app.analytics import auction_trend as at
+    from app.analytics import data
+
+    days = pd.bdate_range("2026-01-05", periods=25)
+    share = pd.Series(0.3, index=days.delete(10))  # jour 10 : pas de ligne Flows journalière (censuré)
+    monkeypatch.setattr(data, "auction_share_series", lambda isin: share)
+    monkeypatch.setattr(data, "trading_days", lambda: days)
+    monkeypatch.setattr(at, "part_shares", lambda isin: {})
+    tr = at.build_auction_trend("X", days)
+    assert tr["series"][10]["auction_share"] is None and tr["has_parts"] is False
+    assert "opening" not in tr["series"][0]
+    assert tr["series"][19]["baseline_20d"] is None       # 19 valeurs seulement : le jour censuré ne compte pas pour 0
+    assert tr["series"][24]["baseline_20d"] is None       # fenêtre 5..24 : contient encore le jour censuré
+    monkeypatch.setattr(data, "auction_share_series", lambda isin: pd.Series(dtype=float))
+    assert at.build_auction_trend("X", days) is None
+
+
+def test_chat_period_summary_cites_auction_trend():
+    from app.analytics import data
+    from app.assistant import chat as C
+    from app.assistant import templates
+
+    if not (data.has_ohlc() and data.has_flows()):
+        pytest.skip("needs OHLC + Flows")
+    res = C.run_tool("DE0008019001", "get_period_summary", {"from": "2026-01-02", "to": "2026-10-30"})
+    tr = res["auction_share_trend_pct"]
+    assert tr["change_pts"] == pytest.approx(tr["avg_20d_end"]["pct"] - tr["avg_20d_start"]["pct"], abs=0.11)
+    text = templates.chat_period(res, latest=False)
+    assert f"{tr['avg_20d_start']['pct']:.1f}% to {tr['avg_20d_end']['pct']:.1f}%" in text
+    assert f"peak of {tr['peak_day']['pct']:.1f}%" in text
