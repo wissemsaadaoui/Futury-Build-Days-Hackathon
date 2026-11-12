@@ -45,6 +45,7 @@ En attendant l'API, utilise `mocks/*.json` et `shared/types.ts` : même format.
 | 25 | 🆕 v0.5 : **`POST /assistant/chat`** `{isin, messages}` → `{answer, links[], as_of}` (token requis, 20 req/min) | Page AI Assistant (voir `FRONT_TODO.md`) |
 | 26 | 🆕 v0.6 : **`ai_points: string[]`** (3–4 phrases courtes) à côté de `ai_summary` dans l'impact card et l'event preview, et à côté de `headline` dans le report | Liste à puces ; si absent, découper `ai_summary` par phrase |
 | 27 | 🆕 v0.7 : **`/thresholds`** : `GET ?isin=` (values, defaults, bounds, custom), `PUT {isin, values}` (422 hors bornes), `POST /reset`, `POST /preview` (N alertes sans enregistrer). Chaque changement va dans le journal (`threshold_changed`) | Page Thresholds éditable + badge « Custom thresholds » |
+| 28 | 🆕 v0.7 : **`dashboard.key_finding`** `{text, numbers}` : phrase clé calculée par règles (premier vs dernier mois), jamais par le LLM | Bandeau en haut du dashboard |
 | 17 | 🆕 v0.3 : bloc **`pre_disclosure_activity`** dans l'impact card des notifications `voting_rights` (§5.4) | Petit encadré « Before the disclosure » |
 
 ---

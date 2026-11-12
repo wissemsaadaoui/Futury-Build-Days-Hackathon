@@ -134,6 +134,7 @@ export interface DashboardResponse {
   stock: StockRef;
   period: { from: ISODate; to: ISODate };
   as_of: ISODate;  // dernière date des données (ex. "2026-10-30"), indépendante de la période demandée
+  key_finding: KeyFinding | null;  // v0.7 : phrase clé calculée par règles (premier vs dernier mois des données)
   kpis: DashboardKpis;
   series: DailyPoint[];
   peers_series: PeerPoint[];
@@ -403,3 +404,9 @@ export interface ThresholdsPreview {         // POST /thresholds/preview {isin, 
   isin: string; alerts_with_values: number; alerts_current: number;
 }
 // PUT hors bornes -> 422 { detail: { message, errors: { [key]: string } } }
+
+// ---------- dashboard.key_finding (v0.7, point 8) ----------
+export interface KeyFinding {
+  text: string;  // ex. "pbb's cost to trade €25k rose from 54.3 to 97.4 bps (Jan–Oct), moving from below to above its peers' median."
+  numbers: Record<string, number | string | null>;  // own_first_bps, own_last_bps, peers_median_*_bps, position_*, index_median_*_bps, price_effect_pct…
+}

@@ -11,6 +11,27 @@
     "to": "2026-10-09"
   },
   "as_of": "2026-10-30",
+  "key_finding": {
+    "text": "pbb's cost to trade €25k rose from 54.3 to 97.4 bps (Jan–Oct), moving from below to above its peers' median.",
+    "numbers": {
+      "metric": "median spread for a EUR 25,000 round trip (bps, Xetra XLM)",
+      "first_month": "2026-01",
+      "last_month": "2026-10",
+      "own_first_bps": 54.3,
+      "own_last_bps": 97.4,
+      "peers_median_first_bps": 72.3,
+      "peers_median_last_bps": 69.9,
+      "position_first": "below",
+      "position_last": "above",
+      "index": "SDAX",
+      "index_median_first_bps": 69.8,
+      "index_median_last_bps": 71.0,
+      "change_bps": 43.0,
+      "price_effect_pct": 58.1,
+      "liquidity_effect_pct": 41.9,
+      "n_peers": 6
+    }
+  },
   "kpis": {
     "avg_daily_volume": 453966,
     "avg_daily_turnover_eur": 1505545,
