@@ -4252,3 +4252,10 @@ button.report-event {
 .decision-table td {
   white-space: normal;
 }
+
+.expect-few {
+  margin: 6px 0 0;
+  color: #896406;
+  font-size: 14px;
+  font-weight: 600;
+}

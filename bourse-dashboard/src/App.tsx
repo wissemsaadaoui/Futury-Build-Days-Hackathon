@@ -1119,9 +1119,9 @@ function DashboardPage({
                 <PdfButton
                   className="outline-button weekly-snapshot"
                   path={`/stocks/${ISIN}/report.pdf?from=${weekly.from}&to=${weekly.to}`}
-                  filename={`pbb-weekly-snapshot-${weekly.from}-${weekly.to}.pdf`}
+                  filename={`pbb-weekly-ir-snapshot-${weekly.from}-${weekly.to}.pdf`}
                 >
-                  Weekly snapshot ({weekly.label}) <span>↓</span>
+                  Weekly IR snapshot ({weekly.label}) <span>↓</span>
                 </PdfButton>
               )}
             </div>

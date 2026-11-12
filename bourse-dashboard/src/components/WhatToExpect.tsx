@@ -143,6 +143,9 @@ export function WhatToExpect({ isin, onOpenFull }: { isin: string; onOpenFull: (
           </div>
         )}
       </div>
+      {p && own && own.n > 0 && own.n < 6 && (
+        <p className="expect-few">With few past events this shows what happened, not a pattern.</p>
+      )}
 
       {preview.error && <div className="notice-box">Could not load past reactions ({preview.error}).</div>}
       {(preview.loading || !ready) && <div className="notice-box">Loading past reactions…</div>}
