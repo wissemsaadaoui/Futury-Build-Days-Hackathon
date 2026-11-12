@@ -808,7 +808,7 @@ def test_preview_never_uses_events_after_day():
     from app.analytics import preview as PV
 
     before = A.build_event_preview(PBB, "quarterly_results", "2026-08-13")  # H1 publié le 13.08 : exclu
-    assert before["as_of"] == "2026-08-13"
+    assert before["reference_date"] == "2026-08-13" and before["as_of"] == "2026-10-30"
     assert [e["event_id"] for e in before["own_history"]["events"]] == ["evt_016"]
     assert all(e["date"] < "2026-08-13" for e in before["own_history"]["events"])
     after = A.build_event_preview(PBB, "quarterly_results", "2026-08-14")
@@ -1012,3 +1012,33 @@ def test_preview_for_q3_demo_event(day):
     assert p["confidence"] == "low"
     s = p["ai_summary"]
     assert guard.check(s, F.preview_facts(p)) and "investor" not in s.lower()
+
+
+# ---------- as_of, checklist IR, peers ----------
+def test_as_of_is_last_data_date_everywhere():
+    assert A.build_dashboard(PBB, "2026-03-02", "2026-03-31")["as_of"] == "2026-10-30"
+    assert A.list_events(PBB)["as_of"] == "2026-10-30"
+    p = A.build_event_preview(PBB, "quarterly_results")
+    assert p["as_of"] == "2026-10-30" and p["reference_date"] is None
+
+
+def test_checklist_rules_and_wording():
+    from app.analytics import preview as PV
+    from app.assistant import guard
+
+    p = A.build_event_preview(PBB, "quarterly_results", "2026-11-12")
+    assert len(p["checklist"]) == 3  # volume 1.9x > 1.5, spread +11.7% > 10, 0.5 session <= 1
+    assert "designated sponsor" in p["checklist"][0] and "before the market opens" in p["checklist"][1]
+    for line in p["checklist"]:
+        assert not guard._BANNED.search(line) and "investor" not in line.lower()
+    own = {"volume_ratio": {"median": 1.2}, "spread_change_pct": {"median": 4.0}, "sessions_to_normal": {"median": 3}}
+    assert PV._checklist(own, "quarterly_results") == []
+    assert A.build_event_preview(PBB, "dividend")["checklist"] == []
+
+
+def test_pbb_preview_has_peer_results():
+    p = A.build_event_preview(PBB, "quarterly_results", "2026-11-12")
+    assert p["peers"]["n"] >= 6 and "peers_note" not in p["peers"]
+    ids = {e["event_id"] for e in p["peers"]["events"]}
+    assert "evt_039" in ids  # flatexDEGIRO Q3, publié à 18:00 le 21.10 -> séance du 22.10
+    assert next(e for e in p["peers"]["events"] if e["event_id"] == "evt_039")["date"] == "2026-10-22"

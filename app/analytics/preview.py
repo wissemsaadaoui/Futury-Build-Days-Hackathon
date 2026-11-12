@@ -110,6 +110,33 @@ def _confidence(n: int) -> str:
     return "low" if n < 3 else ("medium" if n <= 5 else "high")
 
 
+# Checklist IR : constats sur les réactions PASSÉES + préparation. Jamais de prédiction de cours.
+CHECK_VOLUME_RATIO = 1.5
+CHECK_SPREAD_PCT = 10.0
+CHECK_FAST_SESSIONS = 1
+
+
+def _checklist(own: dict, event_type: str) -> list[str]:
+    from app.assistant.facts import EVENT_LABELS
+    from app.assistant.templates import _noun
+
+    releases = _noun(event_type, EVENT_LABELS.get(event_type, event_type.replace("_", " ")), 2)
+    out = []
+    vr = own["volume_ratio"]["median"]
+    if vr is not None and vr > CHECK_VOLUME_RATIO:
+        out.append(f"Past {releases} traded a median of {vr:.1f}x usual volume: inform the designated "
+                   "sponsor / market makers ahead of publication.")
+    sp = own["spread_change_pct"]["median"]
+    if sp is not None and sp > CHECK_SPREAD_PCT:
+        out.append(f"The spread widened by a median of {sp:+.1f}% on past publication days: consider publishing before "
+                   "the market opens so the order book can adjust from the opening auction.")
+    stn = own["sessions_to_normal"]["median"]
+    if stn is not None and stn <= CHECK_FAST_SESSIONS:
+        out.append(f"On past {releases} the effect on liquidity faded within one session "
+                   f"(median {stn:g} session{'s' if stn != 1 else ''} to normal).")
+    return out
+
+
 def _attention_points(own: dict, peers: dict) -> list[str]:
     pts = []
     sp = own["spread_change_pct"]["median"]
@@ -149,11 +176,13 @@ def build_event_preview(isin: str, event_type: str, day=None) -> dict:
     preview = {
         "stock": {k: v for k, v in data.stock_ref(isin).items() if k != "sector"},
         "event_type": event_type,
-        "as_of": iso(day) if day is not None else None,
+        "as_of": iso(data.trading_days()[-1]),  # dernière date des données
+        "reference_date": iso(day) if day is not None else None,  # `date` demandé : événements AVANT cette date
         "upcoming": _upcoming(isin, event_type, day),
         "own_history": own,
         "peers": peers_block,
         "attention_points": _attention_points(own, peers),
+        "checklist": _checklist(own, event_type),
         "confidence": _confidence(own["n"]),
         "note": NOTE,
         "ai_summary": "",

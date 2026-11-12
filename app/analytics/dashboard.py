@@ -67,6 +67,7 @@ def build_dashboard(isin: str, start, end) -> dict:
     status = {"spreads": "real", "ohlc": "mock", "flows": "mock"}
     dash["stock"] = data.stock_ref(isin, rng[-1])
     dash["period"] = {"from": iso(rng[0]), "to": iso(rng[-1])}
+    dash["as_of"] = iso(data.trading_days()[-1])  # dernière date des données (pas la fin de la période demandée)
 
     sp = data.spread_series(isin)
     peer_sp = _peer_spread_median(isin)
