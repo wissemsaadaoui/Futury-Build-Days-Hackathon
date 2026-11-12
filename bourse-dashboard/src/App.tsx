@@ -1650,6 +1650,7 @@ function ComparePage({
   const [to, setTo] = useState('2026-10-30')
   const query = new URLSearchParams({ type: eventType, index, from, to })
   const validRange = from !== '' && to !== '' && from <= to
+  const [allColumns, setAllColumns] = useState(false) // mobile (< 640 px) : colonnes essentielles par défaut
   const { data, error, loading } = useApi<CompareResponse>(validRange ? `/compare?${query}` : null)
 
   return (
@@ -1701,31 +1702,34 @@ function ComparePage({
                 <h2>Historical event responses</h2>
               </div>
             </div>
-            <div className="table-scroll">
-              <table>
+            <div className="table-scroll compare-scroll">
+              <table className={`compare-table${allColumns ? ' all-columns' : ''}`}>
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Company</th>
+                    <th className="sticky-col">Company</th>
+                    <th className="col-extra">Date</th>
+                    <th>Spread change</th>
                     <th>Volume ratio</th>
                     <th>Price change</th>
-                    <th>Spread change</th>
-                    <th>Auction share</th>
+                    <th className="col-extra">Auction share</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(data?.events ?? []).map((event) => (
                     <tr key={event.event_id} onClick={() => openImpact(`/events/${event.event_id}/impact-card`)} style={{ cursor: 'pointer' }}>
-                      <td>{formatDate(event.date)}</td>
-                      <td>{event.name}</td>
+                      <td className="sticky-col">
+                        {event.name}
+                        <small className="compare-date-inline">{formatDate(event.date)}</small>
+                      </td>
+                      <td className="col-extra">{formatDate(event.date)}</td>
+                      <td className={tone(event.spread_change_pct, 'cost')}>
+                        {formatPercent(event.spread_change_pct)}
+                      </td>
                       <td>{formatRatio(event.volume_ratio)}</td>
                       <td className={tone(event.price_change_pct)}>
                         {formatPercent(event.price_change_pct)}
                       </td>
-                      <td className={tone(event.spread_change_pct, 'cost')}>
-                        {formatPercent(event.spread_change_pct)}
-                      </td>
-                      <td>
+                      <td className="col-extra">
                         {event.auction_share_change_pts === null
                           ? '–'
                           : `${event.auction_share_change_pts > 0 ? '+' : ''}${formatNumber(event.auction_share_change_pts * 100, 1)} pts`}
@@ -1735,6 +1739,13 @@ function ComparePage({
                 </tbody>
               </table>
             </div>
+            <button
+              className="text-button more-columns"
+              onClick={() => setAllColumns((value) => !value)}
+              aria-expanded={allColumns}
+            >
+              {allColumns ? 'Fewer columns' : 'More columns (date, auction share)'}
+            </button>
             <p className="small-note">
               {data && data.events.length === 0
                 ? 'No event of this type in the selected index and period.'

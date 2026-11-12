@@ -3907,3 +3907,51 @@ button.report-event {
 .drawer-points ul {
   margin-top: 4px;
 }
+
+/* ---------- Compare : tableau mobile ---------- */
+.compare-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.compare-table .sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+  box-shadow: 1px 0 0 #edf0f3;
+}
+
+.compare-table thead .sticky-col {
+  z-index: 2;
+}
+
+.compare-date-inline {
+  display: none;
+}
+
+.more-columns {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .compare-table:not(.all-columns) .col-extra {
+    display: none;
+  }
+
+  .compare-table:not(.all-columns) .compare-date-inline {
+    display: block;
+    color: #8792a2;
+    font-size: 12px;
+  }
+
+  .compare-table .sticky-col {
+    max-width: 150px;
+    white-space: normal;
+  }
+
+  .more-columns {
+    display: inline-block;
+    margin-top: 8px;
+  }
+}
