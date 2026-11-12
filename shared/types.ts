@@ -386,3 +386,20 @@ export interface EventPreviewResponse {
   ai_points: string[];  // v0.6 : 3–4 phrases courtes (chacune vérifiée par le garde-fou) ; à afficher en liste à puces
   _data_status?: Record<string, "real" | "mock" | "missing">;
 }
+
+// ---------- /thresholds (v0.7, point 16) – seuils d'alerte modifiables par l'équipe IR ----------
+export interface ThresholdSpec {
+  label: string; unit: string; group: "anomaly" | "alert";
+  min: number; max: number; step: number; integer: boolean; default: number;
+}
+export interface ThresholdsResponse {        // GET /thresholds?isin= | PUT /thresholds | POST /thresholds/reset
+  isin: string;
+  values: Record<string, number>;            // seuils appliqués (défauts du code + personnalisations)
+  defaults: Record<string, number>;
+  bounds: Record<string, ThresholdSpec>;
+  custom: boolean;                           // au moins un seuil différent du défaut -> badge « Custom thresholds »
+}
+export interface ThresholdsPreview {         // POST /thresholds/preview {isin, values} – rien n'est enregistré
+  isin: string; alerts_with_values: number; alerts_current: number;
+}
+// PUT hors bornes -> 422 { detail: { message, errors: { [key]: string } } }
