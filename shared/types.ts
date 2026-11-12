@@ -437,3 +437,18 @@ export interface Decision {                   // une ligne du journal
   decided_at: ISODateTime; decided_by: string;          // Europe/Berlin ; "ir-team"
 }
 export interface DecisionLog { isin: string | null; decisions: Decision[] }  // GET /decisions?isin=
+
+// ---------- POST /assistant/chat (v0.9) ----------
+export interface ChatMessage { role: "user" | "assistant"; content: string }
+export interface ChatRequest { isin: string; messages: ChatMessage[] }  // l'API garde les 6 derniers messages
+export interface ChatLink {
+  label: string;
+  type: "day" | "event" | "preview" | "compare" | "question";  // question : suggestion cliquable, ref = texte à envoyer
+  ref: string;
+}
+export interface ChatResponse {
+  answer: string;
+  links: ChatLink[];
+  as_of: ISODate;
+  reason: "off_topic" | "prediction" | "advice" | "external_info" | null;  // null = question dans le périmètre
+}

@@ -265,7 +265,7 @@ TOOLS: list[dict] = [
     {
         "name": "get_period_summary",
         "description": "Trading summary of the stock over a period vs the 20 trading days before it: volume, turnover, "
-                       "XLM spread (EUR 25,000), return, auction share, anomalies and execution alerts. "
+                       "XLM spread (EUR 25,000), return, auction share of volume, anomalies and execution alerts. "
                        "Dates YYYY-MM-DD within 2026-01-02..2026-10-30.",
         "input_schema": {"type": "object", "properties": {"from": {"type": "string"}, "to": {"type": "string"}},
                          "required": ["from", "to"]},
@@ -301,6 +301,22 @@ TOOLS: list[dict] = [
         "input_schema": {"type": "object", "properties": {"from": {"type": "string"}, "to": {"type": "string"}},
                          "required": ["from", "to"]},
     },
+    {
+        "name": "decline",
+        "description": "Use INSTEAD of any data tool when the question is not about this stock's historical Xetra "
+                       "trading, its announcements, its peers or the tool's thresholds/alerts. reason: off_topic "
+                       "(unrelated subject), prediction (future prices or trading), advice (buy/sell/hold/invest), "
+                       "external_info (management, news, rates, anything not in the tool's data). suggestion: one "
+                       "question this tool can answer.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "reason": {"type": "string", "enum": ["off_topic", "prediction", "advice", "external_info"]},
+                "suggestion": {"type": "string"},
+            },
+            "required": ["reason"],
+        },
+    }
 ]
 
 
@@ -368,11 +384,125 @@ def fmt_day(d: str) -> str:
 
 # ---------------------------------------------------------------- routeur + templates (sans LLM)
 
-_OUT_OF_SCOPE = re.compile(
-    r"\b(will|going to|forecast\w*|predict\w*|target|tomorrow|next (week|month|year)|should (i|we)|buy|sell|hold|"
-    r"recommend\w*|worth (buying|it)|news|rumou?r|why did .* (ceo|management)|dividend yield)\b",
-    re.I,
+REASONS = ("off_topic", "prediction", "advice", "external_info")
+SUGGESTED_QUESTIONS = (
+    "What happened in the latest week?",
+    "Why was 29 Sep unusual?",
+    "What to expect from today's Q3 release?",
+    "How does pbb compare with its peers?",
 )
+_SUGGEST_FOR = {"prediction": (2, 0), "advice": (0, 3), "external_info": (0, 1), "off_topic": (0, 3)}
+PAST_ONLY = "This tool describes past trading only; it does not forecast prices or give investment advice."
+
+# Expressions de TRADING qui contiennent « buy » / « sell » : jamais un conseil (retirées avant le pré-filtre)
+_TRADING_SIDE = re.compile(
+    r"\b(net (buying|selling)|buy-?initiated|sell-?initiated|buyer|seller|buy side|sell side|buy orders?|"
+    r"sell orders?|aggressive (buy|sell)\w*|buying pressure|selling pressure)\b", re.I)
+# Pré-filtre déterministe (anglais, français, allemand) : réponse directe, sans appeler le LLM
+_ADVICE = re.compile(
+    r"\b(buy|buying|sell|selling|invest|investing|investment advice|should (i|we)|worth (buying|it)|recommend\w*|"
+    r"hold or|kaufen|kauf|verkaufen|anlegen|investieren|empfehl\w*|acheter|ach[eè]te\w*|vendre|investir|"
+    r"conseil\w*|recommand\w*|placement)\b", re.I)
+_PREDICTION = re.compile(
+    r"\b(forecast\w*|predict\w*|next (week|month|quarter|year|session|days?)|will (the )?(price|share|stock|it|spread|"
+    r"volume)|going to (rise|fall|go|drop)|price target|target price|tomorrow|future price|prognose\w*|"
+    r"vorhersag\w*|kursziel|n[äa]chste woche|wird der kurs|pr[ée]vision\w*|pr[ée]voir|pr[ée]di\w*|"
+    r"semaine prochaine|va (monter|baisser))\b", re.I)
+# Sujets sans rapport (vérifiés AVANT le pré-filtre : « weather tomorrow » est hors sujet, pas une prévision de cours)
+_OFF_TOPIC = re.compile(
+    r"\b(weather|wetter|m[ée]t[ée]o|poem|poems|poetry|gedicht|po[èe]me|joke|witz|blague|recipe|rezept|recette|"
+    r"football|fu[sß]ball|soccer|movie|film|song|lied|chanson|translate|[üu]bersetze|traduis)\b", re.I)
+# Hors données de l'outil (repli sans LLM)
+_EXTERNAL = re.compile(
+    r"\b(ceo|cfo|chairman|management|board|vorstand|aufsichtsrat|pdg|dirigeant\w*|news|headlines?|rumou?rs?|"
+    r"nachrichten|actualit\w*|interest rates?|ecb|ezb|bce|inflation|employees|headquarters?|rating|analysts?|"
+    r"who is|wer ist|qui est|dividend yield)\b", re.I)
+# Intentions reconnues (seules à donner des chiffres dans le repli template)
+_EVENT_INTENT = re.compile(r"\b(expect|upcoming|q[1-4]|results?|release|earnings|quarterly|annual|publication)\b", re.I)
+_PEER_INTENT = re.compile(r"\b(peers?|compare|comparison|competitors?|sector|versus|vs)\b", re.I)
+_LIST_INTENT = re.compile(r"\b(announcements?|events?|disclosures?|voting rights|directors'? dealings)\b", re.I)
+_PERIOD_INTENT = re.compile(
+    r"\b(week|month|year|ytd|2026|today|yesterday|latest|recent(ly)?|lately|period|so far|this quarter|"
+    r"last \d+ (days|sessions))\b", re.I)
+_TRADING_TOPIC = re.compile(
+    r"\b(spread|liquidity|liquid|volume|turnover|trading|traded|trades?|executions?|alerts?|anomal\w*|auctions?|"
+    r"xetra|thresholds?|bid-?ask|price moves?|unusual)\b", re.I)
+# Mots en majuscule autorisés (sinon : probablement une autre entreprise, hors univers de l'outil)
+_ALLOWED_CAPS = {
+    "what", "why", "how", "when", "which", "who", "where", "show", "tell", "give", "list", "is", "was", "did", "does",
+    "do", "can", "could", "explain", "summarise", "summarize", "compare", "please", "and", "in", "on", "for", "the",
+    "a", "an", "any", "were", "are", "has", "have", "i", "my", "our", "wie", "warum", "quel", "quelle", "pourquoi",
+    "comment", "est", "que", "qu", "pbb", "deutsche", "pfandbriefbank", "xetra", "sdax", "mdax", "dax", "eur", "ir",
+    "ai", "q1", "q2", "q3", "q4", "h1", "h2", "fy", "ad", "hoc", "jan", "feb", "mar", "apr", "may", "jun", "jul",
+    "aug", "sep", "sept", "oct", "nov", "dec", "january", "february", "march", "april", "june", "july", "august",
+    "september", "october", "november", "december", "monday", "tuesday", "wednesday", "thursday", "friday", "xlm",
+    "adtv", "vwap", "grenke", "hypoport", "mlp", "procredit", "w&w", "flatexdegiro", "wüstenrot", "württembergische",
+}
+
+
+def prefilter(question: str) -> str | None:
+    """off_topic évident, puis advice / prediction détectés sans LLM (anglais, français, allemand) ; None sinon."""
+    if _OFF_TOPIC.search(question):
+        return "off_topic"
+    q = _TRADING_SIDE.sub(" ", question)
+    if _PREDICTION.search(q):
+        return "prediction"
+    if _ADVICE.search(q):
+        return "advice"
+    return None
+
+
+def _other_company(question: str, isin: str) -> bool:
+    """Nom propre inconnu (hors pbb, peers, mois…) ou entreprise de l'univers autre que pbb / ses peers."""
+    words = re.findall(r"[A-Za-zÀ-ÿ&][\w&'.-]*", question)
+    for w in words:
+        token = w.strip(".'").lower()
+        if w[0].isupper() and token not in _ALLOWED_CAPS and len(token) >= 3 and not token.endswith("'s"):
+            if token.rstrip("s") in _ALLOWED_CAPS:
+                continue
+            return True
+    try:
+        names = etl.get_universe()[["isin", "name"]]
+    except Exception:
+        return False
+    mine = {isin, *data.peers_of(isin)}
+    q = question.lower()
+    generic = {"deutsche", "ag", "se", "group", "holding", "bank", "kgaa", "co", "the", "&"}
+    for _, r in names.iterrows():
+        if r["isin"] in mine:
+            continue
+        first = next((t for t in str(r["name"]).lower().split() if t not in generic and len(t) >= 4), None)
+        if first and re.search(rf"\b{re.escape(first)}\b", q):
+            return True
+    return False
+
+
+def scope_reason(isin: str, question: str) -> str | None:
+    """Raison de refus du repli déterministe ; None = intention reconnue (des chiffres peuvent être donnés)."""
+    q = question.strip()
+    if not q:
+        return "off_topic"
+    pre = prefilter(q)
+    if pre:
+        return pre
+    if _EXTERNAL.search(q):
+        return "external_info"
+    if _other_company(q, isin):
+        return "off_topic"
+    return None if route(isin, q) else "off_topic"
+
+
+def decline(isin: str, reason: str) -> dict:
+    """Réponse hors périmètre : aucun chiffre, deux questions suggérées cliquables (links de type question)."""
+    who = "pbb" if isin == "DE0008019001" else data.name_of(isin)
+    picks = [SUGGESTED_QUESTIONS[i] for i in _SUGGEST_FOR.get(reason, (0, 3))]
+    lead = PAST_ONLY if reason in ("prediction", "advice") else (
+        f"I can only answer questions about {who}'s historical Xetra trading, its announcements and its peers in this tool.")
+    answer = f"{lead} Try: “{picks[0]}” or “{picks[1]}”"
+    return {"answer": answer, "links": [{"label": q, "type": "question", "ref": q} for q in picks],
+            "reason": reason}
+
+
 _MONTHS = {m.lower(): i for i, m in enumerate(
     ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], 1)}
 
@@ -396,18 +526,18 @@ def route(isin: str, question: str) -> tuple[str, dict] | None:
     """Outil le plus pertinent pour la question (None = hors périmètre)."""
     q = question.lower()
     ctx = context()
-    if _OUT_OF_SCOPE.search(q) and not re.search(r"\b(react|reaction|past|historical|expect)\b", q):
+    if prefilter(question):
         return None
     day = parse_date(question)
     if day:
         return "get_day", {"date": day}
-    if re.search(r"\b(expect|upcoming|q[1-4]|results?|release|earnings|quarterly|annual|publication)\b", q):
+    if _EVENT_INTENT.search(q):
         etype = "annual_results" if "annual" in q or "full year" in q or "fy" in q.split() else "quarterly_results"
         if "ad hoc" in q or "ad-hoc" in q:
             etype = "ad_hoc"
         up = next((e for e in _upcoming_events(isin) if e["type"] == etype), None)
         return "get_event_preview", {"event_type": etype, "date": up["date"] if up else None}
-    if re.search(r"\b(peers?|compare|comparison|competitors?|sector|vs)\b", q):
+    if _PEER_INTENT.search(q):
         m = ctx["latest_month"]
         return "get_peer_comparison", {"from": m["from"], "to": m["to"]}
     if re.search(r"\b(month)\b", q):
@@ -417,15 +547,15 @@ def route(isin: str, question: str) -> tuple[str, dict] | None:
         return "get_period_summary", {"from": ctx["first_data_day"], "to": ctx["latest_data_day"]}
     if re.search(r"\b(today|yesterday|latest day|last day)\b", q):
         return "get_day", {"date": ctx["latest_data_day"]}
-    w = ctx["latest_week"]
-    return "get_period_summary", {"from": w["from"], "to": w["to"]}
+    if _LIST_INTENT.search(q):
+        return "list_events", {}
+    if _PERIOD_INTENT.search(q) or _TRADING_TOPIC.search(q):  # période ou sujet de trading sans période : dernière semaine
+        w = ctx["latest_week"]
+        return "get_period_summary", {"from": w["from"], "to": w["to"]}
+    return None  # intention non reconnue : jamais de chiffres « par défaut »
 
 
-REFUSAL = (
-    "This assistant only describes past Xetra trading in this tool, so it cannot say where the share price is heading, "
-    "give trading advice or comment on external news. "
-    "You could ask instead: \"How did liquidity react to past quarterly results?\" or \"What happened in the latest week?\""
-)
+REFUSAL = PAST_ONLY  # compatibilité
 
 
 def _sentences(text: str) -> list[str]:
@@ -480,12 +610,16 @@ def _history(messages: list[dict]) -> list[dict]:
     return msgs
 
 
+_WRONG_SHARE = re.compile(r"share of (the )?executions", re.I)  # la part des enchères est une part du VOLUME
+
+
 def answer_ok(text: str | None, facts: dict) -> bool:
-    return bool(text) and guard.check(text, facts) and not _WHO.search(text or "")
+    return bool(text) and guard.check(text, facts) and not _WHO.search(text or "") and not _WRONG_SHARE.search(text or "")
 
 
 def _llm_answer(isin: str, messages: list[dict], ctx: dict) -> tuple[str | None, list[tuple[str, dict, dict]]]:
-    """(texte, appels d'outils). Texte None si LLM indisponible, trop de tours ou erreur."""
+    """(texte, appels d'outils). Texte None si LLM indisponible, trop de tours ou erreur.
+    Si le LLM appelle `decline`, l'appel est renvoyé tel quel (nom "decline") et aucun outil de données n'est exécuté."""
     if not (llm.is_configured() and config.LLM_PROVIDER == "anthropic"):
         return None, []
     calls: list[tuple[str, dict, dict]] = []
@@ -505,6 +639,11 @@ def _llm_answer(isin: str, messages: list[dict], ctx: dict) -> tuple[str | None,
                 return (text or None), calls
             if round_ == MAX_TOOL_ROUNDS:
                 return None, calls  # trop de tours d'outils
+            refusal = next((b for b in uses if b.name == "decline"), None)
+            if refusal is not None:
+                args = dict(refusal.input or {})
+                reason = args.get("reason") if args.get("reason") in REASONS else "off_topic"
+                return None, [("decline", {"reason": reason}, {})]
             convo.append({"role": "assistant", "content": resp.content})
             results = []
             for b in uses:
@@ -533,28 +672,32 @@ def chat(isin: str, messages: list[dict]) -> dict:
         raise NotFound(f"Unknown ISIN {isin}")
     ctx = context()
     msgs = _history(messages)
-    question = next((m["content"] for m in reversed(msgs) if m["role"] == "user"), "")
-    out = {"answer": "", "links": [], "as_of": ctx["latest_data_day"]}
-    if not question:
-        out["answer"] = "Ask a question about pbb's trading, for example \"What happened in the latest week?\""
-        return out
+    question = next((m["content"] for m in reversed(msgs) if m["role"] == "user"), "").strip()
 
+    def done(res: dict) -> dict:
+        return {**res, "as_of": ctx["latest_data_day"]}
+
+    # 1. Question vide ou conseil / prédiction : réponse directe, sans LLM
+    if not question:
+        return done(decline(isin, "off_topic"))
+    pre = prefilter(question)
+    if pre:
+        return done(decline(isin, pre))
+
+    # 2. LLM avec outils (decline si hors périmètre)
     text, calls = _llm_answer(isin, msgs, ctx)
+    if calls and calls[0][0] == "decline":
+        return done(decline(isin, calls[0][1]["reason"]))
     facts = {"context": ctx, "tool_results": [public(r) for _, _, r in calls]}
     if text and calls and answer_ok(text, facts):
-        out["answer"], out["links"] = text, links_for(calls)
-        return out
-    if text and not calls and answer_ok(text, {"context": ctx}) and not re.search(r"\d", text.replace("2026", "")):
-        out["answer"] = text  # refus / redirection sans chiffres : acceptée telle quelle
-        return out
+        return done({"answer": text, "links": links_for(calls), "reason": None})
+    if text and not calls:
+        return done(decline(isin, "off_topic"))  # réponse sans outil : jamais de chiffres « de mémoire »
 
-    # Repli déterministe : routeur -> outil -> template
-    picked = route(isin, question)
-    if picked is None:
-        out["answer"] = REFUSAL
-        return out
-    name, args = picked
+    # 3. Repli déterministe : des chiffres UNIQUEMENT si l'intention est reconnue
+    reason = scope_reason(isin, question)
+    if reason:
+        return done(decline(isin, reason))
+    name, args = route(isin, question)  # type: ignore[misc]  # scope_reason garantit une route
     res = run_tool(isin, name, args)
-    out["answer"] = template_answer(name, res, ctx)
-    out["links"] = links_for([(name, args, res)])
-    return out
+    return done({"answer": template_answer(name, res, ctx), "links": links_for([(name, args, res)]), "reason": None})

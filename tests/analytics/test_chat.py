@@ -1,6 +1,7 @@
 """Chat libre de l'AI Assistant (app/assistant/chat.py) : outils, garde-fou, repli template, route."""
 from __future__ import annotations
 
+import re
 from types import SimpleNamespace
 
 import pytest
@@ -104,13 +105,16 @@ def test_suggested_questions_answer_with_links(no_llm):
 )
 def test_prediction_or_advice_is_refused(no_llm, question):
     r = ask(question)
-    assert r["answer"] == C.REFUSAL and r["links"] == []
-    assert not guard._BANNED.search(r["answer"])
+    assert r["answer"].startswith(C.PAST_ONLY) and r["reason"] in ("prediction", "advice")
+    assert [link["type"] for link in r["links"]] == ["question", "question"]
+    assert not _DATA_FIGURE.search(r["answer"])  # texte fixe (« does not forecast prices ») : pas de chiffres
 
 
 def test_llm_prediction_is_rejected_by_guard(fake_llm):
+    # pré-filtre : la question de prédiction n'atteint même pas le LLM
     fake_llm["responses"] = [_text("The share price will rise after the Q3 release.")]
-    assert ask("Will the share price rise after Q3?")["answer"] == C.REFUSAL
+    r = ask("Will the share price rise after Q3?")
+    assert r["reason"] == "prediction" and fake_llm["requests"] == []
 
 
 # ---------- Repli template ----------
@@ -172,7 +176,7 @@ def test_history_is_limited_and_starts_with_user(fake_llm):
     for i in range(5):
         hist += [{"role": "user", "content": f"q{i}"}, {"role": "assistant", "content": f"a{i}"}]
     fake_llm["responses"] = [_text("This tool only describes past Xetra trading.")]
-    ask("Will it go up?", hist)
+    ask("How was liquidity?", hist)
     msgs = fake_llm["requests"][0]["messages"]
     assert len(msgs) <= C.MAX_HISTORY and msgs[0]["role"] == "user"
 
@@ -197,7 +201,8 @@ def test_route_auth_schema_and_rate_limit(no_llm):
     route._calls.clear()
     r = client.post("/assistant/chat", json=body)
     assert r.status_code == 200
-    assert set(r.json()) == {"answer", "links", "as_of"} and r.json()["links"][0]["type"] == "day"
+    assert set(r.json()) == {"answer", "links", "as_of", "reason"} and r.json()["links"][0]["type"] == "day"
+    assert r.json()["reason"] is None
     assert client.post("/assistant/chat", json={**body, "isin": "XX0000000000"}).status_code == 404
     assert client.post("/assistant/chat", json={"isin": PBB, "messages": []}).status_code == 422
     route._calls.clear()
@@ -208,3 +213,79 @@ def test_route_auth_schema_and_rate_limit(no_llm):
     assert getattr(exc.value, "status_code", None) == 429
     route._check_rate("Bearer x", now=61.0)  # fenêtre glissante : de nouveau autorisé
     route._calls.clear()
+
+
+# ---------- Périmètre du chat (alfred/chat-scope) ----------
+_DATA_FIGURE = re.compile(r"\d+(?:[.,]\d+)?\s*(?:%|bps|x\b|×|shares|EUR|sessions?)|EUR\s*\d|\d{1,3}(?:,\d{3})+")
+
+OFF_TOPIC_CASES = [
+    ("What is the weather in Frankfurt tomorrow?", "off_topic"),
+    ("Write me a poem about covered bonds", "off_topic"),
+    ("Who is the CEO of pbb?", "external_info"),
+    ("What did the ECB announce about interest rates?", "external_info"),
+    ("Should I buy or sell pbb shares now?", "advice"),
+    ("What will the price of pbb be next week?", "prediction"),
+    ("How did Tesla shares trade last week?", "off_topic"),
+    ("   ", "off_topic"),
+]
+
+
+@pytest.mark.parametrize("question,reason", OFF_TOPIC_CASES)
+def test_off_topic_questions_get_no_data(no_llm, question, reason):
+    r = ask(question)
+    assert r["reason"] == reason
+    assert not _DATA_FIGURE.search(r["answer"]), r["answer"]
+    assert len(r["links"]) == 2 and all(l["type"] == "question" and l["ref"] == l["label"] for l in r["links"])
+    assert all(l["ref"] in C.SUGGESTED_QUESTIONS for l in r["links"])
+    lead = C.PAST_ONLY if reason in ("prediction", "advice") else "I can only answer questions about pbb's"
+    assert r["answer"].startswith(lead)
+
+
+@pytest.mark.parametrize("question", C.SUGGESTED_QUESTIONS)
+def test_demo_questions_still_answer_with_figures(no_llm, question):
+    r = ask(question)
+    assert r["reason"] is None and _DATA_FIGURE.search(r["answer"]) and r["links"]
+    assert r["links"][0]["type"] in ("day", "event", "preview", "compare")
+
+
+@pytest.mark.parametrize("question,reason", [
+    ("Sollte ich pbb-Aktien kaufen?", "advice"),
+    ("Est-ce que je dois acheter pbb ?", "advice"),
+    ("Was ist die Prognose für den Kurs?", "prediction"),
+    ("Quelle est la prévision du cours la semaine prochaine ?", "prediction"),
+])
+def test_prefilter_french_german(question, reason):
+    assert C.prefilter(question) == reason
+
+
+def test_trading_vocabulary_is_not_advice():
+    assert C.prefilter("Was there net buying in the latest week?") is None
+    assert C.prefilter("How many buy-initiated sweeps were flagged?") is None
+    assert C.route(PBB, "Write me a poem") is None  # jamais de route « par défaut »
+
+
+def test_prefilter_answers_without_calling_the_llm(fake_llm):
+    r = ask("Should I buy pbb?")
+    assert r["reason"] == "advice" and fake_llm["requests"] == []
+
+
+def test_llm_decline_tool_is_respected(fake_llm):
+    fake_llm["responses"] = [_tool("decline", {"reason": "external_info", "suggestion": "Ask about liquidity"})]
+    r = ask("What does pbb's management think about the market?")
+    assert r["reason"] == "external_info" and not _DATA_FIGURE.search(r["answer"])
+    assert len(fake_llm["requests"]) == 1  # aucun outil de données exécuté après decline
+    assert any(t["name"] == "decline" for t in fake_llm["requests"][0]["tools"])
+    assert "decline" in fake_llm["requests"][0]["system"]
+
+
+def test_llm_answer_without_tools_is_not_trusted(fake_llm):
+    fake_llm["responses"] = [_text("The spread was 42.0 bps on average.")]
+    r = ask("How was liquidity?")
+    assert r["reason"] == "off_topic" and "42.0" not in r["answer"]
+
+
+def test_auction_wording():
+    from app.assistant import prompts
+
+    assert not C.answer_ok("Auctions were 13.6% share of executions.", {"x": 13.6})
+    assert "auction share of volume" in prompts.CHAT_SYSTEM and "share of executions" in prompts.CHAT_SYSTEM

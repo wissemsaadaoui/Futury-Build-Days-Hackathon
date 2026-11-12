@@ -1,4 +1,4 @@
-# Issuer Intelligence Hub – API pour le front-end (v0.8)
+# Issuer Intelligence Hub – API pour le front-end (v0.9)
 
 > Pour Yassine · Démo : **Deutsche Pfandbriefbank AG (pbb)**, ISIN `DE0008019001`, SDAX
 > Ce document remplace `mocks/API.md` v0.1. Les changements depuis la v0.1 sont marqués **🆕**, et ce qui arrive bientôt est marqué **🔜**.
@@ -48,6 +48,7 @@ En attendant l'API, utilise `mocks/*.json` et `shared/types.ts` : même format.
 | 28 | 🆕 v0.7 : **`dashboard.key_finding`** `{text, numbers}` : phrase clé calculée par règles (premier vs dernier mois), jamais par le LLM | Bandeau en haut du dashboard |
 | 29 | 🆕 v0.8 : **`POST /decisions`** `{item_type, item_id, isin, decision, note?}` et **`GET /decisions?isin=`** (journal, y compris `threshold_changed`) ; chaque anomalie a `id`, `item_type`, `decision`, `rank` ; impact card / preview / report : `ai_summary_id`, `ai_summary_decision` | Boutons Approve / Dismiss + note, badge d'état, page Decision log |
 | 30 | 🆕 v0.8 : **`rank`** (sévérité puis récence) calculé sans les éléments `dismissed` (`rank: null`) | Top 5 = rank 1–5, puis « Show all (N) » |
+| 31 | 🆕 v0.9 : `/assistant/chat` : **`reason`** (`off_topic` \| `prediction` \| `advice` \| `external_info` \| `null`) et liens de type **`question`** (suggestion cliquable, `ref` = texte). Hors périmètre : aucune donnée chiffrée | Bouton qui envoie la question suggérée |
 | 17 | 🆕 v0.3 : bloc **`pre_disclosure_activity`** dans l'impact card des notifications `voting_rights` (§5.4) | Petit encadré « Before the disclosure » |
 
 ---

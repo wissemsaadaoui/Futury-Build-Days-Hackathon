@@ -232,9 +232,14 @@ export type EventPreviewResponse = {
 }
 
 // POST /assistant/chat (vérifié sur l'API locale, 12.11.2026)
-export type ChatLink = { label: string; type: 'day' | 'event' | 'preview' | 'compare'; ref: string }
+export type ChatLink = { label: string; type: 'day' | 'event' | 'preview' | 'compare' | 'question'; ref: string }
 
-export type ChatResponse = { answer: string; links: ChatLink[]; as_of: string }
+export type ChatResponse = {
+  answer: string
+  links: ChatLink[]
+  as_of: string
+  reason?: 'off_topic' | 'prediction' | 'advice' | 'external_info' | null // hors périmètre (v0.9)
+}
 
 // /thresholds (point 16) – seuils d'alerte de l'équipe IR
 export type ThresholdSpec = {

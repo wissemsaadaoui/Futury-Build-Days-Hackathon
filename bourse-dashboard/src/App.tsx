@@ -2123,7 +2123,8 @@ function AssistantPage({
   }
 
   function openLink(link: ChatLink) {
-    if (link.type === 'day') openDay(link.ref)
+    if (link.type === 'question') void ask(link.ref) // question suggérée (réponse hors périmètre)
+    else if (link.type === 'day') openDay(link.ref)
     else if (link.type === 'event') openImpact(`/events/${link.ref}/impact-card`)
     else if (link.type === 'preview') navigate('preview')
     else navigate('compare')
@@ -2155,8 +2156,13 @@ function AssistantPage({
                 {message.links && message.links.length > 0 && (
                   <div className="chat-links">
                     {message.links.map((link) => (
-                      <button key={`${link.type}-${link.ref}`} className="chat-link" onClick={() => openLink(link)}>
-                        {link.label} ↗
+                      <button
+                        key={`${link.type}-${link.ref}`}
+                        className={`chat-link${link.type === 'question' ? ' suggestion' : ''}`}
+                        onClick={() => openLink(link)}
+                        disabled={link.type === 'question' && pending}
+                      >
+                        {link.type === 'question' ? `Ask: ${link.label}` : `${link.label} ↗`}
                       </button>
                     ))}
                   </div>

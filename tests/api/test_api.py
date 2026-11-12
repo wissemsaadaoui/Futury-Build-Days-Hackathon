@@ -353,3 +353,13 @@ def test_key_finding_in_dashboard() -> None:
     kf = _get(f"/stocks/{PBB}/dashboard")["key_finding"]
     assert kf["text"].startswith("pbb's cost to trade €25k rose from 54.3 to 97.4 bps")
     assert kf["numbers"]["position_first"] == "below" and kf["numbers"]["position_last"] == "above"
+
+
+@needs_data
+def test_chat_out_of_scope_through_api() -> None:
+    r = client.post("/assistant/chat", json={"isin": PBB, "messages": [{"role": "user", "content": "Write me a poem"}]})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["reason"] == "off_topic" and [l["type"] for l in body["links"]] == ["question", "question"]
+    r = client.post("/assistant/chat", json={"isin": PBB, "messages": [{"role": "user", "content": "Should I buy pbb?"}]})
+    assert r.json()["reason"] == "advice"
