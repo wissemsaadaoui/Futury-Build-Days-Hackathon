@@ -180,3 +180,69 @@ def preview_summary(preview: dict) -> str:
         p = f["peers_spread_change_pct"]
         parts.append(f"Across {f['peer_events_n']} peer releases, the median spread change was {p['median']:+.1f}%.")
     return " ".join(parts[:4])
+
+
+# ---------------------------------------------------------------- Chat (repli sans LLM, app/assistant/chat.py)
+def _ratio_word(r: float | None) -> str:
+    return "n/a" if r is None else f"{r:.1f}x"
+
+
+def chat_period(res: dict, latest: bool) -> str:
+    """Résumé d'une période (get_period_summary) en 3 à 5 phrases, chiffres issus du résultat d'outil."""
+    who, per = res["stock"]["name"], res["period"]
+    when = f"In the latest week of data ({per['label']})" if latest and per["sessions"] <= 5 else f"Over {per['label']}"
+    parts = []
+    v, pr = res.get("volume_shares"), res.get("price")
+    if v and pr:
+        parts.append(f"{when}, {who} traded {fmt.shares(v['period_avg'])} a day on average, "
+                     f"{_ratio_word(v['ratio'])} its 20-day baseline, and the share price moved {pr['return_pct']:+.1f}%.")
+    sp = res["spread_bps_25k_eur"]
+    if sp.get("period_avg") is not None:
+        lead = "The" if parts else f"{when}, the"
+        parts.append(f"{lead} average spread for a {fmt.eur(25_000)} trade was {fmt.bps(sp['period_avg'])} versus "
+                     f"{fmt.bps(sp['baseline_avg'])} before"
+                     + (f" ({sp['change_pct']:+.1f}%)." if sp.get("change_pct") is not None else "."))
+    a = res.get("auction_share_pct")
+    if a and a.get("period_avg") is not None:
+        parts.append(f"Auctions accounted for {a['period_avg']:.1f}% of volume versus {a['baseline_avg']:.1f}% before.")
+    flagged = res.get("anomalies", []) + res.get("execution_alerts", [])
+    if flagged:
+        top = sorted(flagged, key=lambda x: (x["severity"] != "high", x["date"]))[0]
+        n = res["n_anomalies"] + res["n_execution_alerts"]
+        parts.append(f"{n} flag{'s' if n > 1 else ''} were raised; the most notable, on {_day(top['date'])}: "
+                     f"{top['description'].rstrip('.')}.")
+    else:
+        parts.append("No anomaly or execution alert was flagged in this period.")
+    if latest:
+        parts.append(f"Latest data: {per['label']}.")
+    return " ".join(parts[:5])
+
+
+def chat_day_flags(res: dict) -> list[str]:
+    """Phrase d'ouverture d'une question « pourquoi ce jour » : les anomalies/alertes signalées ce jour-là."""
+    flags = res.get("anomalies", []) + res.get("execution_alerts", [])
+    if not flags:
+        return [f"No anomaly or execution alert was flagged on {_day(res['date'])}."]
+    desc = "; ".join(f["description"].rstrip(".") for f in flags[:2])
+    return [f"{_day(res['date'])} was flagged for: {desc}."]
+
+
+def chat_peers(res: dict) -> str:
+    who, per, own, med = res["stock"]["name"], res["period"], res["stock"], res["peer_median"]
+    rk = res["spread_rank_tightest_first"]
+    parts = [f"Over {per['label']}, {who}'s average spread for a {fmt.eur(25_000)} trade was "
+             f"{fmt.bps(own['avg_spread_bps'])} versus a median of {fmt.bps(med['avg_spread_bps'])} across its "
+             f"{res['n_peers']} peers (rank {rk['rank']} of {rk['of']}, tightest first)."]
+    if own.get("return_pct") is not None and med.get("return_pct") is not None:
+        parts.append(f"Its share price moved {own['return_pct']:+.1f}% versus a peer median of {med['return_pct']:+.1f}%.")
+    if own.get("avg_turnover_eur") is not None and med.get("avg_turnover_eur") is not None:
+        parts.append(f"Average daily turnover was {fmt.eur(own['avg_turnover_eur'])} versus a peer median of "
+                     f"{fmt.eur(med['avg_turnover_eur'])}.")
+    parts.append(f"Latest data: {per['label']}.")
+    return " ".join(parts[:5])
+
+
+def _day(d: str) -> str:
+    import pandas as pd
+
+    return pd.Timestamp(d).strftime("%-d %b %Y")

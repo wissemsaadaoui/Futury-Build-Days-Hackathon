@@ -133,6 +133,7 @@ export interface PriceLevel {
 export interface DashboardResponse {
   stock: StockRef;
   period: { from: ISODate; to: ISODate };
+  as_of: ISODate;  // dernière date des données (ex. "2026-10-30"), indépendante de la période demandée
   kpis: DashboardKpis;
   series: DailyPoint[];
   peers_series: PeerPoint[];
@@ -162,6 +163,7 @@ export interface CorporateEvent {
 
 export interface EventsResponse {
   isin: string;
+  as_of: ISODate;  // dernière date des données
   events: CorporateEvent[];
   event_types: EventType[];
 }
@@ -369,11 +371,13 @@ export interface PreviewHistory {
 export interface EventPreviewResponse {
   stock: StockRef;
   event_type: EventType;
-  as_of: ISODate | null;  // `date` demandé : seuls les événements AVANT cette date sont utilisés ; null = tous
+  as_of: ISODate;  // dernière date des données (v0.5 ; avant : la date demandée, désormais `reference_date`)
+  reference_date: ISODate | null;  // `date` demandé : seuls les événements AVANT cette date sont utilisés ; null = tous
   upcoming: { date: ISODate; title: string | null; event_id: string | null; source_url: string | null } | null;
   own_history: PreviewHistory;
   peers: PreviewHistory & { peers_note?: string };  // peers_note si aucun événement de peer
   attention_points: string[];
+  checklist: string[];  // préparation IR par règles (volume > 1.5x, spread > +10 %, retour à la normale <= 1 séance) ; [] si rien
   confidence: "low" | "medium" | "high";  // low : n < 3, medium : 3–5, high : > 5
   note: string;
   ai_summary: string;

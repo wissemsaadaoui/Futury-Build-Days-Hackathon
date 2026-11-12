@@ -18,6 +18,8 @@ import {
 
 import { ApiError, UNAUTHORIZED_EVENT, apiGet, apiPost, clearToken, getToken, setToken } from './api/clients.ts'
 import type {
+  ChatLink,
+  ChatResponse,
   CompareResponse,
   DailyPoint,
   DashboardResponse,
@@ -28,15 +30,15 @@ import type {
   ReportResponse,
 } from './api/types.ts'
 import { clearApiCache, useApi } from './api/useApi.ts'
+import { AnomalyList } from './components/AnomalyList.tsx'
 import { CountUp } from './components/CountUp.tsx'
 import { DayDetail } from './components/DayDetail.tsx'
+import { HelpTip } from './components/HelpTip.tsx'
 import { PdfButton } from './components/PdfButton.tsx'
 import { WhatToExpect } from './components/WhatToExpect.tsx'
 import {
   DISCLAIMER,
-  anomalyLabels,
   eventLabels,
-  formatAnomalyValue,
   formatCompact,
   formatDate,
   formatEuro,
@@ -79,7 +81,20 @@ type StockPoint = {
 type ChatMessage = {
   role: 'assistant' | 'user'
   text: string
+  links?: ChatLink[]
 }
+
+const WELCOME: ChatMessage = {
+  role: 'assistant',
+  text: 'Hello. Ask me about pbb\'s historical Xetra trading: a period, a specific day, an announcement or the peers. Answers are built from the analyses in this tool.',
+}
+
+const SUGGESTED_QUESTIONS = [
+  'What happened in the latest week?',
+  'Why was 29 Sep unusual?',
+  "What to expect from today's Q3 release?",
+  'How does pbb compare with its peers?',
+]
 
 type Thresholds = {
   volumeRatio: number
@@ -358,15 +373,9 @@ function Footer() {
           </div>
         </div>
         <div className="footer-contact">
-          <span className="footer-label">DEUTSCHE BÖRSE · IR CONTACT</span>
-          <a href="mailto:ir@deutsche-boerse.com">ir@deutsche-boerse.com</a>
-          <a
-            href="https://www.deutsche-boerse.com/dbg-en/investor-relations/contact"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Deutsche Börse contact page ↗
-          </a>
+          <span className="footer-label">ABOUT THIS TOOL</span>
+          <span>Data: Deutsche Börse Xetra (2 Jan – 30 Oct 2026)</span>
+          <span>Built at Futury Build Days 2026</span>
         </div>
         <div className="footer-company">
           <span className="footer-label">COMPANY PROFILE</span>
@@ -994,8 +1003,8 @@ function AnalysisAssistant({
                 <strong>Your question:</strong> {request.question}
                 <br />
                 <small>
-                  Free-text questions are not sent to the AI yet. Below is the standard AI summary for the
-                  selected {singleDay ? 'day' : 'period'}.
+                  Below is the standard AI summary for the selected {singleDay ? 'day' : 'period'}. For
+                  free-form questions, use the AI Assistant page.
                 </small>
               </p>
             )}
@@ -1081,11 +1090,7 @@ function DashboardPage({
     () => (period === 'YTD' ? fullSeries : fullSeries.slice(-periodSessions[period])),
     [period, fullSeries],
   )
-  const notableDays = useMemo(
-    () => byDateDesc(dashboard.data?.anomalies ?? []).slice(0, 4),
-    [dashboard.data],
-  )
-  const recentEvents = useMemo(() => byDateDesc(events.data?.events ?? []).slice(0, 4), [events.data])
+  const recentEvents = useMemo(() => byDateDesc(events.data?.events ?? []).slice(0, 5), [events.data])
 
   const latest = points[points.length - 1]
   const first = points[0]
@@ -1123,6 +1128,9 @@ function DashboardPage({
               <div>
                 <strong>{dashboard.data?.stock.name ?? COMPANY}</strong>
                 <small>Xetra · {ISIN} · {dashboard.data?.stock.index ?? 'SDAX'}</small>
+                {dashboard.data && (
+                  <small className="data-as-of">Data as of {formatDate(dashboard.data.period.to)}</small>
+                )}
               </div>
             </div>
             <div className="period-select" aria-label="Select chart period">
@@ -1197,21 +1205,21 @@ function DashboardPage({
                   </div>
                 </div>
                 <div className="mini-stat">
-                  <span>Trading volume</span>
+                  <span>Trading volume <HelpTip metric="volume" label="trading volume" /></span>
                   <strong><CountUp text={formatCompact(latest?.volume)} delay={1000} /></strong>
                 </div>
                 <div className="mini-stat">
-                  <span>Turnover</span>
+                  <span>Turnover <HelpTip metric="turnover" label="turnover" /></span>
                   <strong><CountUp text={formatEuro(latest?.turnover)} delay={1000} /></strong>
                 </div>
                 <div className="mini-stat">
-                  <span>XLM spread (25k EUR)</span>
+                  <span>XLM spread (25k EUR) <HelpTip metric="spread" label="the XLM spread" /></span>
                   <strong>
                     <CountUp text={latest?.spreadBps == null ? '–' : `${formatNumber(latest.spreadBps, 1)} bps`} delay={1000} />
                   </strong>
                 </div>
                 <div className="mini-stat">
-                  <span>Volume vs 20-day average</span>
+                  <span>Volume vs 20-day average <HelpTip metric="ratio" label="volume vs 20-day average" /></span>
                   <strong><CountUp text={formatRatio(latest?.volumeRatio)} delay={1000} /></strong>
                 </div>
                 <div className="mini-stat">
@@ -1219,7 +1227,7 @@ function DashboardPage({
                   <strong><CountUp text={formatEuro(latest?.vwap)} delay={1000} /></strong>
                 </div>
                 <div className="mini-stat">
-                  <span>Auction share</span>
+                  <span>Auction share <HelpTip metric="auctionShare" label="auction share" /></span>
                   <strong>
                     <CountUp
                       text={latest?.auctionShare == null ? '–' : `${formatNumber(latest.auctionShare * 100, 1)}%`}
@@ -1239,31 +1247,15 @@ function DashboardPage({
               <section className="panel lower-panel">
                 <div className="panel-title">
                   <div>
-                    <span className="kicker">TRADING SIGNALS</span>
+                    <span className="kicker">TRADING SIGNALS · MOST IMPORTANT FIRST</span>
                     <h2>Notable days</h2>
                   </div>
                   <button className="text-button" onClick={() => navigate('alerts')}>
                     Configure alerts →
                   </button>
                 </div>
-                {notableDays.map((anomaly) => (
-                  <button
-                    className="signal-row"
-                    key={`${anomaly.date}-${anomaly.type}-${anomaly.description}`}
-                    onClick={() => openImpact(anomaly.detail_url)}
-                  >
-                    <span className={`signal-dot ${anomaly.severity}`} />
-                    <span className="signal-date">{formatDate(anomaly.date)}</span>
-                    <span className="signal-copy">
-                      <strong>{anomalyLabels[anomaly.type] ?? anomaly.type}</strong>
-                      <small>{anomaly.description}</small>
-                    </span>
-                    <span className="signal-value"><CountUp text={formatAnomalyValue(anomaly.type, anomaly.value)} delay={1200} /></span>
-                    <span>↗</span>
-                  </button>
-                ))}
-                {dashboard.data && notableDays.length === 0 && (
-                  <p className="muted">No unusual trading day in the period.</p>
+                {dashboard.data && (
+                  <AnomalyList anomalies={dashboard.data.anomalies} onOpen={openImpact} />
                 )}
               </section>
             </Reveal>
@@ -1323,6 +1315,8 @@ function EventsPage({
   openImpact: (path: string) => void
 }) {
   const { data, error, loading } = useApi<EventsResponse>(`/stocks/${ISIN}/events`)
+  // /events ne renvoie pas la dernière date des données : on la lit sur le dashboard (même requête, en cache)
+  const dashboard = useApi<DashboardResponse>(DASHBOARD_PATH)
   const events = useMemo(() => byDateDesc(data?.events ?? []), [data])
 
   return (
@@ -1339,6 +1333,9 @@ function EventsPage({
           <LoadState loading={loading} error={error} />
           {data && (
             <div className="notice-box">
+              {dashboard.data && (
+                <strong className="data-as-of">Data as of {formatDate(dashboard.data.period.to)} · </strong>
+              )}
               {events.length} announcements from public sources (pbb IR, EQS). Values that are
               not available appear as “–”.
             </div>
@@ -1596,7 +1593,6 @@ function AlertsPage({
   openImpact: (path: string) => void
 }) {
   const { data: dashboard } = useApi<DashboardResponse>(DASHBOARD_PATH)
-  const detected = useMemo(() => byDateDesc(dashboard?.anomalies ?? []).slice(0, 8), [dashboard])
   const [thresholds, setThresholds] = useState(defaultThresholds)
   const [inputs, setInputs] = useState(defaultAlertInputs)
   const [alerts, setAlerts] = useState<string[]>([])
@@ -1682,25 +1678,10 @@ function AlertsPage({
             <div className="panel-title">
               <div>
                 <span className="kicker">DETECTED IN XETRA DATA · {dashboard?.anomalies.length ?? '–'} ALERTS IN 2026</span>
-                <h2>Latest alerts</h2>
+                <h2>Most important alerts</h2>
               </div>
             </div>
-            {detected.map((anomaly) => (
-              <button
-                className="signal-row"
-                key={`${anomaly.date}-${anomaly.type}-${anomaly.description}`}
-                onClick={() => openImpact(anomaly.detail_url)}
-              >
-                <span className={`signal-dot ${anomaly.severity}`} />
-                <span className="signal-date">{formatDate(anomaly.date)}</span>
-                <span className="signal-copy">
-                  <strong>{anomalyLabels[anomaly.type] ?? anomaly.type}</strong>
-                  <small>{anomaly.description}</small>
-                </span>
-                <span className="signal-value">{formatAnomalyValue(anomaly.type, anomaly.value)}</span>
-                <span>↗</span>
-              </button>
-            ))}
+            {dashboard && <AnomalyList anomalies={dashboard.anomalies} onOpen={openImpact} />}
           </section>
 
           <div className="threshold-layout">
@@ -2280,34 +2261,64 @@ function AssistantPage({
   navigate,
   loggedIn,
   logout,
+  messages,
+  setMessages,
+  openDay,
+  openImpact,
 }: {
   navigate: (page: Page) => void
   loggedIn: boolean
   logout: () => void
+  messages: ChatMessage[]
+  setMessages: (update: (current: ChatMessage[]) => ChatMessage[]) => void
+  openDay: (date: string) => void
+  openImpact: (path: string) => void
 }) {
   const [draft, setDraft] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: 'assistant',
-      text: 'Hello. Free-form chat is not available yet. For AI analysis, click a day on the dashboard chart and choose “Analyse with AI”, or open an impact card from the events timeline.',
-    },
-  ])
+  const [pending, setPending] = useState(false)
+  const endRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
+  }, [messages, pending])
+
+  async function ask(question: string) {
+    const text = question.trim()
+    if (!text || pending) return
+    // Historique envoyé : les échanges réels (sans le message d'accueil) ; l'API n'en garde que les 6 derniers
+    const history = [...messages.filter((m) => m !== WELCOME), { role: 'user' as const, text }]
+    setMessages((current) => [...current, { role: 'user', text }])
+    setDraft('')
+    setPending(true)
+    try {
+      const reply = await apiPost<ChatResponse>('/assistant/chat', {
+        isin: ISIN,
+        messages: history.map((m) => ({ role: m.role, content: m.text })),
+      })
+      setMessages((current) => [...current, { role: 'assistant', text: reply.answer, links: reply.links }])
+    } catch (error) {
+      const detail = error instanceof ApiError && error.status === 429
+        ? 'Too many questions in a short time. Please wait a minute and try again.'
+        : 'The assistant could not answer right now. Please try again.'
+      setMessages((current) => [...current, { role: 'assistant', text: detail }])
+    } finally {
+      setPending(false)
+    }
+  }
+
+  function openLink(link: ChatLink) {
+    if (link.type === 'day') openDay(link.ref)
+    else if (link.type === 'event') openImpact(`/events/${link.ref}/impact-card`)
+    else if (link.type === 'preview') navigate('preview')
+    else navigate('compare')
+  }
 
   function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const text = draft.trim()
-    if (!text) return
-
-    setMessages((current) => [
-      ...current,
-      { role: 'user', text },
-      {
-        role: 'assistant',
-        text: 'Free-form questions are not supported yet. Use “Analyse with AI” on the dashboard chart, or an impact card, to get an AI summary of a trading day or announcement.',
-      },
-    ])
-    setDraft('')
+    void ask(draft)
   }
+
+  const onlyWelcome = messages.length === 1
 
   return (
     <>
@@ -2318,15 +2329,35 @@ function AssistantPage({
             <div>
               <span className="kicker">PBB · IR</span>
               <h1>AI Assistant</h1>
-              <p>Ask about trading activity, events or share-price history.</p>
+              <p>Ask about trading activity, events, peers or a specific day.</p>
             </div>
           </div>
-          <div className="chat-messages">
+          <div className="chat-messages" aria-live="polite">
             {messages.map((message, index) => (
               <div className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
                 {message.text}
+                {message.links && message.links.length > 0 && (
+                  <div className="chat-links">
+                    {message.links.map((link) => (
+                      <button key={`${link.type}-${link.ref}`} className="chat-link" onClick={() => openLink(link)}>
+                        {link.label} ↗
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
+            {onlyWelcome && (
+              <div className="chat-suggestions">
+                {SUGGESTED_QUESTIONS.map((question) => (
+                  <button key={question} onClick={() => void ask(question)} disabled={pending}>
+                    {question}
+                  </button>
+                ))}
+              </div>
+            )}
+            {pending && <div className="chat-message assistant chat-typing">Analysing…</div>}
+            <div ref={endRef} />
           </div>
           <form className="chat-form" onSubmit={sendMessage}>
             <input
@@ -2334,11 +2365,12 @@ function AssistantPage({
               onChange={(event) => setDraft(event.target.value)}
               placeholder="Ask a question..."
               aria-label="Your question"
+              maxLength={2000}
             />
-            <button type="submit">Send →</button>
+            <button type="submit" disabled={pending || draft.trim() === ''}>Send →</button>
           </form>
           <p className="small-note">
-            AI summaries are available on impact cards and through “Analyse with AI” on the chart.
+            Answers are based only on historical Xetra data in this tool. Not investment advice.
           </p>
         </section>
       </main>
@@ -2357,6 +2389,7 @@ function App() {
   const [selectedPoint, setSelectedPoint] = useState<StockPoint | null>(null)
   const [assistantPoint, setAssistantPoint] = useState<StockPoint | null>(null)
   const [impactPath, setImpactPath] = useState(DEFAULT_IMPACT)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([WELCOME]) // historique de la session
 
   const navigate = useCallback(
     (target: Page) => {
@@ -2410,6 +2443,7 @@ function App() {
   const logout = useCallback(() => {
     clearToken() // token sans état côté serveur : l'effacer suffit
     clearApiCache()
+    setChatMessages([WELCOME])
     setAuth('out')
     setSelectedPoint(null)
     setAssistantPoint(null)
@@ -2480,7 +2514,17 @@ function App() {
   } else if (page === 'preview') {
     content = <PreviewPage navigate={navigate} loggedIn={loggedIn} logout={logout} />
   } else if (page === 'assistant') {
-    content = <AssistantPage navigate={navigate} loggedIn={loggedIn} logout={logout} />
+    content = (
+      <AssistantPage
+        navigate={navigate}
+        loggedIn={loggedIn}
+        logout={logout}
+        messages={chatMessages}
+        setMessages={setChatMessages}
+        openDay={openDay}
+        openImpact={openImpact}
+      />
+    )
   } else {
     content = <HomePage navigate={navigate} loggedIn={loggedIn} />
   }

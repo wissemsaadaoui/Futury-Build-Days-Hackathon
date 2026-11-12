@@ -31,7 +31,7 @@ def list_events(isin: str) -> dict:
             }
         )
     types = ["quarterly_results", "annual_results", "ad_hoc", "dividend", "press_release", "m_and_a", "agm", "index_change", "voting_rights", "directors_dealings"]
-    return clean({"isin": isin, "events": out, "event_types": types})
+    return clean({"isin": isin, "as_of": iso(data.trading_days()[-1]), "events": out, "event_types": types})
 
 
 def _auction_change(isin: str, td: pd.Timestamp) -> float | None:

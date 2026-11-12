@@ -29,6 +29,8 @@ import {
   isMissing,
   trendClass,
 } from '../format.ts'
+import type { MetricHelpKey } from '../content/metricHelp.ts'
+import { HelpTip } from './HelpTip.tsx'
 import { PdfButton } from './PdfButton.tsx'
 
 // Anomalies statistiques du jour (badges en haut) ; les autres types sont des alertes d'exécution (en bas).
@@ -53,19 +55,24 @@ function Section({
   empty,
   children,
   wide = false,
+  help,
 }: {
   kicker: string
   title: string
   empty: boolean
   children: ReactNode
   wide?: boolean
+  help?: MetricHelpKey
 }) {
   return (
     <section className={`panel day-section${wide ? ' wide' : ''}`}>
       <div className="panel-title">
         <div>
           <span className="kicker">{kicker}</span>
-          <h2>{title}</h2>
+          <h2>
+            {title}
+            {help && <HelpTip metric={help} label={title} />}
+          </h2>
         </div>
       </div>
       {empty ? <p className="no-data">No data</p> : children}
@@ -73,12 +80,18 @@ function Section({
   )
 }
 
-function Rows({ rows }: { rows: [string, string, string?][] }) {
+// [libellé, valeur, ton (positive/negative), définition « ? »]
+type Row = [string, string, string?, MetricHelpKey?]
+
+function Rows({ rows }: { rows: Row[] }) {
   return (
     <dl className="day-rows">
-      {rows.map(([label, value, tone]) => (
+      {rows.map(([label, value, tone, help]) => (
         <div key={label}>
-          <dt>{label}</dt>
+          <dt>
+            {label}
+            {help && <HelpTip metric={help} label={label} />}
+          </dt>
           <dd className={tone ?? ''}>{value}</dd>
         </div>
       ))}
@@ -217,6 +230,7 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
         <Section
           kicker="1 · LIQUIDITY (XLM)"
           title="Spread at EUR 25,000"
+          help="spread"
           empty={allMissing(m.spread_bps.event, m.spread_bps.baseline)}
         >
           <div className="day-headline">
@@ -225,8 +239,8 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
           </div>
           <Rows
             rows={[
-              ['Spread on the day', bps(m.spread_bps.event)],
-              ['20-day baseline', bps(m.spread_bps.baseline)],
+              ['Spread on the day', bps(m.spread_bps.event), undefined, 'spread'],
+              ['20-day baseline', bps(m.spread_bps.baseline), undefined, 'baseline'],
               ['Change vs baseline', formatPercent(m.spread_bps.change_pct), spreadTone(m.spread_bps.change_pct)],
             ]}
           />
@@ -255,16 +269,16 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
         >
           <div className="day-headline">
             <strong>{formatRatio(m.volume.ratio, 2)}</strong>
-            <span>usual volume</span>
+            <span>usual volume <HelpTip metric="ratio" label="the volume ratio" /></span>
           </div>
           <Rows
             rows={[
-              ['Volume', isMissing(m.volume.event) ? '–' : `${formatNumber(m.volume.event, 0)} shares`],
-              ['Volume, 20-day avg', isMissing(m.volume.baseline) ? '–' : `${formatNumber(m.volume.baseline, 0)} shares`],
-              ['Volume z-score', zScore(m.volume.z_score)],
-              ['Turnover', formatCompactEur(m.turnover_eur?.event)],
-              ['Turnover, 20-day avg', formatCompactEur(m.turnover_eur?.baseline)],
-              ['Turnover vs avg', formatRatio(m.turnover_eur?.ratio, 2)],
+              ['Volume', isMissing(m.volume.event) ? '–' : `${formatNumber(m.volume.event, 0)} shares`, undefined, 'volume'],
+              ['Volume, 20-day avg', isMissing(m.volume.baseline) ? '–' : `${formatNumber(m.volume.baseline, 0)} shares`, undefined, 'baseline'],
+              ['Volume z-score', zScore(m.volume.z_score), undefined, 'zScore'],
+              ['Turnover', formatCompactEur(m.turnover_eur?.event), undefined, 'turnover'],
+              ['Turnover, 20-day avg', formatCompactEur(m.turnover_eur?.baseline), undefined, 'baseline'],
+              ['Turnover vs avg', formatRatio(m.turnover_eur?.ratio, 2), undefined, 'ratio'],
             ]}
           />
           <p className="small-note">VWAP: no data (not in the API response).</p>
@@ -273,6 +287,7 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
         <Section
           kicker="4 · PEERS"
           title="pbb vs peer median"
+          help="peers"
           empty={allMissing(peers.peer_avg_price_change_pct, peers.peer_avg_volume_ratio, peers.excess_return_pct)}
         >
           <PeerBars
@@ -320,6 +335,7 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
         <Section
           kicker="7 · AUCTION PARTICIPATION"
           title="Share of volume in auctions"
+          help="auctionShare"
           empty={allMissing(m.auction_share.event, m.auction_share.baseline)}
         >
           <div className="day-headline">
@@ -329,9 +345,9 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
           <Rows
             rows={[
               ['Auction share, day', pctOfRatio(m.auction_share.event)],
-              ['Auction share, 20-day avg', pctOfRatio(m.auction_share.baseline)],
-              ['Opening auction vs usual', formatRatio(m.opening_auction?.ratio, 2)],
-              ['Closing auction vs usual', formatRatio(m.closing_auction?.ratio, 2)],
+              ['Auction share, 20-day avg', pctOfRatio(m.auction_share.baseline), undefined, 'baseline'],
+              ['Opening auction vs usual', formatRatio(m.opening_auction?.ratio, 2), undefined, 'ratio'],
+              ['Closing auction vs usual', formatRatio(m.closing_auction?.ratio, 2), undefined, 'ratio'],
             ]}
           />
         </Section>

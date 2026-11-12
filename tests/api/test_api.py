@@ -252,7 +252,7 @@ def test_event_preview_upcoming_quarterly_results() -> None:
 @needs_data
 def test_event_preview_as_of_excludes_later_events() -> None:
     p = _get(f"/stocks/{PBB}/event-preview?type=quarterly_results&date=2026-08-13")
-    assert p["as_of"] == "2026-08-13"
+    assert p["reference_date"] == "2026-08-13" and p["as_of"] == "2026-10-30"
     assert p["own_history"]["n"] == 1  # H1 du 13.08 exclu
     assert all(e["date"] < "2026-08-13" for e in p["own_history"]["events"])
 
@@ -330,3 +330,11 @@ def test_all_routes_return_clean_json() -> None:
         data = _get(url)  # _get échoue sur NaN / Infinity
         errors += [f"{url}: {e}" for e in _rounding_errors(data)[:3]]
     assert not errors, "\n".join(errors[:20])
+
+
+@needs_data
+def test_as_of_and_checklist_in_responses() -> None:
+    assert _get(f"/stocks/{PBB}/dashboard?from=2026-10-01&to=2026-10-15")["as_of"] == "2026-10-30"
+    assert _get(f"/stocks/{PBB}/events")["as_of"] == "2026-10-30"
+    p = _get(f"/stocks/{PBB}/event-preview?type=quarterly_results&date=2026-11-12")
+    assert p["as_of"] == "2026-10-30" and len(p["checklist"]) == 3 and p["peers"]["n"] > 0

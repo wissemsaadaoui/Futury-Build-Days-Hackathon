@@ -189,3 +189,8 @@ export type EventPreviewResponse = {
   ai_summary: string
   _data_status?: DataStatus
 }
+
+// POST /assistant/chat (vérifié sur l'API locale, 12.11.2026)
+export type ChatLink = { label: string; type: 'day' | 'event' | 'preview' | 'compare'; ref: string }
+
+export type ChatResponse = { answer: string; links: ChatLink[]; as_of: string }

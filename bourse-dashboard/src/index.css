@@ -3570,3 +3570,133 @@ button.report-event {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ---------- AI Assistant : chat libre ---------- */
+.chat-links {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chat-link {
+  padding: 5px 9px;
+  border: 1px solid #cfdcf3;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--navy);
+  font-size: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chat-link:hover {
+  border-color: var(--navy);
+}
+
+.chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.chat-suggestions button {
+  padding: 7px 11px;
+  border: 1px solid #dce2ea;
+  border-radius: 999px;
+  background: #fff;
+  color: #34425a;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.chat-suggestions button:hover:not(:disabled) {
+  border-color: var(--pbb-green);
+  background: #f7fbef;
+}
+
+.chat-typing {
+  color: #8490a0;
+  font-style: italic;
+}
+
+.chat-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---------- Démo : footer, « Data as of », tooltips « ? », listes d'alertes ---------- */
+.footer-contact > span:not(.footer-label) {
+  color: #4b5870;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.stock-identity .data-as-of,
+.notice-box .data-as-of {
+  display: block;
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.notice-box .data-as-of {
+  display: inline;
+}
+
+.help-tip {
+  position: relative;
+  display: inline-flex;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.help-tip-button {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid #c6d0de;
+  border-radius: 50%;
+  background: #fff;
+  color: #6b7a90;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: help;
+}
+
+.help-tip-button:hover,
+.help-tip-button:focus-visible,
+.help-tip.open .help-tip-button {
+  border-color: var(--navy);
+  color: var(--navy);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 0, 153, 0.15);
+}
+
+.help-tip-bubble {
+  position: fixed;
+  z-index: 60;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #172238;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  box-shadow: 0 8px 22px rgba(23, 34, 56, 0.22);
+  display: none;
+}
+
+.help-tip.open .help-tip-bubble {
+  display: block;
+}
+
+.text-button.show-all {
+  margin-top: 8px;
+}

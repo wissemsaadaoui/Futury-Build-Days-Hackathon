@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 
 from app import config, etl
 from app.analytics import NotFound
-from app.api import auth, compare, health, impact_cards, stocks
+from app.api import assistant, auth, compare, health, impact_cards, stocks
 
 
 @asynccontextmanager
@@ -50,5 +50,5 @@ async def not_found(_: Request, exc: NotFound) -> JSONResponse:
     return JSONResponse(status_code=404, content={"detail": exc.args[0] if exc.args else "Not found"})
 
 
-for module in (auth, health, stocks, impact_cards, compare):
+for module in (auth, health, stocks, impact_cards, compare, assistant):
     app.include_router(module.router)
