@@ -1084,10 +1084,6 @@ function DashboardPage({
             </div>
           </div>
 
-          <WhatToExpect isin={ISIN} onOpenFull={() => navigate('preview')} />
-
-          <LoadState loading={dashboard.loading} error={dashboard.error} />
-
           <div className="dashboard-toolbar">
             <div className="stock-identity">
               <span className="stock-mark">pbb</span>
@@ -1111,6 +1107,10 @@ function DashboardPage({
               ))}
             </div>
           </div>
+
+          <WhatToExpect isin={ISIN} onOpenFull={() => navigate('preview')} />
+
+          <LoadState loading={dashboard.loading} error={dashboard.error} />
 
           <div className="dashboard-grid">
             <Reveal>

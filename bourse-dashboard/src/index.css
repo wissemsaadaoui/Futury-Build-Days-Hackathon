@@ -3046,22 +3046,57 @@ button.report-event {
   background: #c9d6ea;
 }
 
-/* ---------- What to expect (carte du dashboard) ---------- */
+/* ---------- What to expect (carte du dashboard, compacte) ---------- */
 .expect-card {
-  margin-bottom: 18px;
-  padding: 18px;
+  margin-bottom: 13px;
+  padding: 12px 14px;
   border-left: 3px solid var(--pbb-green);
 }
 
+.expect-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.expect-title {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.expect-kicker {
+  color: var(--pbb-green);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1.15px;
+}
+
+.expect-title h2 {
+  margin: 0;
+  color: #24334b;
+  font-family: 'Manrope', sans-serif;
+  font-size: 13px;
+}
+
+.expect-meta {
+  color: #8490a0;
+  font-size: 9px;
+}
+
+.expect-meta a,
 .expect-card .muted a {
   color: var(--navy);
 }
 
 .expect-badges {
+  flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
 }
 
 .confidence.medium {
@@ -3076,27 +3111,21 @@ button.report-event {
 
 .expect-based {
   color: #24334b;
-  font-size: 11px;
-}
-
-.expect-intro {
-  margin: 12px 0 0;
-  color: #60718b;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .expect-tiles {
-  margin: 12px 0;
+  margin: 10px 0 0;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .expect-tile {
-  padding: 12px;
+  padding: 7px 10px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
   border: 1px solid #edf0f3;
   border-radius: 7px;
   background: #fafbfd;
@@ -3111,12 +3140,37 @@ button.report-event {
 .expect-tile strong {
   color: #24334b;
   font-family: 'Manrope', sans-serif;
-  font-size: 18px;
+  font-size: 15px;
 }
 
 .expect-tile small {
   color: #8792a2;
   font-size: 8px;
+}
+
+.expect-attention {
+  margin: 8px 0 0;
+  padding-left: 16px;
+  color: #60718b;
+  font-size: 9px;
+}
+
+.expect-details {
+  margin-top: 8px;
+}
+
+.expect-details summary {
+  width: fit-content;
+  color: var(--navy);
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.expect-intro {
+  margin: 8px 0 0;
+  color: #60718b;
+  font-size: 9px;
 }
 
 .expect-peers {
@@ -3136,7 +3190,7 @@ button.report-event {
 }
 
 .expect-footer {
-  margin-top: 10px;
+  margin-top: 8px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -3153,12 +3207,8 @@ button.report-event {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .expect-card .panel-title {
+  .expect-head {
     flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .expect-badges {
     align-items: flex-start;
   }
 }
