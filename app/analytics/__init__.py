@@ -10,11 +10,12 @@ from __future__ import annotations
 
 from app.analytics.compare import compare_events, list_events
 from app.analytics.dashboard import build_dashboard
-from app.analytics.impact import NotFound, build_day_card, build_impact_card
+from app.analytics.impact import NoMarketData, NotFound, build_day_card, build_impact_card
 from app.analytics.preview import build_event_preview
 from app.analytics.report import build_report
 
 __all__ = [
+    "NoMarketData",
     "NotFound",
     "build_dashboard",
     "list_events",

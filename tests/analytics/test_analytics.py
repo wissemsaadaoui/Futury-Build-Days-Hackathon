@@ -980,3 +980,37 @@ def test_report_texts_use_ir_formats():
     assert re.search(r"Auction share: \d+\.\d%", prof["text"])
     share = next(k for k in prof["kpis"] if k["unit"] == "ratio")
     assert 0 <= share["value"] <= 1  # la valeur JSON reste un ratio
+
+
+# ---------- Événement à venir : Q3 pbb du 12.11.2026 (evt_026, scène de démo) ----------
+def test_future_event_has_no_market_data_yet():
+    from app.analytics import NoMarketData
+
+    ids = [e["event_id"] for e in A.list_events(PBB)["events"]]
+    assert "evt_026" not in ids  # rien de mesurable : pas dans la liste des impact cards
+    with pytest.raises(NoMarketData, match="No market data yet"):
+        A.build_impact_card("evt_026")
+
+
+def test_future_event_api_returns_clean_404():
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    c = TestClient(app)
+    for url in ("/events/evt_026/impact-card", "/events/evt_026/impact-card.pdf"):
+        r = c.get(url)
+        assert r.status_code == 404 and r.json()["detail"].startswith("No market data yet for evt_026")
+
+
+@pytest.mark.parametrize("day", [None, "2026-11-12"])
+def test_preview_for_q3_demo_event(day):
+    from app.assistant import facts as F
+
+    p = A.build_event_preview(PBB, "quarterly_results", day=day)
+    assert p["own_history"]["n"] == 2  # Q1 (12.05) + H1 (13.08), jamais evt_026 lui-même
+    assert {e["event_id"] for e in p["own_history"]["events"]} == {"evt_016", "evt_018"}
+    assert p["upcoming"]["event_id"] == "evt_026" and p["upcoming"]["date"] == "2026-11-12"
+    assert p["confidence"] == "low"
+    s = p["ai_summary"]
+    assert guard.check(s, F.preview_facts(p)) and "investor" not in s.lower()
