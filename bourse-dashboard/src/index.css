@@ -4098,3 +4098,24 @@ button.report-event {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------- Key finding (dashboard.key_finding) ---------- */
+.key-finding {
+  margin-bottom: 13px;
+  padding: 13px 16px;
+  border-left: 3px solid var(--navy);
+}
+
+.key-finding p {
+  margin: 4px 0 4px;
+  color: #172238;
+  font-family: 'Manrope', sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.key-finding small {
+  color: #7b8797;
+  font-size: 13px;
+}

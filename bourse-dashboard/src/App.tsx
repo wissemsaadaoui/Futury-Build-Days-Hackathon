@@ -1023,6 +1023,27 @@ function AnalysisAssistant({
   )
 }
 
+// Phrase clé (dashboard.key_finding) : calculée par règles côté API, jamais par le LLM ; chiffres sources sous la phrase
+function KeyFinding({ finding }: { finding: { text: string; numbers: Record<string, number | string | null> } }) {
+  const n = finding.numbers
+  const num = (key: string) => (typeof n[key] === 'number' ? formatNumber(n[key] as number, 1) : '–')
+  return (
+    <section className="panel key-finding" aria-label="Key finding">
+      <span className="kicker">
+        KEY FINDING <HelpTip metric="spread" label="the cost to trade €25k" />
+      </span>
+      <p>{finding.text}</p>
+      <small>
+        Peers' median {num('peers_median_first_bps')} → {num('peers_median_last_bps')} bps
+        {n.index ? ` · ${n.index} median ${num('index_median_first_bps')} → ${num('index_median_last_bps')} bps` : ''}
+        {typeof n.price_effect_pct === 'number'
+          ? ` · ${num('price_effect_pct')}% of the change from the lower share price, ${num('liquidity_effect_pct')}% from liquidity`
+          : ''}
+      </small>
+    </section>
+  )
+}
+
 function DashboardPage({
   navigate,
   loggedIn,
@@ -1100,6 +1121,8 @@ function DashboardPage({
               )}
             </div>
           </div>
+
+          {dashboard.data?.key_finding && <KeyFinding finding={dashboard.data.key_finding} />}
 
           <div className="dashboard-toolbar">
             <div className="stock-identity">

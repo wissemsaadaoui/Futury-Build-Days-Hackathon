@@ -41,6 +41,7 @@ export type DashboardResponse = {
   stock: StockRef
   period: { from: string; to: string }
   as_of: string // v0.5 : dernière date des données (ex. "2026-10-30")
+  key_finding?: { text: string; numbers: Record<string, number | string | null> } | null // v0.7
   kpis: {
     avg_daily_volume: Num
     avg_daily_turnover_eur: Num
