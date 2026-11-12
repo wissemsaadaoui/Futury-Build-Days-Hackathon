@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 
 import type { Anomaly } from '../api/types.ts'
 import { anomalyLabels, formatAnomalyValue, formatDate } from '../format.ts'
+import { CountUp } from './CountUp.tsx'
 
 const SEVERITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 }
 
@@ -44,7 +45,7 @@ export function AnomalyList({
             <strong>{anomalyLabels[anomaly.type] ?? anomaly.type}</strong>
             <small>{anomaly.description}</small>
           </span>
-          <span className="signal-value">{formatAnomalyValue(anomaly.type, anomaly.value)}</span>
+          <span className="signal-value"><CountUp text={formatAnomalyValue(anomaly.type, anomaly.value)} delay={1200} /></span>
           <span>↗</span>
         </button>
       ))}

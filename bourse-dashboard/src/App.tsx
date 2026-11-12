@@ -12,6 +12,7 @@ import {
   ColorType,
   LineSeries,
   createChart,
+  type AutoscaleInfo,
   type UTCTimestamp,
 } from 'lightweight-charts'
 
@@ -30,6 +31,7 @@ import type {
 } from './api/types.ts'
 import { clearApiCache, useApi } from './api/useApi.ts'
 import { AnomalyList } from './components/AnomalyList.tsx'
+import { CountUp } from './components/CountUp.tsx'
 import { DayDetail } from './components/DayDetail.tsx'
 import { HelpTip } from './components/HelpTip.tsx'
 import { PdfButton } from './components/PdfButton.tsx'
@@ -621,6 +623,8 @@ function MarketChart({
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const onSelectRef = useRef(onSelect)
+  // first drawing starts once the chart panel has appeared; later ones (period change) start at once
+  const firstDrawRef = useRef(true)
   const [hover, setHover] = useState<{
     date: string
     value: number
@@ -643,6 +647,7 @@ function MarketChart({
         background: { type: ColorType.Solid, color: '#ffffff' },
         textColor: '#697386',
         fontFamily: 'DM Sans, sans-serif',
+        fontSize: 14,
       },
       grid: {
         vertLines: { color: '#f0f2f5' },
@@ -678,16 +683,19 @@ function MarketChart({
 
     const price = chart.addSeries(AreaSeries, {
       lineColor: '#000099',
-      topColor: 'rgba(0, 0, 153, 0.20)',
-      bottomColor: 'rgba(0, 0, 153, 0.015)',
-      lineWidth: 2,
+      topColor: 'rgba(0, 0, 153, 0.32)',
+      bottomColor: 'rgba(0, 0, 153, 0.03)',
+      lineWidth: 3,
+      crosshairMarkerRadius: 6,
+      crosshairMarkerBorderColor: '#ffffff',
+      crosshairMarkerBackgroundColor: '#000099',
       priceLineVisible: true,
       lastValueVisible: true,
     })
 
     const ema20 = chart.addSeries(LineSeries, {
       color: '#8cbe00',
-      lineWidth: 1,
+      lineWidth: 2,
       lineStyle: 2,
       lastValueVisible: false,
       priceLineVisible: false,
@@ -695,13 +703,61 @@ function MarketChart({
 
     const ema50 = chart.addSeries(LineSeries, {
       color: '#8dbcf0',
-      lineWidth: 1,
+      lineWidth: 2,
       lineStyle: 2,
       lastValueVisible: false,
       priceLineVisible: false,
     })
 
-    price.setData(points.map((point) => ({ time: point.time, value: point.close })))
+    // The share-price line draws itself from left to right: points not drawn yet are whitespace,
+    // so the time axis stays put, and the price axis is fixed to the full range while drawing.
+    const priceData = points.map((point) => ({ time: point.time, value: point.close }))
+    const closes = priceData.map((point) => point.value)
+    const fullRange = { priceRange: { minValue: Math.min(...closes), maxValue: Math.max(...closes) } }
+    let drawing = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    price.applyOptions({
+      autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => (drawing ? fullRange : original()),
+    })
+
+    let frame = 0
+    const drawDuration = 3200
+    const drawDelay = firstDrawRef.current ? 700 : 0
+    firstDrawRef.current = false
+    // position along the line (in points, fractional): every point before it is drawn, and the tip point is
+    // placed part-way between its neighbours so the line grows continuously instead of jumping point by point
+    const drawUpTo = (position: number) => {
+      const whole = Math.floor(position)
+      const fraction = position - whole
+      price.setData(
+        priceData.map((point, index) => {
+          if (index <= whole) return point
+          if (index === whole + 1 && fraction > 0) {
+            const previous = priceData[whole].value
+            return { time: point.time, value: previous + (point.value - previous) * fraction }
+          }
+          return { time: point.time }
+        }),
+      )
+    }
+    if (drawing && priceData.length > 1) {
+      drawUpTo(0)
+      const start = performance.now() + drawDelay
+      const step = (now: number) => {
+        const progress = Math.min(1, Math.max(0, (now - start) / drawDuration))
+        const eased = (1 - Math.cos(Math.PI * progress)) / 2
+        if (progress < 1) {
+          drawUpTo(eased * (priceData.length - 1))
+          frame = requestAnimationFrame(step)
+        } else {
+          drawing = false
+          price.setData(priceData)
+        }
+      }
+      frame = requestAnimationFrame(step)
+    } else {
+      drawing = false
+      price.setData(priceData)
+    }
     ema20.setData(
       points.flatMap((point) => (point.ema20 === null ? [] : [{ time: point.time, value: point.ema20 }])),
     )
@@ -755,6 +811,7 @@ function MarketChart({
     resizeObserver.observe(container)
 
     return () => {
+      cancelAnimationFrame(frame)
       resizeObserver.disconnect()
       chart.remove()
     }
@@ -826,8 +883,7 @@ function WeeklyMovement({ points }: { points: StockPoint[] }) {
             <div className="movement-label">
               <span>{row.label}</span>
               <strong className={row.amount < 0 ? 'negative' : row.amount > 0 ? 'positive' : ''}>
-                {row.amount > 0 ? '+' : ''}
-                {formatEuro(row.amount)}
+                <CountUp text={`${row.amount > 0 ? '+' : ''}${formatEuro(row.amount)}`} delay={1100} />
               </strong>
             </div>
             <div className="movement-track">
@@ -1034,7 +1090,7 @@ function DashboardPage({
     () => (period === 'YTD' ? fullSeries : fullSeries.slice(-periodSessions[period])),
     [period, fullSeries],
   )
-  const recentEvents = useMemo(() => byDateDesc(events.data?.events ?? []).slice(0, 2), [events.data])
+  const recentEvents = useMemo(() => byDateDesc(events.data?.events ?? []).slice(0, 5), [events.data])
 
   const latest = points[points.length - 1]
   const first = points[0]
@@ -1048,7 +1104,7 @@ function DashboardPage({
   return (
     <>
       <Header page="dashboard" loggedIn={loggedIn} navigate={navigate} logout={logout} />
-      <main className="workspace-page">
+      <main className="workspace-page dash-enter">
         <div className="workspace-container">
           <div className="page-heading">
             <div>
@@ -1106,9 +1162,9 @@ function DashboardPage({
                       SHARE PRICE · EUR · {hasDemoData(dashboard.data?._data_status) ? 'PARTLY DEMO DATA' : 'XETRA'}
                     </span>
                     <div className="price-line">
-                      <strong>{latest ? formatEuro(latest.close) : '–'}</strong>
+                      <strong><CountUp text={latest ? formatEuro(latest.close) : '–'} delay={1000} /></strong>
                       <span className={`price-change ${periodChange >= 0 ? 'positive' : 'negative'}`}>
-                        {periodChange >= 0 ? '↑' : '↓'} {formatPercent(periodChange)}
+                        {periodChange >= 0 ? '↑' : '↓'} <CountUp text={formatPercent(periodChange)} delay={1000} />
                       </span>
                     </div>
                   </div>
@@ -1150,15 +1206,34 @@ function DashboardPage({
                 </div>
                 <div className="mini-stat">
                   <span>Trading volume <HelpTip metric="volume" label="trading volume" /></span>
-                  <strong>{formatCompact(latest?.volume)}</strong>
+                  <strong><CountUp text={formatCompact(latest?.volume)} delay={1000} /></strong>
                 </div>
                 <div className="mini-stat">
                   <span>Turnover <HelpTip metric="turnover" label="turnover" /></span>
-                  <strong>{formatEuro(latest?.turnover)}</strong>
+                  <strong><CountUp text={formatEuro(latest?.turnover)} delay={1000} /></strong>
                 </div>
                 <div className="mini-stat">
                   <span>XLM spread (25k EUR) <HelpTip metric="spread" label="the XLM spread" /></span>
-                  <strong>{latest?.spreadBps == null ? '–' : `${formatNumber(latest.spreadBps, 1)} bps`}</strong>
+                  <strong>
+                    <CountUp text={latest?.spreadBps == null ? '–' : `${formatNumber(latest.spreadBps, 1)} bps`} delay={1000} />
+                  </strong>
+                </div>
+                <div className="mini-stat">
+                  <span>Volume vs 20-day average <HelpTip metric="ratio" label="volume vs 20-day average" /></span>
+                  <strong><CountUp text={formatRatio(latest?.volumeRatio)} delay={1000} /></strong>
+                </div>
+                <div className="mini-stat">
+                  <span>VWAP</span>
+                  <strong><CountUp text={formatEuro(latest?.vwap)} delay={1000} /></strong>
+                </div>
+                <div className="mini-stat">
+                  <span>Auction share <HelpTip metric="auctionShare" label="auction share" /></span>
+                  <strong>
+                    <CountUp
+                      text={latest?.auctionShare == null ? '–' : `${formatNumber(latest.auctionShare * 100, 1)}%`}
+                      delay={1000}
+                    />
+                  </strong>
                 </div>
                 <button className="text-button" onClick={() => navigate('indicators')}>
                   View all indicators →

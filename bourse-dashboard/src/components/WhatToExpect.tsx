@@ -5,6 +5,7 @@ import type { EventsResponse, EventPreviewResponse, Num, PreviewStat } from '../
 import { useApi } from '../api/useApi.ts'
 import type { MetricHelpKey } from '../content/metricHelp.ts'
 import { eventLabels, formatDate, formatNumber, formatPercent, formatRatio, isMissing } from '../format.ts'
+import { CountUp } from './CountUp.tsx'
 import { HelpTip } from './HelpTip.tsx'
 
 // /events ne liste que les annonces déjà mesurées (données jusqu'au 30.10.2026) : la Quartalsmitteilung Q3 du
@@ -65,7 +66,7 @@ function Tile({
         {label}
         {help && <HelpTip metric={help} label={label} />}
       </span>
-      <strong>{empty ? 'No data' : format(stat.median)}</strong>
+      <strong>{empty ? 'No data' : <CountUp text={format(stat.median)} delay={500} />}</strong>
       <small>
         {empty ? 'No past event of this type' : `median · ${range ?? `${format(stat.min)} to ${format(stat.max)}`}`}
       </small>
