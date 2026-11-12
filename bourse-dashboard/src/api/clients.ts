@@ -1,6 +1,6 @@
 // Développement : '/api' (proxy Vite, voir vite.config.ts).
 // Production (VPS) : '' via .env.production -> même domaine que l'API, servie par Caddy.
-// Le mot de passe n'est jamais dans le code du navigateur : Caddy le demande une fois (Basic auth).
+// Accès : login applicatif (POST /auth/login -> cookie de session HttpOnly), vérifié par l'API sur chaque route.
 export const API_BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
 
 // Liens renvoyés par l'API (export.pdf_url, detail_url…) : chemins relatifs à préfixer.
