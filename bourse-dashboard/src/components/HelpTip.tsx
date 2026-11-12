@@ -1,7 +1,9 @@
 // Bouton « ? » avec une définition (src/content/metricHelp.ts).
 // Ouvert au survol, au focus clavier et au tap (mobile) ; fermé en quittant, à la perte du focus, au scroll ou avec Échap.
-// La bulle est en position fixe, calculée à l'ouverture : toujours dans l'écran, jamais coupée par un parent.
+// La bulle est rendue dans document.body (portail) en position fixe, calculée à l'ouverture : toujours dans l'écran,
+// jamais coupée ni décalée par un parent (le nouveau design anime les cartes avec `transform`, qui casserait `fixed`).
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 
 import { metricHelp, type MetricHelpKey } from '../content/metricHelp.ts'
 
@@ -57,9 +59,12 @@ export function HelpTip({ metric, label }: { metric: MetricHelpKey; label?: stri
       >
         ?
       </button>
-      <span role="tooltip" id={id} className="help-tip-bubble" style={style ?? undefined}>
-        {metricHelp[metric]}
-      </span>
+      {createPortal(
+        <span role="tooltip" id={id} className={`help-tip-bubble${open ? ' open' : ''}`} style={style ?? undefined}>
+          {metricHelp[metric]}
+        </span>,
+        document.body,
+      )}
     </span>
   )
 }

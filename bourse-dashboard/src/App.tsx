@@ -43,6 +43,7 @@ import {
   formatDate,
   formatEuro,
   formatNumber,
+  formatDateRange,
   formatPercent,
   formatRatio,
   hasDemoData,
@@ -1090,6 +1091,12 @@ function DashboardPage({
     () => (period === 'YTD' ? fullSeries : fullSeries.slice(-periodSessions[period])),
     [period, fullSeries],
   )
+  // Weekly snapshot : les 5 dernières séances de la série de l'API (fin = as_of), pas de calcul de calendrier
+  const weekly = useMemo(() => {
+    const last = dashboard.data?.series.slice(-5) ?? []
+    if (last.length === 0 || !dashboard.data) return null
+    return { from: last[0].date, to: dashboard.data.as_of, label: formatDateRange(last[0].date, dashboard.data.as_of) }
+  }, [dashboard.data])
   const recentEvents = useMemo(() => byDateDesc(events.data?.events ?? []).slice(0, 5), [events.data])
 
   const latest = points[points.length - 1]
@@ -1119,6 +1126,15 @@ function DashboardPage({
               <button className="outline-button" onClick={() => navigate('report')}>
                 IR snapshot <span>↗</span>
               </button>
+              {weekly && (
+                <PdfButton
+                  className="outline-button weekly-snapshot"
+                  path={`/stocks/${ISIN}/report.pdf?from=${weekly.from}&to=${weekly.to}`}
+                  filename={`pbb-weekly-snapshot-${weekly.from}-${weekly.to}.pdf`}
+                >
+                  Weekly snapshot ({weekly.label}) <span>↓</span>
+                </PdfButton>
+              )}
             </div>
           </div>
 
@@ -1129,7 +1145,7 @@ function DashboardPage({
                 <strong>{dashboard.data?.stock.name ?? COMPANY}</strong>
                 <small>Xetra · {ISIN} · {dashboard.data?.stock.index ?? 'SDAX'}</small>
                 {dashboard.data && (
-                  <small className="data-as-of">Data as of {formatDate(dashboard.data.period.to)}</small>
+                  <small className="data-as-of">Data as of {formatDate(dashboard.data.as_of)}</small>
                 )}
               </div>
             </div>
@@ -1223,7 +1239,7 @@ function DashboardPage({
                   <strong><CountUp text={formatRatio(latest?.volumeRatio)} delay={1000} /></strong>
                 </div>
                 <div className="mini-stat">
-                  <span>VWAP</span>
+                  <span>VWAP <HelpTip metric="vwap" label="VWAP" /></span>
                   <strong><CountUp text={formatEuro(latest?.vwap)} delay={1000} /></strong>
                 </div>
                 <div className="mini-stat">
@@ -1315,8 +1331,6 @@ function EventsPage({
   openImpact: (path: string) => void
 }) {
   const { data, error, loading } = useApi<EventsResponse>(`/stocks/${ISIN}/events`)
-  // /events ne renvoie pas la dernière date des données : on la lit sur le dashboard (même requête, en cache)
-  const dashboard = useApi<DashboardResponse>(DASHBOARD_PATH)
   const events = useMemo(() => byDateDesc(data?.events ?? []), [data])
 
   return (
@@ -1333,9 +1347,7 @@ function EventsPage({
           <LoadState loading={loading} error={error} />
           {data && (
             <div className="notice-box">
-              {dashboard.data && (
-                <strong className="data-as-of">Data as of {formatDate(dashboard.data.period.to)} · </strong>
-              )}
+              <strong className="data-as-of">Data as of {formatDate(data.as_of)} · </strong>
               {events.length} announcements from public sources (pbb IR, EQS). Values that are
               not available appear as “–”.
             </div>

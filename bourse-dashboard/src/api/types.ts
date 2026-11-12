@@ -40,6 +40,7 @@ export type Anomaly = {
 export type DashboardResponse = {
   stock: StockRef
   period: { from: string; to: string }
+  as_of: string // v0.5 : dernière date des données (ex. "2026-10-30")
   kpis: {
     avg_daily_volume: Num
     avg_daily_turnover_eur: Num
@@ -65,7 +66,7 @@ export type CorporateEvent = {
   headline_metric: { volume_ratio: Num; price_change_pct: Num; spread_change_pct: Num }
 }
 
-export type EventsResponse = { isin: string; events: CorporateEvent[]; event_types: string[] }
+export type EventsResponse = { isin: string; as_of: string; events: CorporateEvent[]; event_types: string[] }
 
 // Champs vérifiés sur /days/{isin}/{date}/impact-card et /events/{id}/impact-card (API locale, 12.11.2026).
 export type ImpactCardResponse = {
@@ -175,15 +176,17 @@ export type PreviewHistory = {
   first_15min_ratio: PreviewStat
 }
 
-// Champs vérifiés sur /stocks/{isin}/event-preview?type=&date= (API locale, 12.11.2026).
+// Champs vérifiés sur /stocks/{isin}/event-preview?type=&date= (API locale, 12.11.2026, contrat v0.5).
 export type EventPreviewResponse = {
   stock?: StockRef
   event_type: string
-  as_of?: string | null
+  as_of: string // dernière date des données
+  reference_date: string | null // `date` demandé (seuls les événements avant cette date sont utilisés)
   upcoming: { date: string; title: string | null; event_id?: string | null; source_url?: string | null } | null
   own_history: PreviewHistory
   peers: PreviewHistory & { peers_note?: string | null }
   attention_points: string[]
+  checklist: string[] // préparation IR par règles ; [] si rien
   confidence: 'low' | 'medium' | 'high'
   note: string
   ai_summary: string

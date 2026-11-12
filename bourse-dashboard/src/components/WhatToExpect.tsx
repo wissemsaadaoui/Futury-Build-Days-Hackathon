@@ -1,6 +1,8 @@
 // Carte « What to expect » (haut du dashboard) : statistiques sur les réactions PASSÉES du trading au même type
 // d'annonce (/stocks/{isin}/event-preview). Aucune direction de cours, aucune projection.
 // Compacte : titre + badges, 4 tuiles ; résumé IA, peers et note dans « Show details » (fermé par défaut).
+import { useState } from 'react'
+
 import type { EventsResponse, EventPreviewResponse, Num, PreviewStat } from '../api/types.ts'
 import { useApi } from '../api/useApi.ts'
 import type { MetricHelpKey } from '../content/metricHelp.ts'
@@ -74,6 +76,33 @@ function Tile({
   )
 }
 
+// Checklist IR : cases à cocher locales (non sauvegardées), uniquement de la préparation, jamais de prédiction
+function Checklist({ items }: { items: string[] }) {
+  const [done, setDone] = useState<Set<number>>(() => new Set())
+  const toggle = (index: number) =>
+    setDone((current) => {
+      const next = new Set(current)
+      if (next.has(index)) next.delete(index)
+      else next.add(index)
+      return next
+    })
+  return (
+    <div className="expect-checklist">
+      <span className="kicker">IR CHECKLIST · BASED ON PAST RELEASES</span>
+      <ul>
+        {items.map((item, index) => (
+          <li key={item} className={done.has(index) ? 'done' : ''}>
+            <label>
+              <input type="checkbox" checked={done.has(index)} onChange={() => toggle(index)} />
+              <span>{item}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export function WhatToExpect({ isin, onOpenFull }: { isin: string; onOpenFull: () => void }) {
   const events = useApi<EventsResponse>(`/stocks/${isin}/events`)
   const ready = events.data !== null || events.error !== null
@@ -132,6 +161,30 @@ export function WhatToExpect({ isin, onOpenFull }: { isin: string; onOpenFull: (
             <Tile label="Price move (absolute)" stat={own.price_abs_change_pct} format={absPct} />
           </div>
 
+          {p.peers.n > 0 ? (
+            <div className="expect-peer-line">
+              <span className="expect-peer-label">
+                pbb vs peers <HelpTip metric="peers" label="peers" />
+              </span>
+              <span>
+                Spread change <strong>{formatPercent(own.spread_change_pct.median)}</strong> vs{' '}
+                <strong>{formatPercent(p.peers.spread_change_pct.median)}</strong>
+              </span>
+              <span>
+                Volume <strong>{ratio(own.volume_ratio.median)}</strong> vs{' '}
+                <strong>{ratio(p.peers.volume_ratio.median)}</strong>
+              </span>
+              <small>
+                medians · based on {p.peers.spread_change_pct.n} peer release
+                {p.peers.spread_change_pct.n === 1 ? '' : 's'} with spread data ({p.peers.n} in total)
+              </small>
+            </div>
+          ) : (
+            p.peers.peers_note && <p className="small-note">Peers: {p.peers.peers_note}.</p>
+          )}
+
+          {p.checklist.length > 0 && <Checklist items={p.checklist} />}
+
           {p.attention_points.length > 0 && (
             <ul className="expect-attention">
               {p.attention_points.map((point) => (
@@ -149,23 +202,6 @@ export function WhatToExpect({ isin, onOpenFull }: { isin: string; onOpenFull: (
               <strong>AI summary</strong>
               <p>{p.ai_summary || 'No data'}</p>
             </div>
-            {p.peers.n > 0 ? (
-              <div className="expect-peers">
-                <span className="kicker">PEERS · {p.peers.n} PAST EVENTS</span>
-                <div className="expect-peer-row">
-                  <span>Spread change, median</span>
-                  <strong>pbb {formatPercent(own.spread_change_pct.median)}</strong>
-                  <strong>Peers {formatPercent(p.peers.spread_change_pct.median)}</strong>
-                </div>
-                <div className="expect-peer-row">
-                  <span>Volume vs usual, median</span>
-                  <strong>pbb {ratio(own.volume_ratio.median)}</strong>
-                  <strong>Peers {ratio(p.peers.volume_ratio.median)}</strong>
-                </div>
-              </div>
-            ) : (
-              p.peers.peers_note && <p className="small-note">Peers: {p.peers.peers_note}.</p>
-            )}
             <div className="expect-footer">
               <p className="small-note">
                 {p.note} Statistics on past trading reactions only: no price direction is implied.
