@@ -65,11 +65,32 @@ export type Decision = {
 
 export type DecisionLog = { isin: string | null; decisions: Decision[] }
 
+// dashboard.auction_trend (v0.10) : parts entre 0 et 1 ; null = jour sans Flows journaliers (jamais 0)
+export type AuctionTrendPoint = {
+  date: string
+  auction_share: Num
+  baseline_20d: Num // moyenne mobile 20 séances
+  opening?: Num // parts lues dans les trades horodatés (si has_parts)
+  intraday?: Num
+  closing?: Num
+}
+export type AuctionTrendMark = { date: string; value: Num; opening?: Num; intraday?: Num; closing?: Num }
+export type AuctionTrend = {
+  window: number
+  has_parts: boolean
+  series: AuctionTrendPoint[]
+  start: AuctionTrendMark | null
+  latest: AuctionTrendMark | null
+  change_vs_start: Num
+  peak: AuctionTrendMark | null
+}
+
 export type DashboardResponse = {
   stock: StockRef
   period: { from: string; to: string }
   as_of: string // v0.5 : dernière date des données (ex. "2026-10-30")
   key_finding?: { text: string; numbers: Record<string, number | string | null> } | null // v0.7
+  auction_trend?: AuctionTrend | null // v0.10 : part des enchères dans le volume (null sans Flows)
   kpis: {
     avg_daily_volume: Num
     avg_daily_turnover_eur: Num

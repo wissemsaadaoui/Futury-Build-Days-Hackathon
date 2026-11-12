@@ -4339,3 +4339,123 @@ button.report-event {
     --logo-h: 30px;
   }
 }
+
+/* ---------- Auction share trend (dashboard) ---------- */
+.auction-trend-row {
+  margin-top: 14px;
+}
+
+.auction-trend-card {
+  padding: 16px 16px 12px;
+}
+
+.auction-trend-card .panel-title {
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.auction-trend-card .panel-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auction-trend-stats {
+  display: flex;
+  gap: 26px;
+}
+
+.auction-trend-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.auction-trend-stats span,
+.auction-trend-stats small {
+  color: #7d899a;
+  font-size: 14px;
+}
+
+.auction-trend-stats strong {
+  color: #24334b;
+  font-family: 'Manrope', sans-serif;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.auction-trend-chart {
+  margin-top: 8px;
+}
+
+.auction-trend-chart :focus {
+  outline: none;
+}
+
+.auction-trend-legend {
+  flex-wrap: wrap;
+}
+
+.chart-legend .legend-auction-day {
+  width: 18px;
+  background: #a9bfe0;
+}
+
+.chart-legend .legend-auction-avg {
+  width: 18px;
+  height: 3px;
+  background: var(--navy);
+}
+
+.chart-legend .legend-auction-peak {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--pbb-green);
+}
+
+.auction-trend-hint {
+  margin-left: auto;
+  color: #8792a2;
+}
+
+.auction-tooltip {
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid #e1e6ed;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 7px 23px rgba(23, 45, 77, 0.08);
+  color: #5d6a7d;
+  font-size: 14px;
+}
+
+.auction-tooltip strong,
+.auction-tooltip b {
+  color: #24334b;
+}
+
+.auction-tooltip-parts,
+.auction-tooltip em {
+  color: #8792a2;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .auction-trend-stats {
+    width: 100%;
+    gap: 14px;
+    justify-content: space-between;
+  }
+
+  .auction-trend-stats strong {
+    font-size: 17px;
+  }
+
+  .auction-trend-hint {
+    margin-left: 0;
+  }
+}
