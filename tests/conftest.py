@@ -8,4 +8,3 @@ import os
 
 os.environ["APP_PASSWORD"] = "test-password"  # valeur de test uniquement
 os.environ["SESSION_SECRET"] = "test-session-secret"
-os.environ["COOKIE_SECURE"] = "false"  # TestClient parle en http : un cookie Secure ne serait pas renvoyé
