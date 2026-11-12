@@ -17,6 +17,10 @@ class NotFound(KeyError):
     """ISIN, événement ou jour inconnu -> l'API renvoie 404."""
 
 
+class NoMarketData(NotFound):
+    """Événement connu mais postérieur aux données de marché (ex. annonce à venir) -> 404 explicite, jamais 500."""
+
+
 def _spread_block(isin: str, days: pd.DatetimeIndex, td: pd.Timestamp) -> tuple[dict, float, float]:
     sp = data.spread_series(isin)
     ev = sp.get(td, np.nan)
@@ -175,9 +179,15 @@ def _build(isin: str, td: pd.Timestamp, event_row: dict | None, with_summary: bo
 
 def build_impact_card(event_id: str, *, with_summary: bool = True) -> dict:
     """with_summary=False : sans résumé (ni appel LLM), pour les calculs internes (event preview)."""
-    row = events.get_event(event_id)
+    row = events.get_event(event_id, include_future=True)
     if row is None:
         raise NotFound(f"Unknown event {event_id}")
+    last = data.trading_days()[-1]
+    if pd.Timestamp(row["trading_day"]) > last:
+        raise NoMarketData(
+            f"No market data yet for {event_id} ({row['title']}, trading day {iso(row['trading_day'])}): "
+            f"Xetra data currently end on {iso(last)}."
+        )
     return _build(row["isin"], pd.Timestamp(row["trading_day"]), row, with_summary=with_summary)
 
 

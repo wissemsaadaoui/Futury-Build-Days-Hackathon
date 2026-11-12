@@ -15,7 +15,10 @@ def resolve_trading_day(day: str, time: str, days: pd.DatetimeIndex) -> pd.Times
     return days[i] if i < len(days) else None
 
 
-def events_df(isin: str | None = None) -> pd.DataFrame:
+def events_df(isin: str | None = None, include_future: bool = False) -> pd.DataFrame:
+    """Événements avec leur trading_day. Par défaut, uniquement ceux couverts par les données de marché
+    (trading_day <= dernière séance chargée) : un événement annoncé à venir (ex. evt_026, Q3 du 12.11) n'a
+    encore rien de mesurable. include_future=True : garde aussi ceux dont le trading_day est renseigné dans le CSV."""
     ev = etl.load_events().copy()
     if isin:
         ev = ev[ev["isin"] == isin]
@@ -25,11 +28,14 @@ def events_df(isin: str | None = None) -> pd.DataFrame:
         td = pd.Timestamp(row["trading_day"]) if row.get("trading_day") else resolve_trading_day(row["date"], row["time"], days)
         tds.append(td)
     ev["trading_day"] = tds
-    return ev.dropna(subset=["trading_day"]).sort_values("trading_day").reset_index(drop=True)
+    ev = ev.dropna(subset=["trading_day"])
+    if not include_future and len(days):
+        ev = ev[pd.to_datetime(ev["trading_day"]) <= days[-1]]
+    return ev.sort_values("trading_day").reset_index(drop=True)
 
 
-def get_event(event_id: str) -> dict | None:
-    ev = events_df()
+def get_event(event_id: str, include_future: bool = False) -> dict | None:
+    ev = events_df(include_future=include_future)
     row = ev[ev["event_id"] == event_id]
     return None if row.empty else row.iloc[0].to_dict()
 
