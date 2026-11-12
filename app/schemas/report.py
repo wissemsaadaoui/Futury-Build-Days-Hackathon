@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from app.schemas.common import DataStatusMixin, ExportLinks, ISODate, ISODateTime, OptNumber, Period, Schema, StockRef
+from app.schemas.common import DataStatusMixin, ExportLinks, ISODate, ISODateTime, OptNumber, Period, Schema, StockRef, PeerBasis
 from app.schemas.decisions import DecisionRef
 
 Trend = Literal["up", "down", "flat", "better", "worse"]
@@ -59,3 +59,4 @@ class ReportResponse(DataStatusMixin, Schema):
     disclaimer: str
     generated_at: ISODateTime
     export: ExportLinks
+    peer_basis: Optional[PeerBasis] = None  # v0.11

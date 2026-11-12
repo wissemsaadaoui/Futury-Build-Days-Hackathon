@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from app.schemas.common import DataStatusMixin, ISODate, OptNumber, Period, Schema, StockRef
+from app.schemas.common import DataStatusMixin, ISODate, OptNumber, PeerBasis, Period, Schema, StockRef
 from app.schemas.decisions import DecisionRef
 
 # v0.3 : alertes sur les exécutions (§5.2) + level_break, voir mocks/API.md
@@ -133,6 +133,8 @@ class DashboardResponse(DataStatusMixin, Schema):
     as_of: ISODate  # v0.5 : dernière date des données (indépendante de la période demandée)
     key_finding: Optional[KeyFinding] = None  # v0.7 : phrase clé par règles (premier vs dernier mois)
     auction_trend: Optional[AuctionTrend] = None  # v0.9 : part des enchères dans le volume, null sans Flows
+    peer_basis: Optional[PeerBasis] = None  # v0.11
+    n_peers: Optional[int] = None  # v0.11 : peers comptés à la fin de la période
     kpis: DashboardKpis
     series: list[DailyPoint]
     peers_series: list[PeerPoint]
