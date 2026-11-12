@@ -129,14 +129,14 @@ function WindowChart({ card }: { card: ImpactCardResponse }) {
           <XAxis
             dataKey="offset"
             tickFormatter={(offset: number) => (offset > 0 ? `+${offset}` : `${offset}`)}
-            tick={{ fontSize: 9, fill: '#8792a2' }}
+            tick={{ fontSize: 13, fill: '#8792a2' }}
             axisLine={{ stroke: '#dfe5ec' }}
             tickLine={false}
           />
-          <YAxis yAxisId="vol" tick={{ fontSize: 9, fill: '#8792a2' }} tickFormatter={(v: number) => `${v}×`} axisLine={false} tickLine={false} width={40} />
-          <YAxis yAxisId="spread" orientation="right" tick={{ fontSize: 9, fill: '#8792a2' }} axisLine={false} tickLine={false} width={34} />
+          <YAxis yAxisId="vol" tick={{ fontSize: 13, fill: '#8792a2' }} tickFormatter={(v: number) => `${v}×`} axisLine={false} tickLine={false} width={40} />
+          <YAxis yAxisId="spread" orientation="right" tick={{ fontSize: 13, fill: '#8792a2' }} axisLine={false} tickLine={false} width={34} />
           <Tooltip
-            contentStyle={{ fontSize: 10, borderRadius: 6, borderColor: '#e1e6ed' }}
+            contentStyle={{ fontSize: 14, borderRadius: 6, borderColor: '#e1e6ed' }}
             labelFormatter={(_, payload) => {
               const row = payload?.[0]?.payload as { date?: string; offset?: number } | undefined
               return row?.date ? `${formatDate(row.date)} (day ${row.offset})` : ''

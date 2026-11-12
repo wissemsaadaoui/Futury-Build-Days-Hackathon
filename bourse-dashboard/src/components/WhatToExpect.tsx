@@ -4,6 +4,7 @@
 import type { EventsResponse, EventPreviewResponse, Num, PreviewStat } from '../api/types.ts'
 import { useApi } from '../api/useApi.ts'
 import { eventLabels, formatDate, formatNumber, formatPercent, formatRatio, isMissing } from '../format.ts'
+import { CountUp } from './CountUp.tsx'
 
 // /events ne liste que les annonces déjà mesurées (données jusqu'au 30.10.2026) : la Quartalsmitteilung Q3 du
 // 12.11.2026 (evt_026) n'y figure pas. Repli explicite pour la démo.
@@ -58,7 +59,7 @@ function Tile({
   return (
     <div className="expect-tile">
       <span>{label}</span>
-      <strong>{empty ? 'No data' : format(stat.median)}</strong>
+      <strong>{empty ? 'No data' : <CountUp text={format(stat.median)} delay={500} />}</strong>
       <small>
         {empty ? 'No past event of this type' : `median · ${range ?? `${format(stat.min)} to ${format(stat.max)}`}`}
       </small>
