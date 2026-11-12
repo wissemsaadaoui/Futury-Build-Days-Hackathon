@@ -29,14 +29,14 @@ import type {
   ReportResponse,
 } from './api/types.ts'
 import { clearApiCache, useApi } from './api/useApi.ts'
+import { AnomalyList } from './components/AnomalyList.tsx'
 import { DayDetail } from './components/DayDetail.tsx'
+import { HelpTip } from './components/HelpTip.tsx'
 import { PdfButton } from './components/PdfButton.tsx'
 import { WhatToExpect } from './components/WhatToExpect.tsx'
 import {
   DISCLAIMER,
-  anomalyLabels,
   eventLabels,
-  formatAnomalyValue,
   formatCompact,
   formatDate,
   formatEuro,
@@ -371,15 +371,9 @@ function Footer() {
           </div>
         </div>
         <div className="footer-contact">
-          <span className="footer-label">DEUTSCHE BÖRSE · IR CONTACT</span>
-          <a href="mailto:ir@deutsche-boerse.com">ir@deutsche-boerse.com</a>
-          <a
-            href="https://www.deutsche-boerse.com/dbg-en/investor-relations/contact"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Deutsche Börse contact page ↗
-          </a>
+          <span className="footer-label">ABOUT THIS TOOL</span>
+          <span>Data: Deutsche Börse Xetra (2 Jan – 30 Oct 2026)</span>
+          <span>Built at Futury Build Days 2026</span>
         </div>
         <div className="footer-company">
           <span className="footer-label">COMPANY PROFILE</span>
@@ -1040,10 +1034,6 @@ function DashboardPage({
     () => (period === 'YTD' ? fullSeries : fullSeries.slice(-periodSessions[period])),
     [period, fullSeries],
   )
-  const notableDays = useMemo(
-    () => byDateDesc(dashboard.data?.anomalies ?? []).slice(0, 4),
-    [dashboard.data],
-  )
   const recentEvents = useMemo(() => byDateDesc(events.data?.events ?? []).slice(0, 2), [events.data])
 
   const latest = points[points.length - 1]
@@ -1082,6 +1072,9 @@ function DashboardPage({
               <div>
                 <strong>{dashboard.data?.stock.name ?? COMPANY}</strong>
                 <small>Xetra · {ISIN} · {dashboard.data?.stock.index ?? 'SDAX'}</small>
+                {dashboard.data && (
+                  <small className="data-as-of">Data as of {formatDate(dashboard.data.period.to)}</small>
+                )}
               </div>
             </div>
             <div className="period-select" aria-label="Select chart period">
@@ -1156,15 +1149,15 @@ function DashboardPage({
                   </div>
                 </div>
                 <div className="mini-stat">
-                  <span>Trading volume</span>
+                  <span>Trading volume <HelpTip metric="volume" label="trading volume" /></span>
                   <strong>{formatCompact(latest?.volume)}</strong>
                 </div>
                 <div className="mini-stat">
-                  <span>Turnover</span>
+                  <span>Turnover <HelpTip metric="turnover" label="turnover" /></span>
                   <strong>{formatEuro(latest?.turnover)}</strong>
                 </div>
                 <div className="mini-stat">
-                  <span>XLM spread (25k EUR)</span>
+                  <span>XLM spread (25k EUR) <HelpTip metric="spread" label="the XLM spread" /></span>
                   <strong>{latest?.spreadBps == null ? '–' : `${formatNumber(latest.spreadBps, 1)} bps`}</strong>
                 </div>
                 <button className="text-button" onClick={() => navigate('indicators')}>
@@ -1179,31 +1172,15 @@ function DashboardPage({
               <section className="panel lower-panel">
                 <div className="panel-title">
                   <div>
-                    <span className="kicker">TRADING SIGNALS</span>
+                    <span className="kicker">TRADING SIGNALS · MOST IMPORTANT FIRST</span>
                     <h2>Notable days</h2>
                   </div>
                   <button className="text-button" onClick={() => navigate('alerts')}>
                     Configure alerts →
                   </button>
                 </div>
-                {notableDays.map((anomaly) => (
-                  <button
-                    className="signal-row"
-                    key={`${anomaly.date}-${anomaly.type}-${anomaly.description}`}
-                    onClick={() => openImpact(anomaly.detail_url)}
-                  >
-                    <span className={`signal-dot ${anomaly.severity}`} />
-                    <span className="signal-date">{formatDate(anomaly.date)}</span>
-                    <span className="signal-copy">
-                      <strong>{anomalyLabels[anomaly.type] ?? anomaly.type}</strong>
-                      <small>{anomaly.description}</small>
-                    </span>
-                    <span className="signal-value">{formatAnomalyValue(anomaly.type, anomaly.value)}</span>
-                    <span>↗</span>
-                  </button>
-                ))}
-                {dashboard.data && notableDays.length === 0 && (
-                  <p className="muted">No unusual trading day in the period.</p>
+                {dashboard.data && (
+                  <AnomalyList anomalies={dashboard.data.anomalies} onOpen={openImpact} />
                 )}
               </section>
             </Reveal>
@@ -1263,6 +1240,8 @@ function EventsPage({
   openImpact: (path: string) => void
 }) {
   const { data, error, loading } = useApi<EventsResponse>(`/stocks/${ISIN}/events`)
+  // /events ne renvoie pas la dernière date des données : on la lit sur le dashboard (même requête, en cache)
+  const dashboard = useApi<DashboardResponse>(DASHBOARD_PATH)
   const events = useMemo(() => byDateDesc(data?.events ?? []), [data])
 
   return (
@@ -1279,6 +1258,9 @@ function EventsPage({
           <LoadState loading={loading} error={error} />
           {data && (
             <div className="notice-box">
+              {dashboard.data && (
+                <strong className="data-as-of">Data as of {formatDate(dashboard.data.period.to)} · </strong>
+              )}
               {events.length} announcements from public sources (pbb IR, EQS). Values that are
               not available appear as “–”.
             </div>
@@ -1536,7 +1518,6 @@ function AlertsPage({
   openImpact: (path: string) => void
 }) {
   const { data: dashboard } = useApi<DashboardResponse>(DASHBOARD_PATH)
-  const detected = useMemo(() => byDateDesc(dashboard?.anomalies ?? []).slice(0, 8), [dashboard])
   const [thresholds, setThresholds] = useState(defaultThresholds)
   const [inputs, setInputs] = useState(defaultAlertInputs)
   const [alerts, setAlerts] = useState<string[]>([])
@@ -1622,25 +1603,10 @@ function AlertsPage({
             <div className="panel-title">
               <div>
                 <span className="kicker">DETECTED IN XETRA DATA · {dashboard?.anomalies.length ?? '–'} ALERTS IN 2026</span>
-                <h2>Latest alerts</h2>
+                <h2>Most important alerts</h2>
               </div>
             </div>
-            {detected.map((anomaly) => (
-              <button
-                className="signal-row"
-                key={`${anomaly.date}-${anomaly.type}-${anomaly.description}`}
-                onClick={() => openImpact(anomaly.detail_url)}
-              >
-                <span className={`signal-dot ${anomaly.severity}`} />
-                <span className="signal-date">{formatDate(anomaly.date)}</span>
-                <span className="signal-copy">
-                  <strong>{anomalyLabels[anomaly.type] ?? anomaly.type}</strong>
-                  <small>{anomaly.description}</small>
-                </span>
-                <span className="signal-value">{formatAnomalyValue(anomaly.type, anomaly.value)}</span>
-                <span>↗</span>
-              </button>
-            ))}
+            {dashboard && <AnomalyList anomalies={dashboard.anomalies} onOpen={openImpact} />}
           </section>
 
           <div className="threshold-layout">

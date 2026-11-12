@@ -3,7 +3,9 @@
 // Compacte : titre + badges, 4 tuiles ; résumé IA, peers et note dans « Show details » (fermé par défaut).
 import type { EventsResponse, EventPreviewResponse, Num, PreviewStat } from '../api/types.ts'
 import { useApi } from '../api/useApi.ts'
+import type { MetricHelpKey } from '../content/metricHelp.ts'
 import { eventLabels, formatDate, formatNumber, formatPercent, formatRatio, isMissing } from '../format.ts'
+import { HelpTip } from './HelpTip.tsx'
 
 // /events ne liste que les annonces déjà mesurées (données jusqu'au 30.10.2026) : la Quartalsmitteilung Q3 du
 // 12.11.2026 (evt_026) n'y figure pas. Repli explicite pour la démo.
@@ -48,16 +50,21 @@ function Tile({
   stat,
   format,
   range,
+  help,
 }: {
   label: string
   stat: PreviewStat
   format: (value: Num) => string
   range?: string
+  help?: MetricHelpKey
 }) {
   const empty = stat.n === 0
   return (
     <div className="expect-tile">
-      <span>{label}</span>
+      <span>
+        {label}
+        {help && <HelpTip metric={help} label={label} />}
+      </span>
       <strong>{empty ? 'No data' : format(stat.median)}</strong>
       <small>
         {empty ? 'No past event of this type' : `median · ${range ?? `${format(stat.min)} to ${format(stat.max)}`}`}
@@ -98,6 +105,7 @@ export function WhatToExpect({ isin, onOpenFull }: { isin: string; onOpenFull: (
             <span className={`confidence ${p.confidence}`}>
               {p.confidence.charAt(0).toUpperCase() + p.confidence.slice(1)} confidence
             </span>
+            <HelpTip metric="confidence" label="confidence" />
             <strong className="expect-based">
               Based on {own.n} past event{own.n === 1 ? '' : 's'}
             </strong>
@@ -111,13 +119,14 @@ export function WhatToExpect({ isin, onOpenFull }: { isin: string; onOpenFull: (
       {p && own && (
         <>
           <div className="expect-tiles">
-            <Tile label="Spread change" stat={own.spread_change_pct} format={formatPercent} />
-            <Tile label="Volume vs usual" stat={own.volume_ratio} format={ratio} />
+            <Tile label="Spread change" stat={own.spread_change_pct} format={formatPercent} help="spread" />
+            <Tile label="Volume vs usual" stat={own.volume_ratio} format={ratio} help="ratio" />
             <Tile
               label="Sessions to normal liquidity"
               stat={own.sessions_to_normal}
               format={sessions}
               range={sessionsRange(own.sessions_to_normal)}
+              help="sessionsToNormal"
             />
             <Tile label="Price move (absolute)" stat={own.price_abs_change_pct} format={absPct} />
           </div>
