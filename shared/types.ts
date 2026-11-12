@@ -123,6 +123,11 @@ export interface Anomaly {
   level_type?: "support" | "resistance";  // 🆕 v0.3 : level_break uniquement
   level_price?: number;                   // 🆕 v0.3 : level_break uniquement (€)
   detail_url: string;             // 🆕 v0.3 : /events/{id}/impact-card si linked_event_id, sinon /days/{isin}/{date}/impact-card
+  // v0.8 : human-in-the-loop (points 9-10)
+  id: string;                          // identifiant stable, pour POST /decisions
+  item_type: "anomaly" | "alert";
+  decision: DecisionRef | null;        // dernière décision approved / dismissed de l'équipe IR
+  rank: number | null;                 // 1 = la plus importante (sévérité puis récence) ; null si dismissed
 }
 
 export interface PriceLevel {
@@ -234,6 +239,8 @@ export interface ImpactCardResponse {
   pre_disclosure_activity: PreDisclosureActivity | null;  // 🆕 v0.3 : voting_rights uniquement, null sinon ou si rien d'inhabituel
   ai_summary: string;
   ai_points: string[];  // v0.6 : 3–4 phrases courtes (chacune vérifiée par le garde-fou) ; à afficher en liste à puces
+  ai_summary_id: string;  // v0.8 : item_id pour POST /decisions (item_type "ai_summary")
+  ai_summary_decision: DecisionRef | null;
   generated_at: ISODateTime;
   export: ExportLinks;
 }
@@ -333,6 +340,8 @@ export interface ReportResponse {
   period: { from: ISODate; to: ISODate };
   headline: string;
   ai_points: string[];  // v0.6
+  ai_summary_id: string;  // v0.8 : item_id pour POST /decisions (item_type "ai_summary")
+  ai_summary_decision: DecisionRef | null;
   sections: ReportSection[];
   disclaimer: string;
   generated_at: ISODateTime;
@@ -385,6 +394,8 @@ export interface EventPreviewResponse {
   note: string;
   ai_summary: string;
   ai_points: string[];  // v0.6 : 3–4 phrases courtes (chacune vérifiée par le garde-fou) ; à afficher en liste à puces
+  ai_summary_id: string;  // v0.8 : item_id pour POST /decisions (item_type "ai_summary")
+  ai_summary_decision: DecisionRef | null;
   _data_status?: Record<string, "real" | "mock" | "missing">;
 }
 
@@ -410,3 +421,19 @@ export interface KeyFinding {
   text: string;  // ex. "pbb's cost to trade €25k rose from 54.3 to 97.4 bps (Jan–Oct), moving from below to above its peers' median."
   numbers: Record<string, number | string | null>;  // own_first_bps, own_last_bps, peers_median_*_bps, position_*, index_median_*_bps, price_effect_pct…
 }
+
+// ---------- /decisions (v0.8, points 9-10) – « AI suggests, the IR team decides – every decision is logged. » ----------
+export interface DecisionRef {
+  id: number; decision: "approved" | "dismissed"; note: string | null; decided_at: ISODateTime; decided_by: string;
+}
+export interface DecisionIn {                 // POST /decisions
+  item_type: "alert" | "ai_summary" | "anomaly"; item_id: string; isin: string;
+  decision: "approved" | "dismissed"; note?: string;
+}
+export interface Decision {                   // une ligne du journal
+  id: number; item_type: "alert" | "ai_summary" | "anomaly" | "threshold"; item_id: string; isin: string;
+  decision: "approved" | "dismissed" | "threshold_changed"; note: string | null;
+  old_value: string | null; new_value: string | null;  // threshold_changed : ancien -> nouveau
+  decided_at: ISODateTime; decided_by: string;          // Europe/Berlin ; "ir-team"
+}
+export interface DecisionLog { isin: string | null; decisions: Decision[] }  // GET /decisions?isin=

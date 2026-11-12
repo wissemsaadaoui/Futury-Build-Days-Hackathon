@@ -261,6 +261,8 @@
     "Liquidity back to normal within 1 session(s) at most.",
     "13 peer releases: median spread change +5.5%."
   ],
+  "ai_summary_id": "preview:DE0008019001:quarterly_results:all",
+  "ai_summary_decision": null,
   "_data_status": {
     "spreads": "real",
     "ohlc": "real",

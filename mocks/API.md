@@ -1,4 +1,4 @@
-# Issuer Intelligence Hub – API pour le front-end (v0.7)
+# Issuer Intelligence Hub – API pour le front-end (v0.8)
 
 > Pour Yassine · Démo : **Deutsche Pfandbriefbank AG (pbb)**, ISIN `DE0008019001`, SDAX
 > Ce document remplace `mocks/API.md` v0.1. Les changements depuis la v0.1 sont marqués **🆕**, et ce qui arrive bientôt est marqué **🔜**.
@@ -46,6 +46,8 @@ En attendant l'API, utilise `mocks/*.json` et `shared/types.ts` : même format.
 | 26 | 🆕 v0.6 : **`ai_points: string[]`** (3–4 phrases courtes) à côté de `ai_summary` dans l'impact card et l'event preview, et à côté de `headline` dans le report | Liste à puces ; si absent, découper `ai_summary` par phrase |
 | 27 | 🆕 v0.7 : **`/thresholds`** : `GET ?isin=` (values, defaults, bounds, custom), `PUT {isin, values}` (422 hors bornes), `POST /reset`, `POST /preview` (N alertes sans enregistrer). Chaque changement va dans le journal (`threshold_changed`) | Page Thresholds éditable + badge « Custom thresholds » |
 | 28 | 🆕 v0.7 : **`dashboard.key_finding`** `{text, numbers}` : phrase clé calculée par règles (premier vs dernier mois), jamais par le LLM | Bandeau en haut du dashboard |
+| 29 | 🆕 v0.8 : **`POST /decisions`** `{item_type, item_id, isin, decision, note?}` et **`GET /decisions?isin=`** (journal, y compris `threshold_changed`) ; chaque anomalie a `id`, `item_type`, `decision`, `rank` ; impact card / preview / report : `ai_summary_id`, `ai_summary_decision` | Boutons Approve / Dismiss + note, badge d'état, page Decision log |
+| 30 | 🆕 v0.8 : **`rank`** (sévérité puis récence) calculé sans les éléments `dismissed` (`rank: null`) | Top 5 = rank 1–5, puis « Show all (N) » |
 | 17 | 🆕 v0.3 : bloc **`pre_disclosure_activity`** dans l'impact card des notifications `voting_rights` (§5.4) | Petit encadré « Before the disclosure » |
 
 ---

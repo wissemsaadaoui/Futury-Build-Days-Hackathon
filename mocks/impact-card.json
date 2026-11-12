@@ -192,6 +192,8 @@
     "First 15 minutes after the publication: 136.3x the usual volume.",
     "Auctions took 15.0% of volume versus 30.0% normally."
   ],
+  "ai_summary_id": "impact:card_evt_002",
+  "ai_summary_decision": null,
   "generated_at": "2026-11-11T21:16:25+01:00",
   "export": {
     "pdf_url": "/events/evt_002/impact-card.pdf"

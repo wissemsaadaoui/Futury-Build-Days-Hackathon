@@ -17,6 +17,8 @@
     "7.6 bps tighter than the peer median.",
     "149 alerts flagged in the period."
   ],
+  "ai_summary_id": "report:DE0008019001:2026-01-02:2026-10-30",
+  "ai_summary_decision": null,
   "sections": [
     {
       "title": "Trading profile",
