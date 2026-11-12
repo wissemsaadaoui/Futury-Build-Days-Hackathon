@@ -1159,3 +1159,15 @@ def test_key_finding_wording_follows_the_data(monkeypatch):
     assert "fell from 90.0 to 60.0 bps" in t and "moving from above to below its peers' median" in t
     own[oct_] = 80.0
     assert "staying above its peers' median" in KF.build_key_finding(PBB)["text"]
+
+
+# ---------- human-in-the-loop : id, décision, rang (points 9-10) ----------
+def test_anomaly_ids_unique_and_rank_order():
+    rows = A.build_dashboard(PBB, "2026-01-02", "2026-10-30")["anomalies"]
+    assert len({r["id"] for r in rows}) == len(rows)
+    ranked = sorted((r for r in rows if r["rank"]), key=lambda r: r["rank"])
+    sev = {"high": 0, "medium": 1, "low": 2}
+    keys = [(sev[r["severity"]], r["date"]) for r in ranked]
+    assert all(keys[i][0] < keys[i + 1][0] or (keys[i][0] == keys[i + 1][0] and keys[i][1] >= keys[i + 1][1])
+               for i in range(len(keys) - 1))
+    assert {r["item_type"] for r in rows} == {"anomaly", "alert"}

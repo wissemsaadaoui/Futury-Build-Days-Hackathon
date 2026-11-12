@@ -52,7 +52,9 @@ def _anomaly_rows(isin: str, spread: pd.Series, volume: pd.Series | None, start,
             if "level_price" in a:
                 a["level_price"] = r2(a["level_price"])
             rows.append(a)
-    return sorted(rows, key=lambda x: (x["date"], x["type"]))
+    from app.analytics import decisions
+
+    return decisions.attach(isin, sorted(rows, key=lambda x: (x["date"], x["type"])))
 
 
 def build_dashboard(isin: str, start, end) -> dict:

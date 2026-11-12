@@ -196,4 +196,8 @@ def build_event_preview(isin: str, event_type: str, day=None) -> dict:
     from app.assistant import points_event_preview
 
     preview["ai_points"] = points_event_preview(preview)
+    from app.analytics import decisions
+
+    preview["ai_summary_id"] = f"preview:{isin}:{event_type}:{preview['reference_date'] or 'all'}"
+    preview["ai_summary_decision"] = decisions.summary_decision(isin, preview["ai_summary_id"])
     return preview

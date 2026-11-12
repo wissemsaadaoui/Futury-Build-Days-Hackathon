@@ -178,4 +178,8 @@ def build_report(isin: str, start, end) -> dict:
     from app.assistant import points_report
 
     report["ai_points"] = points_report(report)
+    from app.analytics import decisions
+
+    report["ai_summary_id"] = f"report:{isin}:{report['period']['from']}:{report['period']['to']}"
+    report["ai_summary_decision"] = decisions.summary_decision(isin, report["ai_summary_id"])
     return report
