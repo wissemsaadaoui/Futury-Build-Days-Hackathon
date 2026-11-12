@@ -70,6 +70,9 @@ def test_other_routes_any_issuer(isin: str) -> None:
     assert rep["headline"] and rep["sections"][1]["kpis"][0]["value"] is not None
     day = _get(f"/days/{isin}/2026-10-29/impact-card")
     assert day["vs_peers"]["peer_avg_volume_ratio"] is not None
+    if isin != PBB:  # pas de trades horodatés : enchères opening / closing vides, jamais les valeurs du mock
+        assert day["_data_status"]["opening_closing_auction"] == "missing"
+        assert day["metrics"]["closing_auction"] == {"volume": None, "baseline": None, "ratio": None}
     assert client.get(f"/stocks/{isin}/report.pdf?from=2026-10-26&to=2026-10-30").status_code == 200
     sug = _get(f"/assistant/suggestions?isin={isin}")["questions"]
     assert len(sug) == 4

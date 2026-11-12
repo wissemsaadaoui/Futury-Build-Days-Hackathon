@@ -242,7 +242,7 @@ def chat_peers(res: dict) -> str:
     rk = res["spread_rank_tightest_first"]
     parts = [f"Over {per['label']}, {who}'s average spread for a {fmt.eur(25_000)} trade was "
              f"{fmt.bps(own['avg_spread_bps'])} versus a median of {fmt.bps(med['avg_spread_bps'])} across its "
-             f"{res['n_peers']} peers (rank {rk['rank']} of {rk['of']}, tightest first)."]
+             f"{res['n_peers']} {res['index'] + ' ' if res.get('peer_basis') == 'index' and res.get('index') else ''}peers (rank {rk['rank']} of {rk['of']}, tightest first)."]
     if own.get("return_pct") is not None and med.get("return_pct") is not None:
         parts.append(f"Its share price moved {own['return_pct']:+.1f}% versus a peer median of {med['return_pct']:+.1f}%.")
     if own.get("avg_turnover_eur") is not None and med.get("avg_turnover_eur") is not None:

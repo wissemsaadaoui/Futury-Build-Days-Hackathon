@@ -86,6 +86,10 @@ def build_key_finding(isin: str) -> dict | None:
     last_range = (str(days[days.to_period("M") == last][0].date()), str(days[days.to_period("M") == last][-1].date()))
     dec = pricing.decompose(isin, first_range, last_range)
     share = dec.get("price_share")
+    # Répartition prix / liquidité lisible seulement si les deux effets vont dans le sens de la variation (0–100 %) ;
+    # sinon (petite variation, effets opposés) elle donnerait par ex. 315 % / −215 % : on ne l'affiche pas.
+    if share is not None and not np.isnan(share) and not 0 <= share <= 1:
+        share = None
     numbers = {
         "metric": "median spread for a EUR 25,000 round trip (bps, Xetra XLM)",
         "first_month": str(first),

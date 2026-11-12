@@ -159,6 +159,10 @@ def _build(isin: str, td: pd.Timestamp, event_row: dict | None, with_summary: bo
         status["flows"] = "real"
     if _auction_blocks(isin, days, td, card):
         status["opening_closing_auction"] = "real"
+    else:  # pas de trades horodatés pour cet émetteur : aucune valeur (jamais celles du mock)
+        status["opening_closing_auction"] = "missing"
+        for key in ("opening_auction", "closing_auction"):
+            card["metrics"][key] = {"volume": None, "baseline": None, "ratio": None}
     # Notifications WpHG : activité des 7 séances AVANT la publication (null pour les autres types)
     card["pre_disclosure_activity"] = None
     if event_row and event_row.get("type") == "voting_rights":
