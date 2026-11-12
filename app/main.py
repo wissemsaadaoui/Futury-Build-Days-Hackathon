@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 
 from app import config, etl
 from app.analytics import NotFound
-from app.api import assistant, auth, compare, health, impact_cards, stocks
+from app.api import assistant, auth, compare, health, impact_cards, stocks, thresholds
 
 
 @asynccontextmanager
@@ -39,7 +39,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in config.FRONTEND_ORIGIN.split(",") if o.strip()],  # liste explicite, jamais "*"
     allow_credentials=False,  # pas de cookie : le token passe dans l'en-tête Authorization
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
@@ -50,5 +50,5 @@ async def not_found(_: Request, exc: NotFound) -> JSONResponse:
     return JSONResponse(status_code=404, content={"detail": exc.args[0] if exc.args else "Not found"})
 
 
-for module in (auth, health, stocks, impact_cards, compare, assistant):
+for module in (auth, health, stocks, impact_cards, compare, assistant, thresholds):
     app.include_router(module.router)
