@@ -1,7 +1,7 @@
 """POST /assistant/chat – chat libre de l'AI Assistant (logique : app/assistant/chat.py)."""
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import Field
 
@@ -20,7 +20,7 @@ class ChatRequest(Schema):
 
 class ChatLink(Schema):
     label: str
-    type: Literal["day", "event", "preview", "compare"]
+    type: Literal["day", "event", "preview", "compare", "question"]  # question : suggestion cliquable (ref = texte)
     ref: str
 
 
@@ -28,3 +28,4 @@ class ChatResponse(Schema):
     answer: str
     links: list[ChatLink]
     as_of: ISODate
+    reason: Optional[Literal["off_topic", "prediction", "advice", "external_info"]] = None  # hors périmètre
