@@ -36,4 +36,34 @@ def summarize_event_preview(preview: dict) -> str:
     return _generate(prompts.PREVIEW_USER, preview_facts(preview), templates.preview_summary(preview), max_tokens=220)
 
 
-__all__ = ["summarize_impact_card", "summarize_report", "summarize_event_preview"]
+_BULLET = re.compile(r"^\s*(?:[-•*]|\d+[.)])\s+")
+_WHO_ALL = re.compile(r"\b(investors?|institutional|retail)\b", re.I)
+
+
+def _points(topic: str, facts: dict, fallback: list[str]) -> list[str]:
+    """3–4 points courts : LLM, chaque point vérifié par le garde-fou ; sinon les points du template."""
+    text = llm.complete(prompts.SYSTEM, prompts.POINTS_USER.format(
+        topic=topic, facts=json.dumps(facts, ensure_ascii=False, indent=2)), 260)
+    if text:
+        raw = text.replace(" - ", "\n- ") if "\n" not in text else text
+        pts = [_BULLET.sub("", line).strip() for line in raw.splitlines() if _BULLET.match(line)]
+        if 3 <= len(pts) <= 4 and all(guard.check(p, facts) and not _WHO_ALL.search(p) for p in pts):
+            return pts
+    return fallback
+
+
+def points_impact_card(card: dict) -> list[str]:
+    return _points("how the stock traded on this day versus its normal state", impact_facts(card), templates.impact_points(card))
+
+
+def points_event_preview(preview: dict) -> list[str]:
+    return _points("how the stock's trading reacted to PAST releases of this type", preview_facts(preview),
+                   templates.preview_points(preview))
+
+
+def points_report(report: dict) -> list[str]:
+    return _points("the trading profile of the period", report_facts(report), templates.report_points(report))
+
+
+__all__ = ["summarize_impact_card", "summarize_report", "summarize_event_preview",
+           "points_impact_card", "points_event_preview", "points_report"]

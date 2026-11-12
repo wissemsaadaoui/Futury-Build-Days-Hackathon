@@ -14,7 +14,7 @@ import {
   YAxis,
 } from 'recharts'
 
-import type { Anomaly, ImpactCardResponse, Num } from '../api/types.ts'
+import type { Anomaly, CorporateEvent, ImpactCardResponse, Num } from '../api/types.ts'
 import {
   anomalyLabels,
   eventLabels,
@@ -27,11 +27,14 @@ import {
   formatRatio,
   hasDemoData,
   isMissing,
-  trendClass,
 } from '../format.ts'
 import type { MetricHelpKey } from '../content/metricHelp.ts'
+import { announcementsLabel } from '../utils/events.ts'
+import { AiPoints } from './AiPoints.tsx'
+import { DecisionControls } from './DecisionControls.tsx'
 import { HelpTip } from './HelpTip.tsx'
 import { PdfButton } from './PdfButton.tsx'
+import { tone } from '../utils/tone.ts'
 
 // Anomalies statistiques du jour (badges en haut) ; les autres types sont des alertes d'exécution (en bas).
 const SIGNAL_TYPES = new Set(['volume_spike', 'spread_widening', 'price_move'])
@@ -41,9 +44,6 @@ const pctOfRatio = (value: Num | undefined) => (isMissing(value) ? '–' : `${fo
 const pts = (value: Num | undefined) =>
   isMissing(value) ? '–' : `${value > 0 ? '+' : ''}${formatNumber(value * 100, 1)} pts`
 const zScore = (value: Num | undefined) => (isMissing(value) ? '–' : `${value > 0 ? '+' : ''}${formatNumber(value, 1)}`)
-
-// Un spread qui s'élargit = liquidité moins bonne : affiché en rouge (inverse des prix)
-const spreadTone = (value: Num | undefined) => trendClass(isMissing(value) ? value : -value)
 
 function allMissing(...values: (Num | undefined)[]) {
   return values.every(isMissing)
@@ -194,7 +194,18 @@ function WindowChart({ card }: { card: ImpactCardResponse }) {
   )
 }
 
-export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; dayAnomalies: Anomaly[] }) {
+export function DayDetail({
+  card,
+  dayAnomalies,
+  sameDayEvents = [],
+}: {
+  card: ImpactCardResponse
+  dayAnomalies: Anomaly[]
+  sameDayEvents?: CorporateEvent[]
+}) {
+  // Plusieurs annonces le même jour : une seule carte, un seul jeu de chiffres, toutes les annonces listées
+  const dayEvents = [...sameDayEvents].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'))
+  const several = dayEvents.length > 1
   const m = card.metrics
   const day = card.window.find((w) => w.offset === 0)?.date ?? card.event?.trading_day ?? ''
   const signals = dayAnomalies.filter((a) => SIGNAL_TYPES.has(a.type))
@@ -206,7 +217,11 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
     <div className="day-detail">
       <section className="panel impact-card day-hero">
         <div className="timeline-card-top">
-          <span>{card.event ? eventLabels[card.event.type] ?? card.event.type : 'Trading day'}</span>
+          <span>
+            {several
+              ? announcementsLabel(dayEvents.length)
+              : card.event ? eventLabels[card.event.type] ?? card.event.type : 'Trading day'}
+          </span>
           <small>{hasDemoData(card._data_status) ? 'PARTLY DEMO DATA' : 'XETRA DATA'}</small>
         </div>
         <h2>{card.event ? card.event.title : `Trading on ${formatDate(day)}`}</h2>
@@ -217,10 +232,19 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
         <div className="day-badges">
           {signals.length === 0 && <span className="day-badge none">No anomaly flagged this day</span>}
           {signals.map((a) => (
-            <span className={`day-badge ${a.severity}`} key={`${a.type}-${a.description}`} title={a.description}>
-              <i className={`signal-dot ${a.severity}`} />
-              {anomalyLabels[a.type] ?? a.type} · {formatAnomalyValue(a.type, a.value)}
-              <small>{a.severity}</small>
+            <span className="day-badge-review" key={a.id ?? `${a.type}-${a.description}`}>
+              <span className={`day-badge ${a.severity}`} title={a.description}>
+                <i className={`signal-dot ${a.severity}`} />
+                {anomalyLabels[a.type] ?? a.type} · {formatAnomalyValue(a.type, a.value)}
+                <small>{a.severity}</small>
+              </span>
+              <DecisionControls
+                isin={card.stock.isin}
+                itemType={a.item_type ?? 'anomaly'}
+                itemId={a.id}
+                decision={a.decision}
+                compact
+              />
             </span>
           ))}
         </div>
@@ -235,13 +259,13 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
         >
           <div className="day-headline">
             <strong>{bps(m.spread_bps.event)}</strong>
-            <span className={spreadTone(m.spread_bps.change_pct)}>{formatPercent(m.spread_bps.change_pct)} vs 20-day avg</span>
+            <span className={tone(m.spread_bps.change_pct, 'cost')}>{formatPercent(m.spread_bps.change_pct)} vs 20-day avg</span>
           </div>
           <Rows
             rows={[
               ['Spread on the day', bps(m.spread_bps.event), undefined, 'spread'],
               ['20-day baseline', bps(m.spread_bps.baseline), undefined, 'baseline'],
-              ['Change vs baseline', formatPercent(m.spread_bps.change_pct), spreadTone(m.spread_bps.change_pct)],
+              ['Change vs baseline', formatPercent(m.spread_bps.change_pct), tone(m.spread_bps.change_pct, 'cost')],
             ]}
           />
         </Section>
@@ -249,7 +273,7 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
         <Section kicker="2 · RETURNS" title="Closing price" empty={allMissing(m.price.close, m.price.change_pct)}>
           <div className="day-headline">
             <strong>{formatEuro(m.price.close)}</strong>
-            <span className={trendClass(m.price.change_pct)}>{formatPercent(m.price.change_pct)} vs previous close</span>
+            <span className={tone(m.price.change_pct)}>{formatPercent(m.price.change_pct)} vs previous close</span>
           </div>
           <Rows
             rows={[
@@ -296,7 +320,7 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
               { label: 'Volume vs usual', own: m.volume.ratio, peers: peers.peer_avg_volume_ratio, format: (v) => formatRatio(v, 2) },
             ]}
           />
-          <Rows rows={[['Return vs peer median', formatPercent(peers.excess_return_pct), trendClass(peers.excess_return_pct)]]} />
+          <Rows rows={[['Return vs peer median', formatPercent(peers.excess_return_pct), tone(peers.excess_return_pct)]]} />
         </Section>
 
         <Section
@@ -308,8 +332,33 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
           <WindowChart card={card} />
         </Section>
 
-        <Section kicker="6 · ANNOUNCEMENT" title={card.event ? 'Linked announcement' : 'No linked announcement'} empty={false} wide>
-          {card.event ? (
+        <Section
+          kicker="6 · ANNOUNCEMENT"
+          title={several ? announcementsLabel(dayEvents.length) : card.event ? 'Linked announcement' : 'No linked announcement'}
+          empty={false}
+          wide
+        >
+          {several ? (
+            <>
+              <ul className="day-announcements">
+                {dayEvents.map((event) => (
+                  <li key={event.event_id}>
+                    <span className="day-announcement-meta">
+                      {event.time || '–'} · {eventLabels[event.type] ?? event.type}
+                    </span>
+                    <strong>{event.title}</strong>
+                    {event.source_url && (
+                      <a href={event.source_url} target="_blank" rel="noreferrer">Source ↗</a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="muted">
+                One set of trading figures for the session of {formatDate(day)}: the figures cannot be attributed to a
+                single announcement.
+              </p>
+            </>
+          ) : card.event ? (
             <>
               <p className="day-event-title">{card.event.title}</p>
               <p className="muted">
@@ -326,10 +375,11 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
           ) : (
             <p className="muted">No company announcement on record for this trading day.</p>
           )}
-          <div className="ai-summary">
-            <strong>AI summary</strong>
-            <p>{card.ai_summary || 'No data'}</p>
-          </div>
+          <AiPoints
+            points={card.ai_points}
+            summary={card.ai_summary}
+            review={{ isin: card.stock.isin, id: card.ai_summary_id, decision: card.ai_summary_decision }}
+          />
         </Section>
 
         <Section
@@ -354,13 +404,22 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
 
         <Section kicker="EXECUTION ALERTS" title="Alerts on this day" empty={alerts.length === 0}>
           {alerts.map((a) => (
-            <div className="signal-row static" key={`${a.type}-${a.description}`}>
-              <span className={`signal-dot ${a.severity}`} />
-              <span className="signal-copy">
-                <strong>{anomalyLabels[a.type] ?? a.type}</strong>
-                <small>{a.description}</small>
-              </span>
-              <span className="signal-value">{formatAnomalyValue(a.type, a.value)}</span>
+            <div className="signal-row-wrap" key={a.id ?? `${a.type}-${a.description}`}>
+              <div className="signal-row static">
+                <span className={`signal-dot ${a.severity}`} />
+                <span className="signal-copy">
+                  <strong>{anomalyLabels[a.type] ?? a.type}</strong>
+                  <small>{a.description}</small>
+                </span>
+                <span className="signal-value">{formatAnomalyValue(a.type, a.value)}</span>
+              </div>
+              <DecisionControls
+                isin={card.stock.isin}
+                itemType={a.item_type ?? 'alert'}
+                itemId={a.id}
+                decision={a.decision}
+                compact
+              />
             </div>
           ))}
         </Section>
@@ -374,9 +433,9 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
           {card.intraday && (
             <div className="impact-metrics">
               <Metric label="First 15 min volume vs usual" value={formatRatio(card.intraday.first_15min.ratio, 2)} />
-              <Metric label="Price after 5 min" value={formatPercent(card.intraday.price_change_pct.after_5min)} tone={trendClass(card.intraday.price_change_pct.after_5min)} />
-              <Metric label="Price after 30 min" value={formatPercent(card.intraday.price_change_pct.after_30min)} tone={trendClass(card.intraday.price_change_pct.after_30min)} />
-              <Metric label="Price after 60 min" value={formatPercent(card.intraday.price_change_pct.after_60min)} tone={trendClass(card.intraday.price_change_pct.after_60min)} />
+              <Metric label="Price after 5 min" value={formatPercent(card.intraday.price_change_pct.after_5min)} tone={tone(card.intraday.price_change_pct.after_5min)} />
+              <Metric label="Price after 30 min" value={formatPercent(card.intraday.price_change_pct.after_30min)} tone={tone(card.intraday.price_change_pct.after_30min)} />
+              <Metric label="Price after 60 min" value={formatPercent(card.intraday.price_change_pct.after_60min)} tone={tone(card.intraday.price_change_pct.after_60min)} />
             </div>
           )}
         </Section>

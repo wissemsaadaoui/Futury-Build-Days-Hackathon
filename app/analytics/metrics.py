@@ -35,26 +35,26 @@ def zscore(value: float, mean: float, std: float) -> float:
     return (value - mean) / std
 
 
-def volume_anomalies(volume: pd.Series) -> pd.DataFrame:
-    """z-score > 2 -> medium, > 3 -> high."""
+def volume_anomalies(volume: pd.Series, z_min: float = 2.0) -> pd.DataFrame:
+    """z-score > z_min (défaut 2) -> medium, > z_min + 1 (défaut 3) -> high."""
     mean, std = rolling_baseline(volume)
     z = (volume - mean) / std
     ratio_ = volume / mean
     out = pd.DataFrame({"z": z, "ratio": ratio_}).dropna()
-    out = out[out["z"] > 2]
-    out["severity"] = np.where(out["z"] > 3, "high", "medium")
+    out = out[out["z"] > z_min]
+    out["severity"] = np.where(out["z"] > z_min + 1, "high", "medium")
     out["type"] = "volume_spike"
     return out
 
 
 def spread_anomalies(spread: pd.Series, z_min: float = 3.0, ratio_min: float = 1.2) -> pd.DataFrame:
-    """z-score > 3 ET spread > 1,2 x baseline -> medium ; z > 4 ou ratio > 1,5 -> high.
-    Calibré sur les 174 actions : ~3,7 alertes par action sur 10 mois."""
+    """z-score > z_min ET spread > ratio_min x baseline -> medium ; z > z_min + 1 ou ratio > 1,25 x ratio_min -> high
+    (défauts 3 / 1,2 -> high si z > 4 ou ratio > 1,5). Calibré sur les 174 actions : ~3,7 alertes par action sur 10 mois."""
     mean, std = rolling_baseline(spread)
     ratio_ = spread / mean
     z = (spread - mean) / std
     out = pd.DataFrame({"ratio": ratio_, "z": z}).dropna()
     out = out[(out["z"] > z_min) & (out["ratio"] > ratio_min)]
-    out["severity"] = np.where((out["z"] > 4) | (out["ratio"] > 1.5), "high", "medium")
+    out["severity"] = np.where((out["z"] > z_min + 1) | (out["ratio"] > 1.25 * ratio_min), "high", "medium")
     out["type"] = "spread_widening"
     return out

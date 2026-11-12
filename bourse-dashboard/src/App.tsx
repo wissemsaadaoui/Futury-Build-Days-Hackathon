@@ -23,21 +23,30 @@ import type {
   CompareResponse,
   DailyPoint,
   DashboardResponse,
+  DecisionLog,
   EventPreviewResponse,
   EventsResponse,
   ImpactCardResponse,
   PreviewStat,
   ReportResponse,
+  ThresholdsResponse,
 } from './api/types.ts'
 import { clearApiCache, useApi } from './api/useApi.ts'
 import { AnomalyList } from './components/AnomalyList.tsx'
 import { CountUp } from './components/CountUp.tsx'
+import { AiPoints } from './components/AiPoints.tsx'
 import { DayDetail } from './components/DayDetail.tsx'
+import { DecisionBadge, HITL_LINE } from './components/DecisionControls.tsx'
 import { HelpTip } from './components/HelpTip.tsx'
 import { PdfButton } from './components/PdfButton.tsx'
 import { WhatToExpect } from './components/WhatToExpect.tsx'
+import { tone, toneForUnit } from './utils/tone.ts'
+import { announcementsLabel, groupByTradingDay } from './utils/events.ts'
+import { ADTV_SESSIONS, BASELINE_SESSIONS, fixedRules, type DetectionRule } from './content/detectionRules.ts'
+import { ThresholdsEditor } from './components/ThresholdsEditor.tsx'
 import {
   DISCLAIMER,
+  anomalyLabels,
   eventLabels,
   formatCompact,
   formatDate,
@@ -47,7 +56,6 @@ import {
   formatPercent,
   formatRatio,
   hasDemoData,
-  trendClass,
 } from './format.ts'
 
 type Page =
@@ -62,6 +70,7 @@ type Page =
   | 'report'
   | 'preview'
   | 'assistant'
+  | 'decisions'
 
 type Period = '1W' | '1M' | '3M' | 'YTD'
 
@@ -96,25 +105,6 @@ const SUGGESTED_QUESTIONS = [
   "What to expect from today's Q3 release?",
   'How does pbb compare with its peers?',
 ]
-
-type Thresholds = {
-  volumeRatio: number
-  breakoutDistance: number
-  ema200Distance: number
-  macdBars: number
-  maxRisk: number
-  rewardRisk: number
-  directorsDealings: number
-}
-
-type AlertInputs = {
-  ownershipPct: number
-  volumeRatio: number
-  breakoutDistance: number
-  ema200Distance: number
-  macdBars: number
-  directorsDealings: number
-}
 
 const ISIN = 'DE0008019001'
 const COMPANY = 'Deutsche Pfandbriefbank AG'
@@ -177,27 +167,6 @@ const indicators = [
   },
 ]
 
-const defaultThresholds: Thresholds = {
-  volumeRatio: 1.5,
-  breakoutDistance: 1,
-  ema200Distance: 0.5,
-  macdBars: 2,
-  maxRisk: 2,
-  rewardRisk: 2,
-  directorsDealings: 20000,
-}
-
-const defaultAlertInputs: AlertInputs = {
-  ownershipPct: 2.7,
-  volumeRatio: 1.7,
-  breakoutDistance: 0.4,
-  ema200Distance: 0.8,
-  macdBars: 2,
-  directorsDealings: 12500,
-}
-
-const holdingThresholds = [3, 5, 10, 15, 20, 25, 30, 50, 75]
-
 // Série quotidienne de l'API -> points du graphique (jours sans prix de clôture ignorés)
 function toStockPoints(series: DailyPoint[]): StockPoint[] {
   return series
@@ -218,10 +187,6 @@ function toStockPoints(series: DailyPoint[]): StockPoint[] {
         auctionShare: day.auction_share,
       }
     })
-}
-
-function byDateDesc<T extends { date: string }>(items: T[]): T[] {
-  return [...items].sort((a, b) => b.date.localeCompare(a.date))
 }
 
 const DASHBOARD_PATH = `/stocks/${ISIN}/dashboard`
@@ -311,6 +276,7 @@ function Header({
                 ['Thresholds & alerts', 'alerts'],
                 ['IR snapshot', 'report'],
                 ['What to expect', 'preview'],
+                ['Decision log', 'decisions'],
               ].map(([label, target]) => (
                 <button
                   key={target}
@@ -883,7 +849,7 @@ function WeeklyMovement({ points }: { points: StockPoint[] }) {
           <div className="movement-row" key={row.label}>
             <div className="movement-label">
               <span>{row.label}</span>
-              <strong className={row.amount < 0 ? 'negative' : row.amount > 0 ? 'positive' : ''}>
+              <strong className={tone(row.amount)}>
                 <CountUp text={`${row.amount > 0 ? '+' : ''}${formatEuro(row.amount)}`} delay={1100} />
               </strong>
             </div>
@@ -1015,7 +981,7 @@ function AnalysisAssistant({
                 <strong>
                   {day.data.event ? day.data.event.title : `Trading on ${formatDate(request.from)}`}
                 </strong>
-                <p>{day.data.ai_summary}</p>
+                <AiPoints points={day.data.ai_points} summary={day.data.ai_summary} title={null} className="drawer-points" />
                 <button
                   className="text-button"
                   onClick={() => {
@@ -1034,6 +1000,7 @@ function AnalysisAssistant({
                   {formatDate(period.data.period.from)} – {formatDate(period.data.period.to)}
                 </strong>
                 <p>{period.data.headline}</p>
+                <AiPoints points={period.data.ai_points} title={null} className="drawer-points" />
                 {period.data.sections
                   .filter((section) => section.text)
                   .map((section) => (
@@ -1058,6 +1025,27 @@ function AnalysisAssistant({
         </p>
       </section>
     </div>
+  )
+}
+
+// Phrase clé (dashboard.key_finding) : calculée par règles côté API, jamais par le LLM ; chiffres sources sous la phrase
+function KeyFinding({ finding }: { finding: { text: string; numbers: Record<string, number | string | null> } }) {
+  const n = finding.numbers
+  const num = (key: string) => (typeof n[key] === 'number' ? formatNumber(n[key] as number, 1) : '–')
+  return (
+    <section className="panel key-finding" aria-label="Key finding">
+      <span className="kicker">
+        KEY FINDING <HelpTip metric="spread" label="the cost to trade €25k" />
+      </span>
+      <p>{finding.text}</p>
+      <small>
+        Peers' median {num('peers_median_first_bps')} → {num('peers_median_last_bps')} bps
+        {n.index ? ` · ${n.index} median ${num('index_median_first_bps')} → ${num('index_median_last_bps')} bps` : ''}
+        {typeof n.price_effect_pct === 'number'
+          ? ` · ${num('price_effect_pct')}% of the change from the lower share price, ${num('liquidity_effect_pct')}% from liquidity`
+          : ''}
+      </small>
+    </section>
   )
 }
 
@@ -1097,7 +1085,8 @@ function DashboardPage({
     if (last.length === 0 || !dashboard.data) return null
     return { from: last[0].date, to: dashboard.data.as_of, label: formatDateRange(last[0].date, dashboard.data.as_of) }
   }, [dashboard.data])
-  const recentEvents = useMemo(() => byDateDesc(events.data?.events ?? []).slice(0, 5), [events.data])
+  const thresholdsInfo = useApi<ThresholdsResponse>(`/thresholds?isin=${ISIN}`)
+  const recentDays = useMemo(() => groupByTradingDay(events.data?.events ?? []).slice(0, 5), [events.data])
 
   const latest = points[points.length - 1]
   const first = points[0]
@@ -1130,13 +1119,15 @@ function DashboardPage({
                 <PdfButton
                   className="outline-button weekly-snapshot"
                   path={`/stocks/${ISIN}/report.pdf?from=${weekly.from}&to=${weekly.to}`}
-                  filename={`pbb-weekly-snapshot-${weekly.from}-${weekly.to}.pdf`}
+                  filename={`pbb-weekly-ir-snapshot-${weekly.from}-${weekly.to}.pdf`}
                 >
-                  Weekly snapshot ({weekly.label}) <span>↓</span>
+                  Weekly IR snapshot ({weekly.label}) <span>↓</span>
                 </PdfButton>
               )}
             </div>
           </div>
+
+          {dashboard.data?.key_finding && <KeyFinding finding={dashboard.data.key_finding} />}
 
           <div className="dashboard-toolbar">
             <div className="stock-identity">
@@ -1146,6 +1137,11 @@ function DashboardPage({
                 <small>Xetra · {ISIN} · {dashboard.data?.stock.index ?? 'SDAX'}</small>
                 {dashboard.data && (
                   <small className="data-as-of">Data as of {formatDate(dashboard.data.as_of)}</small>
+                )}
+                {thresholdsInfo.data?.custom && (
+                  <button className="custom-badge" onClick={() => navigate('alerts')} title="Alerts use thresholds set by the IR team">
+                    Custom thresholds ↗
+                  </button>
                 )}
               </div>
             </div>
@@ -1179,7 +1175,7 @@ function DashboardPage({
                     </span>
                     <div className="price-line">
                       <strong><CountUp text={latest ? formatEuro(latest.close) : '–'} delay={1000} /></strong>
-                      <span className={`price-change ${periodChange >= 0 ? 'positive' : 'negative'}`}>
+                      <span className={`price-change ${tone(periodChange)}`}>
                         {periodChange >= 0 ? '↑' : '↓'} <CountUp text={formatPercent(periodChange)} delay={1000} />
                       </span>
                     </div>
@@ -1263,15 +1259,16 @@ function DashboardPage({
               <section className="panel lower-panel">
                 <div className="panel-title">
                   <div>
-                    <span className="kicker">TRADING SIGNALS · MOST IMPORTANT FIRST</span>
-                    <h2>Notable days</h2>
+                    <span className="kicker">TRADING SIGNALS · SEVERITY, THEN MOST RECENT</span>
+                    <h2>Top 5 – latest period</h2>
                   </div>
                   <button className="text-button" onClick={() => navigate('alerts')}>
                     Configure alerts →
                   </button>
                 </div>
+                <p className="hitl-line">{HITL_LINE}</p>
                 {dashboard.data && (
-                  <AnomalyList anomalies={dashboard.data.anomalies} onOpen={openImpact} />
+                  <AnomalyList anomalies={dashboard.data.anomalies} onOpen={openImpact} isin={ISIN} />
                 )}
               </section>
             </Reveal>
@@ -1288,23 +1285,27 @@ function DashboardPage({
                   </button>
                 </div>
                 <LoadState loading={events.loading} error={events.error} />
-                {recentEvents.map((event) => (
+                {recentDays.map((day) => (
                   <button
                     className="recent-event"
-                    key={event.event_id}
-                    onClick={() => openImpact(`/events/${event.event_id}/impact-card`)}
+                    key={day.trading_day}
+                    onClick={() => openImpact(`/events/${day.primary.event_id}/impact-card`)}
                   >
                     <span className="event-date-block">
-                      <strong>{new Date(`${event.date}T12:00:00`).getDate()}</strong>
+                      <strong>{new Date(`${day.trading_day}T12:00:00`).getDate()}</strong>
                       <small>
-                        {new Date(`${event.date}T12:00:00`).toLocaleDateString('en-GB', {
+                        {new Date(`${day.trading_day}T12:00:00`).toLocaleDateString('en-GB', {
                           month: 'short',
                         })}
                       </small>
                     </span>
                     <span className="recent-event-copy">
-                      <strong>{event.title}</strong>
-                      <small>{eventLabels[event.type] ?? event.type}</small>
+                      <strong>{day.primary.title}</strong>
+                      <small>
+                        {day.events.length > 1
+                          ? `${announcementsLabel(day.events.length)} · ${[...new Set(day.events.map((e) => eventLabels[e.type] ?? e.type))].join(', ')}`
+                          : eventLabels[day.primary.type] ?? day.primary.type}
+                      </small>
                     </span>
                     <span>↗</span>
                   </button>
@@ -1331,7 +1332,8 @@ function EventsPage({
   openImpact: (path: string) => void
 }) {
   const { data, error, loading } = useApi<EventsResponse>(`/stocks/${ISIN}/events`)
-  const events = useMemo(() => byDateDesc(data?.events ?? []), [data])
+  const events = data?.events ?? []
+  const days = useMemo(() => groupByTradingDay(data?.events ?? []), [data])
 
   return (
     <>
@@ -1354,29 +1356,56 @@ function EventsPage({
           )}
 
           <div className="timeline">
-            {events.map((event) => (
-              <article className="timeline-item" key={event.event_id}>
+            {days.map((day) => (
+              <article className="timeline-item" key={day.trading_day}>
                 <div className="timeline-date">
-                  <strong>{formatDate(event.date)}</strong>
-                  <span>{event.time || 'Time unavailable'}</span>
+                  <strong>{formatDate(day.trading_day)}</strong>
+                  <span>
+                    {day.events.length > 1
+                      ? `${day.events.length} announcements`
+                      : day.primary.time || 'Time unavailable'}
+                  </span>
                 </div>
                 <div className="timeline-card">
                   <div className="timeline-card-top">
-                    <span>{eventLabels[event.type] ?? event.type}</span>
-                    {event.source_url && (
-                      <a href={event.source_url} target="_blank" rel="noreferrer">
+                    <span>
+                      {day.events.length > 1
+                        ? announcementsLabel(day.events.length)
+                        : eventLabels[day.primary.type] ?? day.primary.type}
+                    </span>
+                    {day.events.length === 1 && day.primary.source_url && (
+                      <a href={day.primary.source_url} target="_blank" rel="noreferrer">
                         <small>SOURCE ↗</small>
                       </a>
                     )}
                   </div>
-                  <h2>{event.title}</h2>
-                  <p>Trading day: {formatDate(event.trading_day)}</p>
+                  {day.events.length === 1 ? (
+                    <h2>{day.primary.title}</h2>
+                  ) : (
+                    <ul className="day-announcements">
+                      {day.events.map((event) => (
+                        <li key={event.event_id}>
+                          <span className="day-announcement-meta">
+                            {event.time || '–'} · {eventLabels[event.type] ?? event.type}
+                          </span>
+                          <strong>{event.title}</strong>
+                          {event.source_url && (
+                            <a href={event.source_url} target="_blank" rel="noreferrer">Source ↗</a>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <p>
+                    Trading day: {formatDate(day.trading_day)}
+                    {day.events.length > 1 ? ' · one set of trading figures for the session' : ''}
+                  </p>
                   <div className="event-metrics">
-                    <Metric label="Volume ratio" value={formatRatio(event.headline_metric.volume_ratio)} />
-                    <Metric label="Price change" value={formatPercent(event.headline_metric.price_change_pct)} tone={trendClass(event.headline_metric.price_change_pct)} />
-                    <Metric label="Spread change" value={formatPercent(event.headline_metric.spread_change_pct)} tone={trendClass(event.headline_metric.spread_change_pct)} />
+                    <Metric label="Volume ratio" value={formatRatio(day.headline_metric.volume_ratio)} />
+                    <Metric label="Price change" value={formatPercent(day.headline_metric.price_change_pct)} tone={tone(day.headline_metric.price_change_pct)} />
+                    <Metric label="Spread change" value={formatPercent(day.headline_metric.spread_change_pct)} tone={tone(day.headline_metric.spread_change_pct, 'cost')} />
                   </div>
-                  <button className="text-button" onClick={() => openImpact(`/events/${event.event_id}/impact-card`)}>
+                  <button className="text-button" onClick={() => openImpact(`/events/${day.primary.event_id}/impact-card`)}>
                     View impact card →
                   </button>
                 </div>
@@ -1449,6 +1478,12 @@ function ImpactPage({
     () => (dashboard.data?.anomalies ?? []).filter((anomaly) => anomaly.date === day),
     [dashboard.data, day],
   )
+  // Toutes les annonces du même jour de trading (une seule carte : les chiffres sont ceux de la séance)
+  const events = useApi<EventsResponse>(`/stocks/${ISIN}/events`)
+  const sameDayEvents = useMemo(
+    () => (events.data?.events ?? []).filter((event) => event.trading_day === day),
+    [events.data, day],
+  )
 
   return (
     <>
@@ -1467,7 +1502,7 @@ function ImpactPage({
           />
 
           <LoadState loading={loading} error={error} />
-          {card && <DayDetail card={card} dayAnomalies={dayAnomalies} />}
+          {card && <DayDetail card={card} dayAnomalies={dayAnomalies} sameDayEvents={sameDayEvents} />}
         </div>
       </main>
       <Footer />
@@ -1593,6 +1628,32 @@ function IndicatorsPage({
   )
 }
 
+// Seuils de détection : uniquement les règles appliquées par app/analytics (src/content/detectionRules.ts),
+// en lecture seule. Aucun réglage de trader ni de données absentes (voting rights, directors' dealings).
+function RuleTable({ title, kicker, rules }: { title: string; kicker: string; rules: DetectionRule[] }) {
+  return (
+    <section className="panel threshold-panel">
+      <div className="panel-title">
+        <div>
+          <span className="kicker">{kicker}</span>
+          <h2>{title}</h2>
+        </div>
+      </div>
+      <div className="rule-list">
+        {rules.map((rule) => (
+          <div className="rule-row" key={rule.type}>
+            <strong>{rule.name}</strong>
+            <span>{rule.rule}</span>
+            <small>
+              High severity: {rule.high} · <code>{rule.source}</code>
+            </small>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function AlertsPage({
   navigate,
   loggedIn,
@@ -1604,76 +1665,9 @@ function AlertsPage({
   logout: () => void
   openImpact: (path: string) => void
 }) {
-  const { data: dashboard } = useApi<DashboardResponse>(DASHBOARD_PATH)
-  const [thresholds, setThresholds] = useState(defaultThresholds)
-  const [inputs, setInputs] = useState(defaultAlertInputs)
-  const [alerts, setAlerts] = useState<string[]>([])
-
-  function updateThreshold<K extends keyof Thresholds>(key: K, value: number) {
-    setThresholds((current) => ({ ...current, [key]: value }))
-  }
-
-  function updateInput<K extends keyof AlertInputs>(key: K, value: number) {
-    setInputs((current) => ({ ...current, [key]: value }))
-  }
-
-  function evaluateAlerts() {
-    const results: string[] = []
-
-    const nextOwnershipThreshold = holdingThresholds.find(
-      (threshold) => inputs.ownershipPct < threshold,
-    )
-    if (
-      nextOwnershipThreshold !== undefined &&
-      inputs.ownershipPct >= nextOwnershipThreshold - 0.5
-    ) {
-      results.push(
-        `Shareholding is approaching the ${nextOwnershipThreshold}% voting-rights threshold.`,
-      )
-    }
-
-    if (inputs.ownershipPct >= 30) {
-      results.push(
-        'The entered shareholding is at or above 30%. Review the applicable takeover rules.',
-      )
-    }
-
-    if (inputs.volumeRatio >= thresholds.volumeRatio) {
-      results.push(
-        `Relative volume alert: ${formatNumber(inputs.volumeRatio, 2)}× meets the ${formatNumber(thresholds.volumeRatio, 2)}× threshold.`,
-      )
-    }
-
-    if (inputs.breakoutDistance >= thresholds.breakoutDistance) {
-      results.push(
-        `Breakout distance alert: price is ${formatNumber(inputs.breakoutDistance, 2)}% beyond the entered reference level.`,
-      )
-    }
-
-    if (inputs.ema200Distance >= thresholds.ema200Distance) {
-      results.push(
-        `EMA 200 trend alert: price is ${formatNumber(inputs.ema200Distance, 2)}% above the configured threshold.`,
-      )
-    }
-
-    if (inputs.macdBars >= thresholds.macdBars) {
-      results.push(
-        `MACD confirmation: ${inputs.macdBars} consecutive expanding bars meet the configured minimum.`,
-      )
-    }
-
-    if (inputs.directorsDealings >= thresholds.directorsDealings) {
-      results.push(
-        `Directors' dealings entered amount is at or above €${formatNumber(thresholds.directorsDealings, 0)}.`,
-      )
-    }
-
-    setAlerts(
-      results.length > 0
-        ? results
-        : ['No configured thresholds were crossed by the entered demo values.'],
-    )
-  }
+  // Révision : après un Save / Reset, on relit le dashboard pour que la liste des alertes suive les nouveaux seuils
+  const [revision, setRevision] = useState(0)
+  const { data: dashboard } = useApi<DashboardResponse>(revision ? `${DASHBOARD_PATH}?rev=${revision}` : DASHBOARD_PATH)
 
   return (
     <>
@@ -1681,245 +1675,37 @@ function AlertsPage({
       <main className="workspace-page">
         <div className="workspace-container">
           <PageHeading
-            eyebrow="CONFIGURATION"
+            eyebrow="DETECTION RULES"
             title="Thresholds & alerts"
-            description="Alerts detected in the Xetra data, and demo rules to preview your own thresholds."
+            description="Alerts detected in the Xetra data, and the thresholds used to detect them. The IR team can adjust them."
           />
 
           <section className="panel lower-panel">
             <div className="panel-title">
               <div>
                 <span className="kicker">DETECTED IN XETRA DATA · {dashboard?.anomalies.length ?? '–'} ALERTS IN 2026</span>
-                <h2>Most important alerts</h2>
+                <h2>Top 5 – latest period</h2>
               </div>
             </div>
-            {dashboard && <AnomalyList anomalies={dashboard.anomalies} onOpen={openImpact} />}
+            <p className="hitl-line">{HITL_LINE}</p>
+            {dashboard && <AnomalyList anomalies={dashboard.anomalies} onOpen={openImpact} isin={ISIN} />}
           </section>
 
-          <div className="threshold-layout">
-            <section className="panel threshold-panel">
-              <div className="panel-title">
-                <div>
-                  <span className="kicker">LEGAL & REGULATORY REFERENCES</span>
-                  <h2>Shareholding thresholds</h2>
-                </div>
-              </div>
-              <p className="section-description">
-                Voting-rights thresholds shown here are reference values from the
-                supplied project notes. Confirm applicability before production use.
-              </p>
-
-              <div className="threshold-chips">
-                {holdingThresholds.map((value) => (
-                  <span key={value}>{value}%</span>
-                ))}
-              </div>
-
-              <div className="threshold-reference">
-                <strong>30% control reference</strong>
-                <span>
-                  At 30%, review the applicable takeover rules and circumstances.
-                </span>
-              </div>
-
-              <label className="field-label" htmlFor="ownership-input">
-                Current entered voting-rights share (%)
-              </label>
-              <input
-                id="ownership-input"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={inputs.ownershipPct}
-                onChange={(event) => updateInput('ownershipPct', Number(event.target.value))}
-              />
-
-              <div className="form-divider" />
-
-              <div className="panel-title">
-                <div>
-                  <span className="kicker">TECHNICAL SIGNALS</span>
-                  <h2>Trading thresholds</h2>
-                </div>
-              </div>
-
-              <NumberSetting
-                label="Relative volume threshold (×)"
-                description="Suggested demo range: 1.5×–2.0× 30-day average daily volume."
-                value={thresholds.volumeRatio}
-                step={0.1}
-                onChange={(value) => updateThreshold('volumeRatio', value)}
-              />
-              <NumberSetting
-                label="Breakout distance (%)"
-                description="Distance beyond a reference support or resistance level."
-                value={thresholds.breakoutDistance}
-                step={0.1}
-                onChange={(value) => updateThreshold('breakoutDistance', value)}
-              />
-              <NumberSetting
-                label="EMA 200 distance (%)"
-                description="Price distance above the 200-day moving average."
-                value={thresholds.ema200Distance}
-                step={0.1}
-                onChange={(value) => updateThreshold('ema200Distance', value)}
-              />
-              <NumberSetting
-                label="MACD confirmation bars"
-                description="Minimum consecutive expanding bars."
-                value={thresholds.macdBars}
-                step={1}
-                onChange={(value) => updateThreshold('macdBars', value)}
-              />
-
-              <div className="form-divider" />
-
-              <div className="panel-title">
-                <div>
-                  <span className="kicker">RISK MANAGEMENT REFERENCES</span>
-                  <h2>Risk settings</h2>
-                </div>
-              </div>
-
-              <NumberSetting
-                label="Maximum risk per trade (%)"
-                description="Configurable reference range: 1%–2% of entered portfolio equity."
-                value={thresholds.maxRisk}
-                step={0.1}
-                onChange={(value) => updateThreshold('maxRisk', value)}
-              />
-              <NumberSetting
-                label="Minimum reward-to-risk ratio"
-                description="Example: 2 means a 1:2 risk-to-reward ratio."
-                value={thresholds.rewardRisk}
-                step={0.1}
-                onChange={(value) => updateThreshold('rewardRisk', value)}
-              />
-
-              <div className="form-divider" />
-
-              <div className="panel-title">
-                <div>
-                  <span className="kicker">DIRECTORS’ DEALINGS</span>
-                  <h2>Annual amount reference</h2>
-                </div>
-              </div>
-              <NumberSetting
-                label="Entered annual transaction amount (€)"
-                description="Reference amount from the project notes; verify applicable rules."
-                value={inputs.directorsDealings}
-                step={500}
-                onChange={(value) => updateInput('directorsDealings', value)}
-              />
-              <NumberSetting
-                label="Configured alert amount (€)"
-                description="Amount that triggers a demo alert in this prototype."
-                value={thresholds.directorsDealings}
-                step={500}
-                onChange={(value) => updateThreshold('directorsDealings', value)}
-              />
-            </section>
-
-            <aside className="threshold-side">
-              <section className="panel threshold-panel">
-                <div className="panel-title">
-                  <div>
-                    <span className="kicker">DEMO INPUTS</span>
-                    <h2>Test the alert rules</h2>
-                  </div>
-                </div>
-
-                <NumberSetting
-                  label="Relative volume (×)"
-                  value={inputs.volumeRatio}
-                  step={0.1}
-                  onChange={(value) => updateInput('volumeRatio', value)}
-                />
-                <NumberSetting
-                  label="Breakout distance (%)"
-                  value={inputs.breakoutDistance}
-                  step={0.1}
-                  onChange={(value) => updateInput('breakoutDistance', value)}
-                />
-                <NumberSetting
-                  label="Distance above EMA 200 (%)"
-                  value={inputs.ema200Distance}
-                  step={0.1}
-                  onChange={(value) => updateInput('ema200Distance', value)}
-                />
-                <NumberSetting
-                  label="Consecutive MACD bars"
-                  value={inputs.macdBars}
-                  step={1}
-                  onChange={(value) => updateInput('macdBars', value)}
-                />
-
-                <button className="primary-button full-width" onClick={evaluateAlerts}>
-                  Evaluate demo alerts →
-                </button>
-              </section>
-
-              <section className="panel alert-results">
-                <span className="kicker">ALERT PREVIEW</span>
-                <h2>Triggered alerts</h2>
-                {alerts.length === 0 ? (
-                  <p className="muted">
-                    Change the demo inputs and evaluate to preview alerts.
-                  </p>
-                ) : (
-                  <ul>
-                    {alerts.map((alert) => (
-                      <li key={alert}>
-                        <span />
-                        {alert}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            </aside>
+          <div className="notice-box rules-note">
+            Baseline: the previous {BASELINE_SESSIONS} trading days, excluding the measured day. ADTV: average daily
+            turnover of the previous {ADTV_SESSIONS} trading days. Alerts describe executions, not who traded. Severity
+            is high at 2× the threshold (anomalies: z-score one point above the threshold).
           </div>
 
-          <p className="legal-note">
-            These controls are a software prototype, not legal, investment or trading
-            advice. Regulatory thresholds and reporting duties can depend on facts and
-            current rules.
-          </p>
+          <ThresholdsEditor isin={ISIN} onSaved={() => setRevision((value) => value + 1)} />
+
+          <div className="rules-grid single">
+            <RuleTable kicker="FIXED RULES" title="Not adjustable in this tool" rules={fixedRules} />
+          </div>
         </div>
       </main>
       <Footer />
     </>
-  )
-}
-
-function NumberSetting({
-  label,
-  description,
-  value,
-  step,
-  onChange,
-}: {
-  label: string
-  description?: string
-  value: number
-  step: number
-  onChange: (value: number) => void
-}) {
-  return (
-    <label className="number-setting">
-      <span>
-        <strong>{label}</strong>
-        {description && <small>{description}</small>}
-      </span>
-      <input
-        type="number"
-        min="0"
-        step={step}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-    </label>
   )
 }
 
@@ -1940,6 +1726,7 @@ function ComparePage({
   const [to, setTo] = useState('2026-10-30')
   const query = new URLSearchParams({ type: eventType, index, from, to })
   const validRange = from !== '' && to !== '' && from <= to
+  const [allColumns, setAllColumns] = useState(false) // mobile (< 640 px) : colonnes essentielles par défaut
   const { data, error, loading } = useApi<CompareResponse>(validRange ? `/compare?${query}` : null)
 
   return (
@@ -1991,31 +1778,34 @@ function ComparePage({
                 <h2>Historical event responses</h2>
               </div>
             </div>
-            <div className="table-scroll">
-              <table>
+            <div className="table-scroll compare-scroll">
+              <table className={`compare-table${allColumns ? ' all-columns' : ''}`}>
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Company</th>
+                    <th className="sticky-col">Company</th>
+                    <th className="col-extra">Date</th>
+                    <th>Spread change</th>
                     <th>Volume ratio</th>
                     <th>Price change</th>
-                    <th>Spread change</th>
-                    <th>Auction share</th>
+                    <th className="col-extra">Auction share</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(data?.events ?? []).map((event) => (
                     <tr key={event.event_id} onClick={() => openImpact(`/events/${event.event_id}/impact-card`)} style={{ cursor: 'pointer' }}>
-                      <td>{formatDate(event.date)}</td>
-                      <td>{event.name}</td>
-                      <td>{formatRatio(event.volume_ratio)}</td>
-                      <td className={trendClass(event.price_change_pct)}>
-                        {formatPercent(event.price_change_pct)}
+                      <td className="sticky-col">
+                        {event.name}
+                        <small className="compare-date-inline">{formatDate(event.date)}</small>
                       </td>
-                      <td className={trendClass(event.spread_change_pct)}>
+                      <td className="col-extra">{formatDate(event.date)}</td>
+                      <td className={tone(event.spread_change_pct, 'cost')}>
                         {formatPercent(event.spread_change_pct)}
                       </td>
-                      <td>
+                      <td>{formatRatio(event.volume_ratio)}</td>
+                      <td className={tone(event.price_change_pct)}>
+                        {formatPercent(event.price_change_pct)}
+                      </td>
+                      <td className="col-extra">
                         {event.auction_share_change_pts === null
                           ? '–'
                           : `${event.auction_share_change_pts > 0 ? '+' : ''}${formatNumber(event.auction_share_change_pts * 100, 1)} pts`}
@@ -2025,6 +1815,13 @@ function ComparePage({
                 </tbody>
               </table>
             </div>
+            <button
+              className="text-button more-columns"
+              onClick={() => setAllColumns((value) => !value)}
+              aria-expanded={allColumns}
+            >
+              {allColumns ? 'Fewer columns' : 'More columns (date, auction share)'}
+            </button>
             <p className="small-note">
               {data && data.events.length === 0
                 ? 'No event of this type in the selected index and period.'
@@ -2107,6 +1904,12 @@ function ReportPage({
               <div className="report-section">
                 <span className="kicker">EXECUTIVE SUMMARY</span>
                 <p>{report.headline}</p>
+                <AiPoints
+                  points={report.ai_points}
+                  title={null}
+                  className="report-points"
+                  review={{ isin: ISIN, id: report.ai_summary_id, decision: report.ai_summary_decision }}
+                />
               </div>
               {report.sections.map((section) => (
                 <div className="report-section" key={section.title}>
@@ -2115,7 +1918,7 @@ function ReportPage({
                     <div className="report-event" key={kpi.label}>
                       <span>{kpi.label}</span>
                       <strong>{formatKpi(kpi.value, kpi.unit)}</strong>
-                      <span>
+                      <span className={tone(kpi.change_pct, toneForUnit(kpi.unit))}>
                         {kpi.change_pct == null ? kpi.trend ?? '' : `${formatPercent(kpi.change_pct)} ${kpi.trend ?? ''}`}
                       </span>
                     </div>
@@ -2129,7 +1932,7 @@ function ReportPage({
                     >
                       <span>{formatDate(item.date)}</span>
                       <strong>{item.title}</strong>
-                      <span>Spread {formatPercent(item.spread_change_pct)}</span>
+                      <span className={tone(item.spread_change_pct, 'cost')}>Spread {formatPercent(item.spread_change_pct)}</span>
                     </button>
                   ))}
                 </div>
@@ -2244,10 +2047,11 @@ function PreviewPage({
                 </div>
               </div>
 
-              <div className="ai-summary">
-                <strong>AI summary</strong>
-                <p>{preview.ai_summary}</p>
-              </div>
+              <AiPoints
+                points={preview.ai_points}
+                summary={preview.ai_summary}
+                review={{ isin: ISIN, id: preview.ai_summary_id, decision: preview.ai_summary_decision }}
+              />
 
               {preview.attention_points.length > 0 && (
                 <div className="attention-box">
@@ -2393,6 +2197,102 @@ function AssistantPage({
 
 type AuthState = 'checking' | 'in' | 'out'
 
+// Libellé lisible d'un élément du journal (anomalie / alerte, résumé IA, seuil)
+function describeItem(entry: DecisionLog['decisions'][number]) {
+  if (entry.item_type === 'threshold') return entry.note ?? entry.item_id
+  if (entry.item_type === 'ai_summary') {
+    const [kind, ...rest] = entry.item_id.split(':')
+    const label = kind === 'impact' ? 'impact card' : kind === 'preview' ? 'What to expect' : kind === 'report' ? 'IR snapshot' : kind
+    return `AI summary · ${label} ${rest.filter((part) => part !== ISIN).join(' ')}`.trim()
+  }
+  const [date, type] = entry.item_id.split('|')
+  return `${anomalyLabels[type] ?? type} · ${date ? formatDate(date) : ''}`
+}
+
+function DecisionLogPage({
+  navigate,
+  loggedIn,
+  logout,
+}: {
+  navigate: (page: Page) => void
+  loggedIn: boolean
+  logout: () => void
+}) {
+  const { data, error, loading } = useApi<DecisionLog>(`/decisions?isin=${ISIN}`)
+  const entries = data?.decisions ?? []
+
+  return (
+    <>
+      <Header page="decisions" loggedIn={loggedIn} navigate={navigate} logout={logout} />
+      <main className="workspace-page">
+        <div className="workspace-container">
+          <PageHeading
+            eyebrow="HUMAN IN THE LOOP"
+            title="Decision log"
+            description={HITL_LINE}
+          />
+          <LoadState loading={loading} error={error} />
+          <section className="panel compare-panel">
+            <div className="panel-title">
+              <div>
+                <span className="kicker">{entries.length} DECISIONS · DATA/DECISIONS.DB</span>
+                <h2>Every review and threshold change</h2>
+              </div>
+            </div>
+            {data && entries.length === 0 ? (
+              <p className="muted">No decision yet. Approve or dismiss an alert, an anomaly or an AI summary to start the log.</p>
+            ) : (
+              <div className="table-scroll">
+                <table className="decision-table">
+                  <thead>
+                    <tr>
+                      <th>When (Frankfurt)</th>
+                      <th>Item</th>
+                      <th>Decision</th>
+                      <th>Note / change</th>
+                      <th>By</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.map((entry) => (
+                      <tr key={entry.id}>
+                        <td>{entry.decided_at.slice(0, 16).replace('T', ' ')}</td>
+                        <td>{describeItem(entry)}</td>
+                        <td>
+                          {entry.decision === 'threshold_changed' ? (
+                            <span className="decision-badge threshold">Threshold changed</span>
+                          ) : (
+                            <DecisionBadge
+                              decision={{
+                                id: entry.id,
+                                decision: entry.decision,
+                                note: entry.note,
+                                decided_at: entry.decided_at,
+                                decided_by: entry.decided_by,
+                              }}
+                            />
+                          )}
+                        </td>
+                        <td>
+                          {entry.decision === 'threshold_changed'
+                            ? `${entry.old_value} → ${entry.new_value}`
+                            : entry.note ?? '–'}
+                        </td>
+                        <td>{entry.decided_by}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+      <Footer />
+    </>
+  )
+}
+
 function App() {
   // Source de vérité : l'API (GET /auth/me au démarrage, puis tout 401 renvoie au login)
   const [auth, setAuth] = useState<AuthState>('checking')
@@ -2525,6 +2425,8 @@ function App() {
     content = <ReportPage navigate={navigate} loggedIn={loggedIn} logout={logout} openImpact={openImpact} />
   } else if (page === 'preview') {
     content = <PreviewPage navigate={navigate} loggedIn={loggedIn} logout={logout} />
+  } else if (page === 'decisions') {
+    content = <DecisionLogPage navigate={navigate} loggedIn={loggedIn} logout={logout} />
   } else if (page === 'assistant') {
     content = (
       <AssistantPage

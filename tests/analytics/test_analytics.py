@@ -1042,3 +1042,132 @@ def test_pbb_preview_has_peer_results():
     ids = {e["event_id"] for e in p["peers"]["events"]}
     assert "evt_039" in ids  # flatexDEGIRO Q3, publié à 18:00 le 21.10 -> séance du 22.10
     assert next(e for e in p["peers"]["events"] if e["event_id"] == "evt_039")["date"] == "2026-10-22"
+
+
+# ---------- AI points (3–4 phrases courtes) ----------
+def test_ai_points_everywhere_and_guarded():
+    from app.assistant import facts as F
+
+    card = A.build_impact_card("evt_002")
+    prev = A.build_event_preview(PBB, "quarterly_results", "2026-11-12")
+    rep = A.build_report(PBB, "2026-10-26", "2026-10-30")
+    for pts, facts in ((card["ai_points"], F.impact_facts(card)), (prev["ai_points"], F.preview_facts(prev)),
+                       (rep["ai_points"], F.report_facts(rep))):
+        assert 3 <= len(pts) <= 4
+        for p in pts:
+            assert guard.check(p, facts) and "investor" not in p.lower() and len(p.split()) <= 20
+
+
+def test_ai_points_llm_kept_only_if_each_point_passes(monkeypatch):
+    from app import assistant
+    from app.assistant import llm
+
+    card = A.build_impact_card("evt_002", with_summary=False)
+    good = "- Volume was 15.0x its usual level.\n- The price moved -10.3%.\n- Spread 57.7 bps versus 59.0 bps."
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: good)
+    assert assistant.points_impact_card(card) == ["Volume was 15.0x its usual level.", "The price moved -10.3%.",
+                                                  "Spread 57.7 bps versus 59.0 bps."]
+    bad = good + "\n- Spread will rise to 99.9 bps."  # chiffre inventé + prédiction -> repli template
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: bad)
+    assert assistant.points_impact_card(card) == templates.impact_points(card)
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: "- Retail investors bought.\n- a.\n- b.")
+    assert assistant.points_impact_card(card) == templates.impact_points(card)
+
+
+def test_ai_points_no_past_events():
+    p = A.build_event_preview(PBB, "dividend")
+    assert p["ai_points"] == ["No past dividend announcements are available in the 2026 data."]
+
+
+# ---------- Seuils modifiables (point 16) ----------
+@pytest.fixture()
+def clean_thresholds():
+    from app.analytics import thresholds as TH
+
+    TH.reset(PBB, "tests")
+    yield TH
+    TH.reset(PBB, "tests")
+
+
+def test_threshold_change_changes_alert_count(clean_thresholds):
+    TH = clean_thresholds
+    from app.analytics.dashboard import flag_count
+
+    base = flag_count(PBB)
+    assert base == 149  # 149 alertes avec les seuils du code
+    log = TH.save(PBB, {"net_flow_adtv_pct": 50, "volume_z_min": 3.0}, "tests")
+    assert {e["item_id"] for e in log} == {"net_flow_adtv_pct", "volume_z_min"}
+    assert all(e["decision"] == "threshold_changed" for e in log)
+    assert next(e for e in log if e["item_id"] == "net_flow_adtv_pct")["old_value"] == "20"
+    stricter = flag_count(PBB)
+    assert stricter < base and TH.is_custom(PBB)
+    d = A.build_dashboard(PBB, "2026-01-02", "2026-10-30")
+    assert len(d["anomalies"]) == stricter  # dashboard, top 5 et chat lisent les mêmes seuils
+    TH.reset(PBB, "tests")
+    assert flag_count(PBB) == base and not TH.is_custom(PBB) and TH.current(PBB) == TH.defaults()
+
+
+def test_threshold_bounds_and_preview(clean_thresholds):
+    TH = clean_thresholds
+    from app.analytics.dashboard import threshold_preview
+
+    with pytest.raises(TH.InvalidThresholds) as e:
+        TH.validate({"volume_z_min": 9, "sweep_min_trades": 2.5, "nope": 1})
+    assert set(e.value.errors) == {"volume_z_min", "sweep_min_trades", "nope"}
+    p = threshold_preview(PBB, {"net_flow_adtv_pct": 200})
+    assert p["alerts_current"] == 149 and p["alerts_with_values"] < 149
+    assert TH.current(PBB)["net_flow_adtv_pct"] == 20  # l'aperçu n'enregistre rien
+
+
+def test_defaults_equal_code_values():
+    from app import config
+    from app.analytics import thresholds as TH
+
+    d = TH.defaults()
+    assert d["large_trade_adtv_pct"] == config.ALERT_LARGE_TRADE_ADTV_SHARE * 100
+    assert d["sweep_min_trades"] == config.ALERT_SWEEP_MIN_TRADES
+    assert d["net_flow_adtv_pct"] == config.ALERT_NET_FLOW_ADTV_SHARE * 100
+    assert d["auction_spike_ratio"] == config.ALERT_AUCTION_SPIKE_RATIO
+    assert (d["volume_z_min"], d["spread_z_min"], d["spread_ratio_min"]) == (2.0, 3.0, 1.2)
+
+
+# ---------- key_finding (point 8) ----------
+def test_key_finding_matches_phase1():
+    kf = A.build_dashboard(PBB, "2026-10-01", "2026-10-30")["key_finding"]
+    assert kf["text"] == ("pbb's cost to trade €25k rose from 54.3 to 97.4 bps (Jan–Oct), "
+                          "moving from below to above its peers' median.")
+    n = kf["numbers"]
+    assert (n["own_first_bps"], n["own_last_bps"]) == (54.3, 97.4)
+    assert (n["peers_median_first_bps"], n["peers_median_last_bps"]) == (72.3, 69.9)
+    assert (n["index_median_first_bps"], n["index_median_last_bps"]) == (69.8, 71.0)
+    assert (n["position_first"], n["position_last"]) == ("below", "above")
+    assert n["price_effect_pct"] == 58.1 and n["liquidity_effect_pct"] == 41.9
+
+
+def test_key_finding_wording_follows_the_data(monkeypatch):
+    from app.analytics import key_finding as KF
+
+    days = data.trading_days()
+    jan = days.to_period("M") == days[0].to_period("M")
+    oct_ = days.to_period("M") == days[-1].to_period("M")
+    own = pd.Series(np.nan, index=days)
+    own[jan], own[oct_] = 90.0, 60.0
+    peers = pd.Series(70.0, index=days)
+    monkeypatch.setattr(KF.data, "spread_series", lambda isin: own)
+    monkeypatch.setattr("app.analytics.dashboard._peer_spread_median", lambda isin: peers)
+    t = KF.build_key_finding(PBB)["text"]
+    assert "fell from 90.0 to 60.0 bps" in t and "moving from above to below its peers' median" in t
+    own[oct_] = 80.0
+    assert "staying above its peers' median" in KF.build_key_finding(PBB)["text"]
+
+
+# ---------- human-in-the-loop : id, décision, rang (points 9-10) ----------
+def test_anomaly_ids_unique_and_rank_order():
+    rows = A.build_dashboard(PBB, "2026-01-02", "2026-10-30")["anomalies"]
+    assert len({r["id"] for r in rows}) == len(rows)
+    ranked = sorted((r for r in rows if r["rank"]), key=lambda r: r["rank"])
+    sev = {"high": 0, "medium": 1, "low": 2}
+    keys = [(sev[r["severity"]], r["date"]) for r in ranked]
+    assert all(keys[i][0] < keys[i + 1][0] or (keys[i][0] == keys[i + 1][0] and keys[i][1] >= keys[i + 1][1])
+               for i in range(len(keys) - 1))
+    assert {r["item_type"] for r in rows} == {"anomaly", "alert"}

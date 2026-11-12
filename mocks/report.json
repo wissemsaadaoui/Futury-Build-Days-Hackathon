@@ -11,6 +11,14 @@
     "to": "2026-10-30"
   },
   "headline": "Spreads widened 31.2% vs the first half of the period, 7.6 bps tighter than peers.",
+  "ai_points": [
+    "Average spread 69.9 bps (+31.2% vs first half).",
+    "440,981 shares traded a day on average (-42.3%).",
+    "7.6 bps tighter than the peer median.",
+    "149 alerts flagged in the period."
+  ],
+  "ai_summary_id": "report:DE0008019001:2026-01-02:2026-10-30",
+  "ai_summary_decision": null,
   "sections": [
     {
       "title": "Trading profile",

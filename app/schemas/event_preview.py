@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Literal, Optional
 
 from app.schemas.common import DataStatusMixin, EventType, ISODate, OptNumber, Schema, StockRef
+from app.schemas.decisions import DecisionRef
 
 
 class PreviewStat(Schema):
@@ -59,3 +60,6 @@ class EventPreviewResponse(DataStatusMixin, Schema):
     confidence: Literal["low", "medium", "high"]  # low : n < 3, medium : 3–5, high : > 5
     note: str
     ai_summary: str
+    ai_points: list[str] = []  # v0.6
+    ai_summary_id: Optional[str] = None  # v0.8 : pour POST /decisions (item_type ai_summary)
+    ai_summary_decision: Optional[DecisionRef] = None

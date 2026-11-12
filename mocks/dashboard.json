@@ -11,6 +11,27 @@
     "to": "2026-10-09"
   },
   "as_of": "2026-10-30",
+  "key_finding": {
+    "text": "pbb's cost to trade €25k rose from 54.3 to 97.4 bps (Jan–Oct), moving from below to above its peers' median.",
+    "numbers": {
+      "metric": "median spread for a EUR 25,000 round trip (bps, Xetra XLM)",
+      "first_month": "2026-01",
+      "last_month": "2026-10",
+      "own_first_bps": 54.3,
+      "own_last_bps": 97.4,
+      "peers_median_first_bps": 72.3,
+      "peers_median_last_bps": 69.9,
+      "position_first": "below",
+      "position_last": "above",
+      "index": "SDAX",
+      "index_median_first_bps": 69.8,
+      "index_median_last_bps": 71.0,
+      "change_bps": 43.0,
+      "price_effect_pct": 58.1,
+      "liquidity_effect_pct": 41.9,
+      "n_peers": 6
+    }
+  },
   "kpis": {
     "avg_daily_volume": 453966,
     "avg_daily_turnover_eur": 1505545,
@@ -1079,7 +1100,11 @@
       "side": "BUY",
       "notional_eur": 93723,
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-18/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-18/impact-card",
+      "id": "2026-08-18|aggressor_sweep|4df3d3b1",
+      "item_type": "alert",
+      "decision": null,
+      "rank": 17
     },
     {
       "date": "2026-08-18",
@@ -1090,7 +1115,11 @@
       "side": "BUY",
       "notional_eur": 256105,
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-18/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-18/impact-card",
+      "id": "2026-08-18|net_flow|1e078030",
+      "item_type": "alert",
+      "decision": null,
+      "rank": 18
     },
     {
       "date": "2026-08-20",
@@ -1101,7 +1130,11 @@
       "side": "SELL",
       "notional_eur": 221246,
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-20/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-20/impact-card",
+      "id": "2026-08-20|net_flow|57e53353",
+      "item_type": "alert",
+      "decision": null,
+      "rank": 15
     },
     {
       "date": "2026-08-20",
@@ -1112,7 +1145,11 @@
       "side": "BUY",
       "notional_eur": 195913,
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-20/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-20/impact-card",
+      "id": "2026-08-20|net_flow|88482216",
+      "item_type": "alert",
+      "decision": null,
+      "rank": 16
     },
     {
       "date": "2026-08-21",
@@ -1121,7 +1158,11 @@
       "value": -5.84,
       "description": "Price moved -5.8% vs peers on 2.0x usual volume",
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-21/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-21/impact-card",
+      "id": "2026-08-21|price_move|84f2ca71",
+      "item_type": "anomaly",
+      "decision": null,
+      "rank": 7
     },
     {
       "date": "2026-08-21",
@@ -1130,7 +1171,11 @@
       "value": 1.99,
       "description": "Volume 2.0x above 20-day baseline",
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-21/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-21/impact-card",
+      "id": "2026-08-21|volume_spike|77743cf6",
+      "item_type": "anomaly",
+      "decision": null,
+      "rank": 14
     },
     {
       "date": "2026-08-27",
@@ -1141,7 +1186,11 @@
       "side": "SELL",
       "notional_eur": 205183,
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-27/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-27/impact-card",
+      "id": "2026-08-27|net_flow|b6e2d282",
+      "item_type": "alert",
+      "decision": null,
+      "rank": 13
     },
     {
       "date": "2026-08-31",
@@ -1153,7 +1202,11 @@
       "side": "SELL",
       "notional_eur": 176083,
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card",
+      "id": "2026-08-31|aggressor_sweep|5a08296f",
+      "item_type": "alert",
+      "decision": null,
+      "rank": 9
     },
     {
       "date": "2026-08-31",
@@ -1162,7 +1215,11 @@
       "value": 3.04,
       "description": "Closing auction executed 94% of the day's volume (3.0x its 20-day average share)",
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card",
+      "id": "2026-08-31|auction_spike|f96c4123",
+      "item_type": "alert",
+      "decision": null,
+      "rank": 10
     },
     {
       "date": "2026-08-31",
@@ -1174,7 +1231,11 @@
       "side": "BUY",
       "notional_eur": 100650,
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card",
+      "id": "2026-08-31|large_trade|45fde1c2",
+      "item_type": "alert",
+      "decision": null,
+      "rank": 11
     },
     {
       "date": "2026-08-31",
@@ -1185,7 +1246,11 @@
       "side": "BUY",
       "notional_eur": 6869279,
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card",
+      "id": "2026-08-31|net_flow|1f26087a",
+      "item_type": "alert",
+      "decision": null,
+      "rank": 4
     },
     {
       "date": "2026-08-31",
@@ -1196,7 +1261,11 @@
       "side": "SELL",
       "notional_eur": 6878560,
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card",
+      "id": "2026-08-31|net_flow|4082a525",
+      "item_type": "alert",
+      "decision": null,
+      "rank": 5
     },
     {
       "date": "2026-08-31",
@@ -1205,7 +1274,11 @@
       "value": -3.06,
       "description": "Price moved -3.1% vs peers on 22.7x usual volume",
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card",
+      "id": "2026-08-31|price_move|7b3867ea",
+      "item_type": "anomaly",
+      "decision": null,
+      "rank": 12
     },
     {
       "date": "2026-08-31",
@@ -1214,7 +1287,11 @@
       "value": 22.74,
       "description": "Volume 22.7x above 20-day baseline",
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-08-31/impact-card"
+      "detail_url": "/days/DE0008019001/2026-08-31/impact-card",
+      "id": "2026-08-31|volume_spike|014894b1",
+      "item_type": "anomaly",
+      "decision": null,
+      "rank": 6
     },
     {
       "date": "2026-09-29",
@@ -1223,7 +1300,11 @@
       "value": 1.21,
       "description": "Spread 1.2x its 20-day baseline",
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-09-29/impact-card"
+      "detail_url": "/days/DE0008019001/2026-09-29/impact-card",
+      "id": "2026-09-29|spread_widening|080375fd",
+      "item_type": "anomaly",
+      "decision": null,
+      "rank": 3
     },
     {
       "date": "2026-10-02",
@@ -1232,7 +1313,11 @@
       "value": 1.41,
       "description": "Spread 1.4x its 20-day baseline",
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-10-02/impact-card"
+      "detail_url": "/days/DE0008019001/2026-10-02/impact-card",
+      "id": "2026-10-02|spread_widening|47284290",
+      "item_type": "anomaly",
+      "decision": null,
+      "rank": 2
     },
     {
       "date": "2026-10-06",
@@ -1241,7 +1326,11 @@
       "value": 1.55,
       "description": "Spread 1.6x its 20-day baseline",
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-10-06/impact-card"
+      "detail_url": "/days/DE0008019001/2026-10-06/impact-card",
+      "id": "2026-10-06|spread_widening|6c3a8716",
+      "item_type": "anomaly",
+      "decision": null,
+      "rank": 1
     },
     {
       "date": "2026-10-08",
@@ -1250,7 +1339,11 @@
       "value": -2.71,
       "description": "Price moved -2.7% vs peers on 1.5x usual volume",
       "linked_event_id": null,
-      "detail_url": "/days/DE0008019001/2026-10-08/impact-card"
+      "detail_url": "/days/DE0008019001/2026-10-08/impact-card",
+      "id": "2026-10-08|price_move|a1e2468f",
+      "item_type": "anomaly",
+      "decision": null,
+      "rank": 8
     }
   ],
   "support_resistance": {

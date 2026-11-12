@@ -22,10 +22,13 @@ def _event_by_day(isin: str) -> dict[pd.Timestamp, str]:
 
 
 def _anomaly_rows(isin: str, spread: pd.Series, volume: pd.Series | None, start, end) -> list[dict]:
+    from app.analytics import thresholds
+
+    th = thresholds.current(isin)  # seuils de l'équipe IR (défauts = code), y compris un éventuel aperçu
     ev_day = _event_by_day(isin)
-    frames = [metrics.spread_anomalies(spread)]
+    frames = [metrics.spread_anomalies(spread, z_min=th["spread_z_min"], ratio_min=th["spread_ratio_min"])]
     if volume is not None:
-        frames.append(metrics.volume_anomalies(volume))
+        frames.append(metrics.volume_anomalies(volume, z_min=th["volume_z_min"]))
     rows = []
     for f in frames:
         f = f[(f.index >= start) & (f.index <= end)]
@@ -49,7 +52,9 @@ def _anomaly_rows(isin: str, spread: pd.Series, volume: pd.Series | None, start,
             if "level_price" in a:
                 a["level_price"] = r2(a["level_price"])
             rows.append(a)
-    return sorted(rows, key=lambda x: (x["date"], x["type"]))
+    from app.analytics import decisions
+
+    return decisions.attach(isin, sorted(rows, key=lambda x: (x["date"], x["type"])))
 
 
 def build_dashboard(isin: str, start, end) -> dict:
@@ -68,6 +73,9 @@ def build_dashboard(isin: str, start, end) -> dict:
     dash["stock"] = data.stock_ref(isin, rng[-1])
     dash["period"] = {"from": iso(rng[0]), "to": iso(rng[-1])}
     dash["as_of"] = iso(data.trading_days()[-1])  # dernière date des données (pas la fin de la période demandée)
+    from app.analytics.key_finding import build_key_finding
+
+    dash["key_finding"] = build_key_finding(isin)  # phrase clé par règles (premier vs dernier mois des données)
 
     sp = data.spread_series(isin)
     peer_sp = _peer_spread_median(isin)
@@ -160,3 +168,21 @@ def build_dashboard(isin: str, start, end) -> dict:
     k["anomaly_days"] = len(flagged)
     dash["_data_status"] = status
     return clean(dash)
+
+
+def flag_count(isin: str) -> int:
+    """Nombre d'anomalies + alertes sur toutes les données, avec les seuils appliqués (ou l'aperçu en cours)."""
+    days = data.trading_days()
+    px = data.ohlc(isin)
+    vol = px["volume"].astype(float) if not px.empty else None
+    return len(_anomaly_rows(isin, data.spread_series(isin), vol, days[0], days[-1]))
+
+
+def threshold_preview(isin: str, values: dict) -> dict:
+    """« With these thresholds: N alerts (currently M) » – sans rien enregistrer."""
+    from app.analytics import thresholds
+
+    current = flag_count(isin)
+    with thresholds.override(isin, values):
+        proposed = flag_count(isin)
+    return {"isin": isin, "alerts_with_values": proposed, "alerts_current": current}

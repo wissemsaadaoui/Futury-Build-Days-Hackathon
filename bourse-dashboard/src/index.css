@@ -3822,3 +3822,440 @@ button.report-event {
 .help-tip-bubble.open {
   display: block;
 }
+
+/* ---------- Thresholds : règles de détection (lecture seule) ---------- */
+.rules-note {
+  margin: 14px 0;
+}
+
+.rules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 14px;
+}
+
+.rule-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.rule-row {
+  padding: 11px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.rule-row:last-child {
+  border-bottom: 0;
+}
+
+.rule-row strong {
+  color: #24334b;
+  font-size: 15px;
+}
+
+.rule-row span {
+  color: #4b5870;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.rule-row small {
+  color: #8792a2;
+  font-size: 13px;
+}
+
+.rule-row code {
+  font-size: 12px;
+  color: #6b7a90;
+  word-break: break-word;
+}
+
+@media (max-width: 760px) {
+  .rules-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- AI summary en points (ai_points) ---------- */
+.ai-points ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-points li {
+  line-height: 1.5;
+}
+
+.ai-points li::marker {
+  color: var(--pbb-green);
+}
+
+.report-points,
+.drawer-points {
+  color: inherit;
+}
+
+.report-points ul,
+.drawer-points ul {
+  margin-top: 4px;
+}
+
+/* ---------- Compare : tableau mobile ---------- */
+.compare-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.compare-table .sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+  box-shadow: 1px 0 0 #edf0f3;
+}
+
+.compare-table thead .sticky-col {
+  z-index: 2;
+}
+
+.compare-date-inline {
+  display: none;
+}
+
+.more-columns {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .compare-table:not(.all-columns) .col-extra {
+    display: none;
+  }
+
+  .compare-table:not(.all-columns) .compare-date-inline {
+    display: block;
+    color: #8792a2;
+    font-size: 12px;
+  }
+
+  .compare-table .sticky-col {
+    max-width: 150px;
+    white-space: normal;
+  }
+
+  .more-columns {
+    display: inline-block;
+    margin-top: 8px;
+  }
+}
+
+/* ---------- Annonces du même jour de trading (une seule carte) ---------- */
+.day-announcements {
+  margin: 10px 0 6px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.day-announcements li {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 3px solid var(--pbb-green);
+  border-radius: 4px;
+  background: #fafbfd;
+}
+
+.day-announcement-meta {
+  color: #8792a2;
+  font-size: 13px;
+}
+
+.day-announcements strong {
+  color: #24334b;
+  font-size: 15px;
+}
+
+.day-announcements a {
+  width: fit-content;
+  color: var(--navy);
+  font-size: 13px;
+}
+
+/* ---------- Seuils modifiables (point 16) ---------- */
+.threshold-editor {
+  margin-bottom: 14px;
+  padding: 18px;
+}
+
+.threshold-groups {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.threshold-group h3 {
+  margin: 4px 0 8px;
+  color: #24334b;
+  font-family: 'Manrope', sans-serif;
+  font-size: 16px;
+}
+
+.threshold-field {
+  padding: 9px 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+  border-bottom: 1px solid #edf0f3;
+  color: #34425a;
+  font-size: 15px;
+}
+
+.threshold-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.threshold-input input {
+  width: 92px;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid #d6dde7;
+  border-radius: 6px;
+  font-size: 15px;
+  text-align: right;
+}
+
+.threshold-input small,
+.threshold-hint {
+  color: #8792a2;
+  font-size: 13px;
+}
+
+.threshold-hint {
+  grid-column: 1 / -1;
+}
+
+.threshold-field.invalid input {
+  border-color: #d64545;
+}
+
+.threshold-field.invalid .threshold-hint {
+  color: #c03b3b;
+}
+
+.threshold-preview {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border-radius: 7px;
+  background: #f4f7fb;
+  color: #4b5870;
+  font-size: 15px;
+}
+
+.threshold-preview strong {
+  color: var(--navy);
+}
+
+.threshold-message {
+  align-self: center;
+  color: #4d6c00;
+  font-size: 14px;
+}
+
+.custom-badge {
+  width: fit-content;
+  margin-top: 4px;
+  padding: 3px 9px;
+  border: 1px solid #f0c36d;
+  border-radius: 999px;
+  background: #fff7e6;
+  color: #8a5a00;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rules-grid.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 760px) {
+  .threshold-groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Key finding (dashboard.key_finding) ---------- */
+.key-finding {
+  margin-bottom: 13px;
+  padding: 13px 16px;
+  border-left: 3px solid var(--navy);
+}
+
+.key-finding p {
+  margin: 4px 0 4px;
+  color: #172238;
+  font-family: 'Manrope', sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.key-finding small {
+  color: #7b8797;
+  font-size: 13px;
+}
+
+/* ---------- Human-in-the-loop : décisions (points 9-10) ---------- */
+.hitl-line {
+  margin: 2px 0 6px;
+  color: #6b7a90;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.signal-row-wrap {
+  border-bottom: 1px solid #edf0f3;
+}
+
+.signal-row-wrap:last-of-type {
+  border-bottom: 0;
+}
+
+.signal-row-wrap .signal-row {
+  border-bottom: 0;
+}
+
+.signal-row-wrap.dismissed .signal-row {
+  opacity: 0.55;
+}
+
+.signal-rank {
+  min-width: 26px;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.decision-controls {
+  padding: 0 0 9px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.decision-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.decision-badge.pending {
+  background: #f1f3f6;
+  color: #6b7a90;
+}
+
+.decision-badge.approved {
+  background: #eef8dc;
+  color: #4d6c00;
+}
+
+.decision-badge.dismissed {
+  background: #fdeeee;
+  color: #a33a3a;
+}
+
+.decision-badge.threshold {
+  background: #fff7e6;
+  color: #8a5a00;
+}
+
+.decision-button,
+.decision-note-toggle {
+  padding: 3px 10px;
+  border: 1px solid #d6dde7;
+  border-radius: 6px;
+  background: #fff;
+  color: #34425a;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.decision-button.approve.active,
+.decision-button.approve:hover:not(:disabled) {
+  border-color: #8cbe00;
+  background: #f4faea;
+}
+
+.decision-button.dismiss.active,
+.decision-button.dismiss:hover:not(:disabled) {
+  border-color: #d98a8a;
+  background: #fdf3f3;
+}
+
+.decision-note-toggle {
+  border-style: dashed;
+  color: #6b7a90;
+}
+
+.decision-note {
+  flex: 1 1 220px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid #d6dde7;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.ai-review {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #dce8fb;
+}
+
+.ai-review .decision-controls {
+  padding-left: 0;
+}
+
+.ai-review small {
+  color: #7b8797;
+  font-size: 12px;
+}
+
+.day-badge-review {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.day-badge-review .decision-controls {
+  padding: 0;
+}
+
+.decision-table td {
+  white-space: normal;
+}
+
+.expect-few {
+  margin: 6px 0 0;
+  color: #896406;
+  font-size: 14px;
+  font-weight: 600;
+}

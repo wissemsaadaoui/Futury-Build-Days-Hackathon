@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from app import config
-from app.analytics import data, indicators, metrics
+from app.analytics import data, indicators, metrics, thresholds
 
 PARTICIPANT_LABEL = {"AGENT": "Agency flow (orders on behalf of clients)", "PROP": "Proprietary trading flow"}
 ALERT_TYPES = ("large_trade", "aggressor_sweep", "net_flow", "auction_spike", "price_move", "level_break")
@@ -49,14 +49,22 @@ def _with_adtv(isin: str, df: pd.DataFrame, share: float | None = None) -> pd.Da
 
 
 # ---------- large_trade ----------
-@lru_cache(maxsize=64)
+def _th(isin: str) -> dict[str, float]:
+    return thresholds.current(isin)
+
+
 def large_trades(isin: str) -> pd.DataFrame:
     """Une ligne par jour : la plus grosse exécution continue au-dessus du seuil (+ nombre d'exécutions au-dessus)."""
+    return _large_trades(isin, _th(isin)["large_trade_adtv_pct"] / 100)
+
+
+@lru_cache(maxsize=64)
+def _large_trades(isin: str, share: float) -> pd.DataFrame:
     t = data.continuous_trades(isin)
     cols = ["date", "time", "side", "notional_eur", "adtv", "n_above"]
     if t.empty:
         return pd.DataFrame(columns=cols)
-    t = _with_adtv(isin, t[["date", "ts_local", "side", "notional_eur"]])
+    t = _with_adtv(isin, t[["date", "ts_local", "side", "notional_eur"]], share)
     hit = t[t["notional_eur"] >= t["threshold"]]
     if hit.empty:
         return pd.DataFrame(columns=cols)
@@ -102,15 +110,20 @@ def sweep_runs(trades: pd.DataFrame, window_s: float = config.ALERT_SWEEP_WINDOW
     return runs[runs["n"] >= 2][cols].reset_index(drop=True)
 
 
-@lru_cache(maxsize=64)
 def sweeps(isin: str) -> pd.DataFrame:
     """Une ligne par jour : la plus grosse rafale au-dessus du seuil."""
+    th = _th(isin)
+    return _sweeps(isin, int(th["sweep_min_trades"]), th["sweep_adtv_pct"] / 100)
+
+
+@lru_cache(maxsize=64)
+def _sweeps(isin: str, min_trades: int, share: float) -> pd.DataFrame:
     cols = ["date", "time", "side", "notional_eur", "n", "duration_s", "adtv"]
     runs = sweep_runs(data.continuous_trades(isin))
-    runs = runs[runs["n"] >= config.ALERT_SWEEP_MIN_TRADES]
+    runs = runs[runs["n"] >= min_trades]
     if runs.empty:
         return pd.DataFrame(columns=cols)
-    runs = _with_adtv(isin, runs, config.ALERT_SWEEP_ADTV_SHARE)
+    runs = _with_adtv(isin, runs, share)
     hit = runs[runs["notional_eur"] >= runs["threshold"]]
     if hit.empty:
         return pd.DataFrame(columns=cols)
@@ -142,9 +155,13 @@ def net_flows(isin: str) -> pd.DataFrame:
 
 
 # ---------- auction_spike ----------
-@lru_cache(maxsize=64)
 def auction_spikes(isin: str) -> pd.DataFrame:
-    """Jours où la part de la closing auction dépasse 2 x sa moyenne des 20 séances précédentes."""
+    """Jours où la part de la closing auction dépasse N x (défaut 2) sa moyenne des 20 séances précédentes."""
+    return _auction_spikes(isin, _th(isin)["auction_spike_ratio"])
+
+
+@lru_cache(maxsize=64)
+def _auction_spikes(isin: str, ratio_min: float) -> pd.DataFrame:
     share = data.closing_auction_share_series(isin)
     cols = ["date", "share", "baseline", "ratio"]
     if share.empty:
@@ -152,7 +169,7 @@ def auction_spikes(isin: str) -> pd.DataFrame:
     mean, _ = metrics.rolling_baseline(share)
     df = pd.DataFrame({"share": share, "baseline": mean})
     df["ratio"] = df["share"] / df["baseline"]
-    df = df[df["ratio"] > config.ALERT_AUCTION_SPIKE_RATIO].dropna()
+    df = df[df["ratio"] > ratio_min].dropna()
     return df.rename_axis("date").reset_index()[cols]
 
 
@@ -182,10 +199,20 @@ def price_moves(isin: str) -> pd.DataFrame:
 
 
 # ---------- level_break ----------
-@lru_cache(maxsize=64)
+def _lb_key(isin: str) -> tuple[float, int, float]:
+    th = _th(isin)
+    return th["large_trade_adtv_pct"], int(th["sweep_min_trades"]), th["sweep_adtv_pct"]
+
+
 def level_breaks(isin: str) -> pd.DataFrame:
     """Clôture qui franchit un support/une résistance (calculés sur l'historique AVANT le jour), confirmée par
     volume_ratio > ALERT_LEVEL_BREAK_VOLUME ET au moins un large_trade ou aggressor_sweep le même jour."""
+    return _level_breaks(isin, *_lb_key(isin))
+
+
+@lru_cache(maxsize=64)
+def _level_breaks(isin: str, _lt_pct: float, _sw_min: int, _sw_pct: float) -> pd.DataFrame:
+    # les paramètres ne servent qu'à la clé de cache : large_trades / sweeps relisent les mêmes seuils
     cols = ["date", "level_type", "level_price", "touches", "close", "volume_ratio"]
     px = data.ohlc(isin)
     if px.empty:
@@ -245,7 +272,8 @@ def alert_rows(isin: str, start: pd.Timestamp, end: pd.Timestamp, linked: dict[p
         })
 
     nf = net_flows(isin)
-    limit = config.ALERT_NET_FLOW_ADTV_SHARE
+    th = _th(isin)
+    limit = th["net_flow_adtv_pct"] / 100
     for _, r in nf[nf["share"].abs() > limit].iterrows():
         if not inside(r["date"]):
             continue
@@ -262,7 +290,7 @@ def alert_rows(isin: str, start: pd.Timestamp, end: pd.Timestamp, linked: dict[p
         if not inside(r["date"]):
             continue
         rows.append({
-            "date": r["date"], "type": "auction_spike", "severity": _severity(r["ratio"], config.ALERT_AUCTION_SPIKE_RATIO),
+            "date": r["date"], "type": "auction_spike", "severity": _severity(r["ratio"], th["auction_spike_ratio"]),
             "value": r["ratio"],
             "description": f"Closing auction executed {r['share']:.0%} of the day's volume ({r['ratio']:.1f}x its 20-day average share)",
         })
@@ -302,5 +330,9 @@ def day_alerts(isin: str, day: pd.Timestamp) -> list[dict]:
 
 
 def clear_caches() -> None:
-    for fn in (large_trades, sweeps, net_flows, auction_spikes, day_moves, price_moves, level_breaks):
+    for fn in (_large_trades, _sweeps, net_flows, _auction_spikes, day_moves, price_moves, _level_breaks):
         getattr(fn, "cache_clear", lambda: None)()  # tolère une fonction remplacée par monkeypatch (tests)
+
+
+# Compatibilité tests : level_breaks.__wrapped__(isin) = calcul sans cache avec les seuils courants
+level_breaks.__wrapped__ = lambda isin: _level_breaks.__wrapped__(isin, *_lb_key(isin))  # type: ignore[attr-defined]

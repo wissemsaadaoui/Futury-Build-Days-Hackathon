@@ -35,12 +35,41 @@ export type Anomaly = {
   description: string
   linked_event_id: string | null
   detail_url: string
+  // v0.8 : human-in-the-loop
+  id?: string
+  item_type?: 'anomaly' | 'alert'
+  decision?: DecisionRef | null
+  rank?: number | null
 }
+
+export type DecisionRef = {
+  id: number
+  decision: 'approved' | 'dismissed'
+  note: string | null
+  decided_at: string
+  decided_by: string
+}
+
+export type Decision = {
+  id: number
+  item_type: 'alert' | 'ai_summary' | 'anomaly' | 'threshold'
+  item_id: string
+  isin: string
+  decision: 'approved' | 'dismissed' | 'threshold_changed'
+  note: string | null
+  old_value: string | null
+  new_value: string | null
+  decided_at: string
+  decided_by: string
+}
+
+export type DecisionLog = { isin: string | null; decisions: Decision[] }
 
 export type DashboardResponse = {
   stock: StockRef
   period: { from: string; to: string }
   as_of: string // v0.5 : dernière date des données (ex. "2026-10-30")
+  key_finding?: { text: string; numbers: Record<string, number | string | null> } | null // v0.7
   kpis: {
     avg_daily_volume: Num
     avg_daily_turnover_eur: Num
@@ -111,6 +140,9 @@ export type ImpactCardResponse = {
   } | null
   pre_disclosure_activity: { summary: string } | null
   ai_summary: string
+  ai_points?: string[] // v0.6
+  ai_summary_id?: string // v0.8
+  ai_summary_decision?: DecisionRef | null
   generated_at?: string
   export: { pdf_url: string }
   _data_status?: DataStatus
@@ -142,6 +174,9 @@ export type ReportResponse = {
   stock: StockRef
   period: { from: string; to: string }
   headline: string
+  ai_points?: string[] // v0.6
+  ai_summary_id?: string // v0.8
+  ai_summary_decision?: DecisionRef | null
   sections: {
     title: string
     kpis?: ReportKpi[] | null
@@ -190,6 +225,9 @@ export type EventPreviewResponse = {
   confidence: 'low' | 'medium' | 'high'
   note: string
   ai_summary: string
+  ai_points?: string[] // v0.6
+  ai_summary_id?: string // v0.8
+  ai_summary_decision?: DecisionRef | null
   _data_status?: DataStatus
 }
 
@@ -197,3 +235,25 @@ export type EventPreviewResponse = {
 export type ChatLink = { label: string; type: 'day' | 'event' | 'preview' | 'compare'; ref: string }
 
 export type ChatResponse = { answer: string; links: ChatLink[]; as_of: string }
+
+// /thresholds (point 16) – seuils d'alerte de l'équipe IR
+export type ThresholdSpec = {
+  label: string
+  unit: string
+  group: 'anomaly' | 'alert'
+  min: number
+  max: number
+  step: number
+  integer: boolean
+  default: number
+}
+
+export type ThresholdsResponse = {
+  isin: string
+  values: Record<string, number>
+  defaults: Record<string, number>
+  bounds: Record<string, ThresholdSpec>
+  custom: boolean
+}
+
+export type ThresholdsPreview = { isin: string; alerts_with_values: number; alerts_current: number }

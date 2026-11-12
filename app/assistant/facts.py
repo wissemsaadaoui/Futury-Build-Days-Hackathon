@@ -114,6 +114,7 @@ def report_facts(report: dict) -> dict[str, Any]:
         ],
         "peer_comparison": secs.get("Peer comparison", {}).get("kpis", []),
         "notable_events": len(secs.get("Notable events", {}).get("items", [])),
+        "alerts_total": sum(k.get("value") or 0 for k in secs.get("Alerts", {}).get("kpis", []) or []),
     }
 
 
