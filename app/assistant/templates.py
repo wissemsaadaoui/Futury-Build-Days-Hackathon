@@ -246,3 +246,74 @@ def _day(d: str) -> str:
     import pandas as pd
 
     return pd.Timestamp(d).strftime("%-d %b %Y")
+
+
+# ---------------------------------------------------------------- AI points (3–4 phrases courtes, repli sans LLM)
+def impact_points(card: dict) -> list[str]:
+    """Points courts de l'impact card, uniquement à partir des faits réels."""
+    f = impact_facts(card)
+    pts: list[str] = []
+    if "volume" in f and "price" in f:
+        pts.append(f"Volume was {_f(f['volume']['ratio_vs_baseline'])}x its usual level; the price moved "
+                   f"{f['price']['change_pct']:+.1f}%." if f["price"].get("change_pct") is not None
+                   else f"Volume was {_f(f['volume']['ratio_vs_baseline'])}x its usual level.")
+    sp = f["spread_bps_25k_eur"]
+    if sp.get("event_day") is not None and sp.get("baseline") is not None:
+        chg = sp.get("change_pct")
+        pts.append(f"Spread {fmt.bps(sp['event_day'])} versus {fmt.bps(sp['baseline'])} on average"
+                   + (f" ({chg:+.1f}%)." if chg is not None else "."))
+    it = f.get("intraday")
+    if it and it.get("first_15min_volume_ratio_vs_same_time_20d") is not None:
+        when = "after the publication" if it["announcement_during_session"] else "after the open"
+        pts.append(f"First 15 minutes {when}: {_f(it['first_15min_volume_ratio_vs_same_time_20d'])}x the usual volume.")
+    a = f.get("auction_share_pct")
+    if a and a.get("event_day") is not None and a.get("baseline") is not None:
+        pts.append(f"Auctions took {_f(a['event_day'])}% of volume versus {_f(a['baseline'])}% normally.")
+    ex = f.get("peers", {}).get("excess_return_vs_peers_pct")
+    if ex is not None and len(pts) < 4:
+        pts.append(f"{_f(abs(ex))} percentage points {'better' if ex >= 0 else 'worse'} than the peer median.")
+    return pts[:4]
+
+
+def preview_points(preview: dict) -> list[str]:
+    f = preview_facts(preview)
+    n, label, et = f["past_events_n"], f["event_type"], preview["event_type"]
+    if n == 0:
+        return [f"No past {_noun(et, label, 2)} are available in the 2026 data."]
+    pts = []
+    sp, vr, stn = f.get("spread_change_pct"), f.get("volume_ratio"), f.get("sessions_to_normal")
+    if sp:
+        pts.append(f"{n} past {_noun(et, label, n)}: median spread change {sp['median']:+.1f}%"
+                   + (f" ({sp['min']:+.1f}% to {sp['max']:+.1f}%)." if n > 1 else "."))
+    if vr:
+        pts.append(f"Median volume {vr['median']:.1f}x the usual level"
+                   + (f" ({vr['min']:.1f}x to {vr['max']:.1f}x)." if n > 1 else "."))
+    if stn:
+        pts.append("The spread stayed within 10% of normal on the publication day." if stn["max"] == 0
+                   else f"Liquidity back to normal within {_num(stn['max'])} session(s) at most.")
+    if f.get("peer_events_n"):
+        pts.append(f"{f['peer_events_n']} peer releases: median spread change {f['peers_spread_change_pct']['median']:+.1f}%.")
+    return pts[:4]
+
+
+def report_points(report: dict) -> list[str]:
+    secs = {s["title"]: s for s in report["sections"]}
+    kp = {k["label"]: k for k in secs.get("Trading profile", {}).get("kpis", [])}
+    pts = []
+    sp = next((v for k, v in kp.items() if k.startswith("Avg spread")), None)
+    if sp and sp.get("value") is not None:
+        chg = sp.get("change_pct")
+        basis = "vs first half" if sp.get("change_basis") == "first_half" else "vs previous period"
+        pts.append(f"Average spread {fmt.bps(sp['value'])}" + (f" ({chg:+.1f}% {basis})." if chg is not None else "."))
+    vol = kp.get("Avg daily volume")
+    if vol and vol.get("value") is not None:
+        chg = vol.get("change_pct")
+        pts.append(f"{fmt.shares(vol['value'])} traded a day on average" + (f" ({chg:+.1f}%)." if chg is not None else "."))
+    peer = (secs.get("Peer comparison", {}).get("kpis") or [None])[0]
+    if peer and peer.get("value") is not None:
+        pts.append(f"{fmt.bps(abs(peer['value']))} {'tighter' if peer['value'] < 0 else 'wider'} than the peer median.")
+    al = secs.get("Alerts")
+    if al and al.get("kpis") is not None:
+        n = sum(k["value"] or 0 for k in al["kpis"])
+        pts.append(f"{fmt.count(n)} alert{'s' if n != 1 else ''} flagged in the period." if n else "No alert flagged in the period.")
+    return pts[:4]

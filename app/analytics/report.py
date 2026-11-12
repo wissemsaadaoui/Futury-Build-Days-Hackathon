@@ -175,4 +175,7 @@ def build_report(isin: str, start, end) -> dict:
     from app.assistant import summarize_report
 
     report["headline"] = summarize_report(report)
+    from app.assistant import points_report
+
+    report["ai_points"] = points_report(report)
     return report

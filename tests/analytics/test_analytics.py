@@ -1042,3 +1042,38 @@ def test_pbb_preview_has_peer_results():
     ids = {e["event_id"] for e in p["peers"]["events"]}
     assert "evt_039" in ids  # flatexDEGIRO Q3, publié à 18:00 le 21.10 -> séance du 22.10
     assert next(e for e in p["peers"]["events"] if e["event_id"] == "evt_039")["date"] == "2026-10-22"
+
+
+# ---------- AI points (3–4 phrases courtes) ----------
+def test_ai_points_everywhere_and_guarded():
+    from app.assistant import facts as F
+
+    card = A.build_impact_card("evt_002")
+    prev = A.build_event_preview(PBB, "quarterly_results", "2026-11-12")
+    rep = A.build_report(PBB, "2026-10-26", "2026-10-30")
+    for pts, facts in ((card["ai_points"], F.impact_facts(card)), (prev["ai_points"], F.preview_facts(prev)),
+                       (rep["ai_points"], F.report_facts(rep))):
+        assert 3 <= len(pts) <= 4
+        for p in pts:
+            assert guard.check(p, facts) and "investor" not in p.lower() and len(p.split()) <= 20
+
+
+def test_ai_points_llm_kept_only_if_each_point_passes(monkeypatch):
+    from app import assistant
+    from app.assistant import llm
+
+    card = A.build_impact_card("evt_002", with_summary=False)
+    good = "- Volume was 15.0x its usual level.\n- The price moved -10.3%.\n- Spread 57.7 bps versus 59.0 bps."
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: good)
+    assert assistant.points_impact_card(card) == ["Volume was 15.0x its usual level.", "The price moved -10.3%.",
+                                                  "Spread 57.7 bps versus 59.0 bps."]
+    bad = good + "\n- Spread will rise to 99.9 bps."  # chiffre inventé + prédiction -> repli template
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: bad)
+    assert assistant.points_impact_card(card) == templates.impact_points(card)
+    monkeypatch.setattr(llm, "complete", lambda *a, **k: "- Retail investors bought.\n- a.\n- b.")
+    assert assistant.points_impact_card(card) == templates.impact_points(card)
+
+
+def test_ai_points_no_past_events():
+    p = A.build_event_preview(PBB, "dividend")
+    assert p["ai_points"] == ["No past dividend announcements are available in the 2026 data."]

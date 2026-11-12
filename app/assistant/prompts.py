@@ -1,7 +1,7 @@
 """Prompts versionnés de l'assistant. Toute modification -> incrémenter PROMPT_VERSION."""
 from __future__ import annotations
 
-PROMPT_VERSION = "2026-11-12.1"  # .2 : intraday, enchères, alertes d'exécution ; .3 : event preview ; .4 : formats IR ; 2026-11-12.1 : chat libre (CHAT_SYSTEM)
+PROMPT_VERSION = "2026-11-12.2"  # .2 : intraday, enchères, alertes d'exécution ; .3 : event preview ; .4 : formats IR ; 2026-11-12.1 : chat libre (CHAT_SYSTEM) ; .2 : AI points (POINTS_USER)
 
 SYSTEM = """You are an analyst writing for the Investor Relations (IR) team of a listed company.
 You turn trading statistics from Xetra into short, factual explanations.
@@ -72,4 +72,14 @@ Rules:
   say politely that this tool only describes past Xetra trading and suggest one question it can answer,
   e.g. "What happened in the latest week?".
 - Neutral, factual tone for an IR team.
+"""
+
+# AI points : 3 à 4 phrases courtes à côté de ai_summary (impact card, event preview, report)
+POINTS_USER = """Write 3 to 4 short bullet points (at most 16 words each) for the IR team about: {topic}.
+One point per line, each line starting with "- ". Each point is one factual sentence ending with a full stop.
+Use only numbers that appear in the FACTS. No price predictions, no expectations, no advice, no causes.
+Never write "investor", "institutional" or "retail".
+
+FACTS (JSON):
+{facts}
 """

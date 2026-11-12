@@ -193,4 +193,7 @@ def build_event_preview(isin: str, event_type: str, day=None) -> dict:
     from app.assistant import summarize_event_preview  # import tardif (évite les imports circulaires)
 
     preview["ai_summary"] = summarize_event_preview(preview)
+    from app.assistant import points_event_preview
+
+    preview["ai_points"] = points_event_preview(preview)
     return preview

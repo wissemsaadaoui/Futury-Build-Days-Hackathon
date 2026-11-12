@@ -174,6 +174,9 @@ def _build(isin: str, td: pd.Timestamp, event_row: dict | None, with_summary: bo
 
     card = clean(card)
     card["ai_summary"] = summarize_impact_card(card) if with_summary else ""
+    from app.assistant import points_impact_card
+
+    card["ai_points"] = points_impact_card(card) if with_summary else []
     return card
 
 
