@@ -2828,3 +2828,13 @@ th {
 
   
 }
+/* Lignes cliquables du report (événements -> impact card) */
+button.report-event {
+  width: 100%;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid #f0f2f5;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
