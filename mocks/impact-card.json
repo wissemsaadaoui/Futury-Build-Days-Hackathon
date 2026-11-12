@@ -186,6 +186,12 @@
     "broke_level": null
   },
   "ai_summary": "On the day of the event (Ad hoc: guidance for FY 2026 (profit before taxes EUR 30-40m) and preliminary FY 2025 figures), Deutsche Pfandbriefbank AG traded 15.0x its usual volume and the share price moved -10.3%, 9.6 percentage points worse than the median of its peers. The round-trip cost for a EUR 25,000 trade tightened to 57.7 bps versus a 20-day average of 59.0 bps (-2.2%). In the first 15 minutes after the publication (12:26), volume was 136.3x the usual level for that time of day, and the price moved -2.9% after 5 minutes and -9.5% after 30 minutes. Auctions accounted for 15.0% of volume versus 30.0% normally; the closing auction was 7.4x its usual size. Execution alert: Price moved -9.6% vs peers on 15.0x usual volume.",
+  "ai_points": [
+    "Volume was 15.0x its usual level; the price moved -10.3%.",
+    "Spread 57.7 bps versus 59.0 bps on average (-2.2%).",
+    "First 15 minutes after the publication: 136.3x the usual volume.",
+    "Auctions took 15.0% of volume versus 30.0% normally."
+  ],
   "generated_at": "2026-11-11T21:16:25+01:00",
   "export": {
     "pdf_url": "/events/evt_002/impact-card.pdf"

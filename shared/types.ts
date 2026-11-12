@@ -232,6 +232,7 @@ export interface ImpactCardResponse {
   intraday: IntradayBlock | null;  // 🆕 v0.2 : réaction minute par minute (null si pas de trades ce jour-là)
   pre_disclosure_activity: PreDisclosureActivity | null;  // 🆕 v0.3 : voting_rights uniquement, null sinon ou si rien d'inhabituel
   ai_summary: string;
+  ai_points: string[];  // v0.6 : 3–4 phrases courtes (chacune vérifiée par le garde-fou) ; à afficher en liste à puces
   generated_at: ISODateTime;
   export: ExportLinks;
 }
@@ -330,6 +331,7 @@ export interface ReportResponse {
   stock: StockRef;
   period: { from: ISODate; to: ISODate };
   headline: string;
+  ai_points: string[];  // v0.6
   sections: ReportSection[];
   disclaimer: string;
   generated_at: ISODateTime;
@@ -381,5 +383,6 @@ export interface EventPreviewResponse {
   confidence: "low" | "medium" | "high";  // low : n < 3, medium : 3–5, high : > 5
   note: string;
   ai_summary: string;
+  ai_points: string[];  // v0.6 : 3–4 phrases courtes (chacune vérifiée par le garde-fou) ; à afficher en liste à puces
   _data_status?: Record<string, "real" | "mock" | "missing">;
 }
