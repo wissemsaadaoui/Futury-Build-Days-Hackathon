@@ -109,3 +109,28 @@ def test_cors_headers_on_200_and_401(anon):
 def test_unknown_origin_gets_no_cors_header(anon):
     r = anon.get("/health", headers={"Origin": "https://evil.example"})
     assert "access-control-allow-origin" not in r.headers
+
+
+# ---------- Prod : uvicorn --root-path /api (derrière Caddy) ----------
+# uvicorn PRÉFIXE le chemin avec root_path (scope["path"] = "/api/health") ; TestClient(root_path=...) ne le fait pas.
+# Les requêtes ci-dessous passent donc "/api/..." pour reproduire exactement le scope de prod.
+def test_public_routes_and_token_work_behind_root_path():
+    api = TestClient(app, root_path="/api")
+    assert api.get("/api/health").status_code == 200
+    r = api.post("/api/auth/login", json={"password": config.APP_PASSWORD})
+    assert r.status_code == 200 and r.json()["token"]
+    assert api.get("/api/stocks").status_code == 401
+    assert api.get("/api/stocks", headers=_bearer(r.json()["token"])).status_code == 200
+    assert api.post("/api/auth/login", json={"password": "wrong"}).status_code == 401
+
+
+def test_app_path_strips_root_path_only():
+    from starlette.requests import Request
+
+    def path_of(path: str, root: str) -> str:
+        return auth.app_path(Request({"type": "http", "path": path, "root_path": root, "headers": [], "query_string": b""}))
+
+    assert path_of("/api/auth/login", "/api") == "/auth/login"
+    assert path_of("/api", "/api") == "/"
+    assert path_of("/health", "") == "/health"
+    assert path_of("/health", "/api") == "/health"  # pas préfixé : inchangé

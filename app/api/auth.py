@@ -87,9 +87,19 @@ def me(request: Request) -> dict[str, bool]:
     return {"authenticated": True}
 
 
+def app_path(request: Request) -> str:
+    """Chemin de la route SANS le root_path : derrière Caddy, uvicorn tourne avec --root-path /api et
+    request.url.path vaut alors "/api/auth/login" au lieu de "/auth/login"."""
+    root = request.scope.get("root_path", "")
+    path = request.url.path
+    if root and path.startswith(root):
+        path = path[len(root):] or "/"
+    return path
+
+
 async def require_token(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     """Middleware HTTP : 401 JSON sans token valide (sauf routes publiques et preflight CORS)."""
-    public = request.method == "OPTIONS" or request.url.path in PUBLIC_PATHS
+    public = request.method == "OPTIONS" or app_path(request) in PUBLIC_PATHS
     if not public and not request_is_authenticated(request):
         return JSONResponse(
             status_code=401,
