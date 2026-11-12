@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Literal, Optional
 
 from app.schemas.common import DataStatusMixin, ExportLinks, ISODate, ISODateTime, OptNumber, Period, Schema, StockRef
+from app.schemas.decisions import DecisionRef
 
 Trend = Literal["up", "down", "flat", "better", "worse"]
 
@@ -52,6 +53,8 @@ class ReportResponse(DataStatusMixin, Schema):
     period: Period
     headline: str
     ai_points: list[str] = []  # v0.6
+    ai_summary_id: Optional[str] = None  # v0.8 : pour POST /decisions (item_type ai_summary)
+    ai_summary_decision: Optional[DecisionRef] = None
     sections: list[ReportSection]
     disclaimer: str
     generated_at: ISODateTime

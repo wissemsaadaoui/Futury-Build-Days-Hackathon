@@ -19,6 +19,7 @@ from app.schemas.common import (
     StockRef,
 )
 from app.schemas.dashboard import AnomalyType
+from app.schemas.decisions import DecisionRef
 
 
 class ImpactEvent(Schema):
@@ -184,5 +185,7 @@ class ImpactCardResponse(DataStatusMixin, Schema):
     pre_disclosure_activity: Optional[PreDisclosureActivity] = None  # v0.3 : voting_rights uniquement
     ai_summary: str
     ai_points: list[str] = []  # v0.6 : 3–4 phrases courtes, chacune vérifiée par le garde-fou
+    ai_summary_id: Optional[str] = None  # v0.8 : pour POST /decisions (item_type ai_summary)
+    ai_summary_decision: Optional[DecisionRef] = None
     generated_at: ISODateTime
     export: ExportLinks

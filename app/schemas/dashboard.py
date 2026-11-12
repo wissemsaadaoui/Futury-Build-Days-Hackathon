@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Literal, Optional
 
 from app.schemas.common import DataStatusMixin, ISODate, OptNumber, Period, Schema, StockRef
+from app.schemas.decisions import DecisionRef
 
 # v0.3 : alertes sur les exécutions (§5.2) + level_break, voir mocks/API.md
 AnomalyType = Literal[
@@ -77,6 +78,11 @@ class Anomaly(Schema):
     notional_eur: OptNumber = None
     level_type: Optional[Literal["support", "resistance"]] = None  # level_break uniquement
     level_price: OptNumber = None  # level_break uniquement (€)
+    # v0.8 : human-in-the-loop (points 9-10)
+    id: Optional[str] = None  # identifiant stable (date | type | empreinte), pour POST /decisions
+    item_type: Optional[Literal["anomaly", "alert"]] = None
+    decision: Optional[DecisionRef] = None  # dernière décision approved / dismissed de l'équipe IR
+    rank: Optional[int] = None  # 1 = la plus importante (sévérité puis récence), None si dismissed
 
 
 class PriceLevel(Schema):
