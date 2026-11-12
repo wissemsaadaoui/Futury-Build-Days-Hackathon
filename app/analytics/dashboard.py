@@ -71,6 +71,9 @@ def build_dashboard(isin: str, start, end) -> dict:
     dash["stock"] = data.stock_ref(isin, rng[-1])
     dash["period"] = {"from": iso(rng[0]), "to": iso(rng[-1])}
     dash["as_of"] = iso(data.trading_days()[-1])  # dernière date des données (pas la fin de la période demandée)
+    from app.analytics.key_finding import build_key_finding
+
+    dash["key_finding"] = build_key_finding(isin)  # phrase clé par règles (premier vs dernier mois des données)
 
     sp = data.spread_series(isin)
     peer_sp = _peer_spread_median(isin)

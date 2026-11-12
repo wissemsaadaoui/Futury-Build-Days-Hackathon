@@ -1129,3 +1129,33 @@ def test_defaults_equal_code_values():
     assert d["net_flow_adtv_pct"] == config.ALERT_NET_FLOW_ADTV_SHARE * 100
     assert d["auction_spike_ratio"] == config.ALERT_AUCTION_SPIKE_RATIO
     assert (d["volume_z_min"], d["spread_z_min"], d["spread_ratio_min"]) == (2.0, 3.0, 1.2)
+
+
+# ---------- key_finding (point 8) ----------
+def test_key_finding_matches_phase1():
+    kf = A.build_dashboard(PBB, "2026-10-01", "2026-10-30")["key_finding"]
+    assert kf["text"] == ("pbb's cost to trade €25k rose from 54.3 to 97.4 bps (Jan–Oct), "
+                          "moving from below to above its peers' median.")
+    n = kf["numbers"]
+    assert (n["own_first_bps"], n["own_last_bps"]) == (54.3, 97.4)
+    assert (n["peers_median_first_bps"], n["peers_median_last_bps"]) == (72.3, 69.9)
+    assert (n["index_median_first_bps"], n["index_median_last_bps"]) == (69.8, 71.0)
+    assert (n["position_first"], n["position_last"]) == ("below", "above")
+    assert n["price_effect_pct"] == 58.1 and n["liquidity_effect_pct"] == 41.9
+
+
+def test_key_finding_wording_follows_the_data(monkeypatch):
+    from app.analytics import key_finding as KF
+
+    days = data.trading_days()
+    jan = days.to_period("M") == days[0].to_period("M")
+    oct_ = days.to_period("M") == days[-1].to_period("M")
+    own = pd.Series(np.nan, index=days)
+    own[jan], own[oct_] = 90.0, 60.0
+    peers = pd.Series(70.0, index=days)
+    monkeypatch.setattr(KF.data, "spread_series", lambda isin: own)
+    monkeypatch.setattr("app.analytics.dashboard._peer_spread_median", lambda isin: peers)
+    t = KF.build_key_finding(PBB)["text"]
+    assert "fell from 90.0 to 60.0 bps" in t and "moving from above to below its peers' median" in t
+    own[oct_] = 80.0
+    assert "staying above its peers' median" in KF.build_key_finding(PBB)["text"]
