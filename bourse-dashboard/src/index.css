@@ -931,22 +931,7 @@ button:disabled {
   font-weight: 800;
 }
 
-.prototype-credentials {
-  margin-top: 14px;
-  padding: 10px 12px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px 10px;
-  border-radius: 6px;
-  background: #f3f6fa;
-  color: #738096;
-  font-size: 9px;
-}
 
-.prototype-credentials strong {
-  grid-column: 1 / -1;
-  color: #4c5a71;
-}
 
 .login-security-note {
   margin: 12px 0 0;

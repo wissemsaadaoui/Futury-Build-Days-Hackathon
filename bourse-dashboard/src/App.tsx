@@ -15,7 +15,7 @@ import {
   type UTCTimestamp,
 } from 'lightweight-charts'
 
-import { ApiError, UNAUTHORIZED_EVENT, apiGet, apiPost, apiUrl } from './api/clients.ts'
+import { ApiError, UNAUTHORIZED_EVENT, apiGet, apiPost, clearToken, getToken, setToken } from './api/clients.ts'
 import type {
   CompareResponse,
   DailyPoint,
@@ -28,6 +28,7 @@ import type {
 } from './api/types.ts'
 import { clearApiCache, useApi } from './api/useApi.ts'
 import { DayDetail } from './components/DayDetail.tsx'
+import { PdfButton } from './components/PdfButton.tsx'
 import { WhatToExpect } from './components/WhatToExpect.tsx'
 import {
   DISCLAIMER,
@@ -534,7 +535,7 @@ function HomePage({
 }
 
 // Écran de login : le mot de passe part UNE fois vers POST /auth/login ; il n'est ni stocké ni gardé en mémoire
-// après l'envoi. La session est un cookie HttpOnly posé par l'API.
+// après l'envoi. L'API renvoie un token signé (12 h), stocké dans localStorage.
 function LoginPage({ onLogin }: { onLogin: (password: string) => Promise<string | null> }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -592,7 +593,7 @@ function LoginPage({ onLogin }: { onLogin: (password: string) => Promise<string 
             </button>
 
             <p className="login-security-note">
-              The session is kept in a secure cookie for 12 hours. Use Log out on a shared computer.
+              Your session stays active for 12 hours on this browser. Use Log out on a shared computer.
             </p>
           </form>
         </section>
@@ -974,14 +975,13 @@ function AnalysisAssistant({
                       <strong>{section.title}:</strong> {section.text}
                     </p>
                   ))}
-                <a
+                <PdfButton
                   className="text-button"
-                  href={apiUrl(`/stocks/${ISIN}/report.pdf?from=${request.from}&to=${request.to}`)}
-                  target="_blank"
-                  rel="noreferrer"
+                  path={`/stocks/${ISIN}/report.pdf?from=${request.from}&to=${request.to}`}
+                  filename={`pbb-report-${request.from}-${request.to}.pdf`}
                 >
                   Export this period as PDF ↓
-                </a>
+                </PdfButton>
               </>
             )}
           </div>
@@ -2068,9 +2068,9 @@ function ReportPage({
               ))}
               <div className="report-disclaimer">{report.disclaimer}</div>
               <div className="report-actions">
-                <a className="primary-button compact" href={apiUrl(report.export.pdf_url)} target="_blank" rel="noreferrer">
+                <PdfButton path={report.export.pdf_url} filename="pbb-ir-snapshot.pdf">
                   Export PDF ↓
-                </a>
+                </PdfButton>
                 <button className="outline-button" onClick={exportCsv}>
                   Export events CSV ↓
                 </button>
@@ -2302,9 +2302,9 @@ function App() {
       // stockage indisponible (navigation privée) : rien à nettoyer
     }
     let active = true
-    apiGet('/auth/me')
-      .then(() => active && setAuth('in'))
-      .catch(() => active && setAuth('out'))
+    // Pas de token : écran de login directement. Sinon /auth/me dit s'il est encore valide (un 401 l'efface).
+    const check: Promise<unknown> = getToken() ? apiGet('/auth/me') : Promise.reject(new Error('no token'))
+    check.then(() => active && setAuth('in')).catch(() => active && setAuth('out'))
     const onUnauthorized = () => {
       clearApiCache()
       setAuth('out')
@@ -2319,7 +2319,8 @@ function App() {
   // Renvoie un message d'erreur, ou null si le login a réussi
   const login = useCallback(async (password: string) => {
     try {
-      await apiPost('/auth/login', { password })
+      const { token } = await apiPost<{ token: string; expires_at: string }>('/auth/login', { password })
+      setToken(token) // seul le token est stocké, jamais le mot de passe
     } catch (error) {
       return error instanceof ApiError && error.status === 401
         ? 'Incorrect password.'
@@ -2331,12 +2332,8 @@ function App() {
     return null
   }, [])
 
-  const logout = useCallback(async () => {
-    try {
-      await apiPost('/auth/logout')
-    } catch {
-      // Cookie expiré ou serveur injoignable : on revient quand même à l'écran de login
-    }
+  const logout = useCallback(() => {
+    clearToken() // token sans état côté serveur : l'effacer suffit
     clearApiCache()
     setAuth('out')
     setSelectedPoint(null)

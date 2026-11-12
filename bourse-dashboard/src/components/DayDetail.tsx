@@ -14,7 +14,6 @@ import {
   YAxis,
 } from 'recharts'
 
-import { apiUrl } from '../api/clients.ts'
 import type { Anomaly, ImpactCardResponse, Num } from '../api/types.ts'
 import {
   anomalyLabels,
@@ -30,6 +29,7 @@ import {
   isMissing,
   trendClass,
 } from '../format.ts'
+import { PdfButton } from './PdfButton.tsx'
 
 // Anomalies statistiques du jour (badges en haut) ; les autres types sont des alertes d'exécution (en bas).
 const SIGNAL_TYPES = new Set(['volume_spike', 'spread_widening', 'price_move'])
@@ -373,9 +373,9 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
       </div>
 
       <div className="report-actions">
-        <a className="primary-button compact" href={apiUrl(card.export.pdf_url)} target="_blank" rel="noreferrer">
+        <PdfButton path={card.export.pdf_url} filename={`${card.card_id}.pdf`}>
           Export PDF ↓
-        </a>
+        </PdfButton>
       </div>
     </div>
   )
