@@ -49,11 +49,13 @@ class Upcoming(Schema):
 class EventPreviewResponse(DataStatusMixin, Schema):
     stock: StockRef
     event_type: EventType
-    as_of: Optional[ISODate] = None  # `date` demandé : seuls les événements AVANT cette date ; null = tous
+    as_of: ISODate  # v0.5 : dernière date des données
+    reference_date: Optional[ISODate] = None  # `date` demandé : seuls les événements AVANT cette date ; null = tous
     upcoming: Optional[Upcoming] = None
     own_history: PreviewHistory
     peers: PeerHistory
     attention_points: list[str]
+    checklist: list[str] = []  # v0.5 : préparation IR par règles (jamais de prédiction de cours)
     confidence: Literal["low", "medium", "high"]  # low : n < 3, medium : 3–5, high : > 5
     note: str
     ai_summary: str

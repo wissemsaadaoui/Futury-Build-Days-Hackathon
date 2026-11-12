@@ -26,5 +26,6 @@ class CorporateEvent(Schema):
 
 class EventsResponse(Schema):
     isin: str
+    as_of: ISODate  # v0.5 : dernière date des données
     events: list[CorporateEvent]
     event_types: list[EventType]

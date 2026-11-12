@@ -92,6 +92,7 @@ class SupportResistance(Schema):
 class DashboardResponse(DataStatusMixin, Schema):
     stock: StockRef
     period: Period
+    as_of: ISODate  # v0.5 : dernière date des données (indépendante de la période demandée)
     kpis: DashboardKpis
     series: list[DailyPoint]
     peers_series: list[PeerPoint]
