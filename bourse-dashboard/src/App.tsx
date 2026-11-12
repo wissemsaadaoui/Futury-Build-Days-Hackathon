@@ -15,7 +15,19 @@ import {
   type UTCTimestamp,
 } from 'lightweight-charts'
 
-import { apiGet } from './api/clients.ts';
+import { apiUrl } from './api/clients.ts'
+import type {
+  CompareResponse,
+  DailyPoint,
+  DashboardResponse,
+  DataStatus,
+  EventPreviewResponse,
+  EventsResponse,
+  ImpactCardResponse,
+  PreviewStat,
+  ReportResponse,
+} from './api/types.ts'
+import { useApi } from './api/useApi.ts'
 
 type Page =
   | 'home'
@@ -30,35 +42,20 @@ type Page =
   | 'preview'
   | 'assistant'
 
-type Period = '1D' | '1W' | '1M' | '3M' | '1Y'
+type Period = '1W' | '1M' | '3M' | 'YTD'
 
 type StockPoint = {
   time: UTCTimestamp
   date: string
   close: number
-  ema20: number
-  ema50: number
-  ema200: number
-  volume: number
-  volumeRatio: number
-  turnover: number
-  vwap: number
-  spreadBps: number
+  ema20: number | null
+  ema50: number | null
+  volume: number | null
+  volumeRatio: number | null
+  turnover: number | null
+  vwap: number | null
+  spreadBps: number | null
   auctionShare: number | null
-}
-
-type MarketEvent = {
-  event_id: string
-  date: string
-  time: string
-  trading_day: string
-  type: string
-  title: string
-  headline_metric: {
-    volume_ratio: number | null
-    price_change_pct: number | null
-    spread_change_pct: number | null
-  }
 }
 
 type ChatMessage = {
@@ -90,7 +87,23 @@ const COMPANY = 'Deutsche Pfandbriefbank AG'
 const DEMO_EMAIL = 'abc@gmail.com'
 const DEMO_PASSWORD = 'azerty123'
 
-const periods: Period[] = ['1D', '1W', '1M', '3M', '1Y']
+const periods: Period[] = ['1W', '1M', '3M', 'YTD']
+// Nombre de séances par période (le dashboard couvre 2026 jusqu'au 30.10)
+const periodSessions: Record<Period, number> = { '1W': 5, '1M': 21, '3M': 63, YTD: Infinity }
+
+// Impact card ouverte par défaut : ad hoc du 13.02.2026 (scène b de la démo)
+const DEFAULT_IMPACT = '/events/evt_002/impact-card'
+
+const anomalyLabels: Record<string, string> = {
+  volume_spike: 'Volume spike',
+  spread_widening: 'Spread widening',
+  price_move: 'Price move vs peers',
+  auction_spike: 'Closing auction spike',
+  large_trade: 'Large single execution',
+  aggressor_sweep: 'Aggressor sweep',
+  net_flow: 'Unusual net flow',
+  level_break: 'Support / resistance break',
+}
 
 const eventLabels: Record<string, string> = {
   annual_results: 'Annual results',
@@ -104,61 +117,6 @@ const eventLabels: Record<string, string> = {
   voting_rights: 'Voting rights notification',
   directors_dealings: "Directors' dealings",
 }
-
-const eventData: MarketEvent[] = [
-  {
-    event_id: 'demo-evt-001',
-    date: '2026-10-21',
-    time: '08:00',
-    trading_day: '2026-10-21',
-    type: 'quarterly_results',
-    title: 'Quarterly results — fictional demo event',
-    headline_metric: {
-      volume_ratio: 2.1,
-      price_change_pct: 1.8,
-      spread_change_pct: -4.2,
-    },
-  },
-  {
-    event_id: 'demo-evt-002',
-    date: '2026-10-08',
-    time: '12:26',
-    trading_day: '2026-10-08',
-    type: 'ad_hoc',
-    title: 'Ad hoc announcement — fictional demo event',
-    headline_metric: {
-      volume_ratio: 1.7,
-      price_change_pct: -3.4,
-      spread_change_pct: 8.6,
-    },
-  },
-  {
-    event_id: 'demo-evt-003',
-    date: '2026-09-17',
-    time: '',
-    trading_day: '2026-09-18',
-    type: 'voting_rights',
-    title: 'Voting rights notification — fictional demo event',
-    headline_metric: {
-      volume_ratio: null,
-      price_change_pct: null,
-      spread_change_pct: null,
-    },
-  },
-  {
-    event_id: 'demo-evt-004',
-    date: '2026-08-28',
-    time: '09:15',
-    trading_day: '2026-08-28',
-    type: 'directors_dealings',
-    title: "Directors' dealings — fictional demo event",
-    headline_metric: {
-      volume_ratio: 1.2,
-      price_change_pct: 0.4,
-      spread_change_pct: -1.1,
-    },
-  },
-]
 
 const indicators = [
   {
@@ -200,7 +158,7 @@ const indicators = [
   {
     id: 'ema',
     name: 'Moving averages',
-    description: 'EMA 20, EMA 50 and EMA 200 trend references.',
+    description: 'EMA 20 and EMA 50 trend references.',
     formula: 'Exponential moving averages calculated from closing prices.',
   },
   {
@@ -276,55 +234,57 @@ function trendClass(value: number | null | undefined) {
   return value > 0 ? 'positive' : 'negative'
 }
 
-function makeMockSeries(period: Period): StockPoint[] {
-  const end = new Date('2026-10-30T16:30:00+01:00')
-  const count =
-    period === '1D'
-      ? 24
-      : period === '1W'
-        ? 7
-        : period === '1M'
-          ? 30
-          : period === '3M'
-            ? 90
-            : 210
+// Série quotidienne de l'API -> points du graphique (jours sans prix de clôture ignorés)
+function toStockPoints(series: DailyPoint[]): StockPoint[] {
+  return series
+    .filter((day) => day.close !== null)
+    .map((day) => {
+      const [year, month, dayOfMonth] = day.date.split('-').map(Number)
+      return {
+        time: (Date.UTC(year, month - 1, dayOfMonth) / 1000) as UTCTimestamp,
+        date: day.date,
+        close: day.close as number,
+        ema20: day.ema_20,
+        ema50: day.ema_50,
+        volume: day.volume,
+        volumeRatio: day.volume_ratio,
+        turnover: day.turnover_eur,
+        vwap: day.volume && day.turnover_eur !== null ? day.turnover_eur / day.volume : null,
+        spreadBps: day.spread_bps,
+        auctionShare: day.auction_share,
+      }
+    })
+}
 
-  return Array.from({ length: count }, (_, index) => {
-    const date = new Date(end)
+function byDateDesc<T extends { date: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => b.date.localeCompare(a.date))
+}
 
-    if (period === '1D') {
-      date.setHours(index, 0, 0, 0)
-    } else {
-      date.setDate(end.getDate() - (count - index - 1))
-      if (period === '1Y') date.setDate(date.getDate() - 120)
-      if (period === '3M') date.setDate(date.getDate() - 30)
-    }
+function formatRatio(value: number | null | undefined, digits = 1) {
+  return value === null || value === undefined ? '–' : `${formatNumber(value, digits)}×`
+}
 
-    const drift = index * (period === '1D' ? 0.018 : 0.006)
-    const wave =
-      Math.sin(index * 1.27) * (period === '1D' ? 0.12 : 0.36) +
-      Math.cos(index * 0.39) * (period === '1D' ? 0.05 : 0.19)
-    const close = 5.82 + drift + wave
-    const volume = Math.round(24000 + Math.abs(Math.sin(index * 1.7)) * 92000)
+// La valeur d'une anomalie dépend de son type (mocks/API.md §5.2)
+function formatAnomalyValue(type: string, value: number | null) {
+  if (value === null) return '–'
+  if (type === 'price_move') return formatPercent(value) // écart vs médiane des peers
+  if (['large_trade', 'aggressor_sweep', 'net_flow'].includes(type)) {
+    return `${value > 0 && type === 'net_flow' ? '+' : ''}${formatNumber(value * 100, 0)}% ADTV` // part du turnover moyen 30 j
+  }
+  return formatRatio(value) // volume, spread, enchère, cassure de niveau : × la normale
+}
 
-    return {
-      time: Math.floor(date.getTime() / 1000) as UTCTimestamp,
-      date: date.toISOString(),
-      close: Number(close.toFixed(3)),
-      ema20: Number((close - Math.sin(index * 0.2) * 0.045).toFixed(3)),
-      ema50: Number((close - Math.cos(index * 0.13) * 0.065).toFixed(3)),
-      ema200: Number((close - Math.cos(index * 0.08) * 0.09).toFixed(3)),
-      volume,
-      volumeRatio: Number((0.9 + Math.abs(Math.sin(index * 0.8)) * 1.2).toFixed(2)),
-      turnover: Number((volume * close).toFixed(2)),
-      vwap: Number((close + Math.sin(index * 0.56) * 0.018).toFixed(3)),
-      spreadBps: Number((38 + Math.sin(index * 0.54) * 8).toFixed(1)),
-      auctionShare:
-        index % 13 === 0
-          ? null
-          : Number((0.12 + Math.abs(Math.sin(index)) * 0.3).toFixed(2)),
-    }
-  })
+function hasDemoData(status: DataStatus | undefined) {
+  return Object.values(status ?? {}).some((value) => value !== 'real')
+}
+
+const DASHBOARD_PATH = `/stocks/${ISIN}/dashboard`
+
+// Chargement / erreur d'une requête, avec le style des encadrés existants
+function LoadState({ loading, error }: { loading: boolean; error: string | null }) {
+  if (error) return <div className="notice-box">Could not load data from the API ({error}).</div>
+  if (loading) return <div className="notice-box">Loading data…</div>
+  return null
 }
 
 function Reveal({
@@ -485,7 +445,7 @@ function Footer() {
         </div>
       </div>
       <div className="footer-bottom">
-        <span>Frontend prototype · All market figures shown are fictional.</span>
+        <span>Historical Xetra trading data · 2 Jan–30 Oct 2026 · Source: Deutsche Börse</span>
         <span>Historical market analysis only. Not investment advice.</span>
       </div>
     </footer>
@@ -499,6 +459,14 @@ function HomePage({
   navigate: (page: Page) => void
   loggedIn: boolean
 }) {
+  const { data } = useApi<DashboardResponse>(DASHBOARD_PATH)
+  const points = useMemo(() => (data ? toStockPoints(data.series) : []), [data])
+  const latest = points[points.length - 1]
+  const lastCloses = points.slice(-10).map((point) => point.close)
+  const low = Math.min(...lastCloses)
+  const high = Math.max(...lastCloses)
+  const change = data?.kpis.price_change_pct ?? null
+
   return (
     <>
       <Header page="home" loggedIn={loggedIn} navigate={navigate} logout={() => {}} />
@@ -536,7 +504,7 @@ function HomePage({
                 {loggedIn ? 'Open dashboard' : 'Log in to your workspace'}
                 <span>→</span>
               </button>
-              <p className="hero-footnote">Private workspace · Demo prototype</p>
+              <p className="hero-footnote">Private workspace · Historical Xetra data</p>
             </div>
 
             <div className="hero-art">
@@ -545,18 +513,18 @@ function HomePage({
               <div className="hero-card">
                 <div className="hero-card-top">
                   <span>ISSUER OVERVIEW</span>
-                  <span className="demo-label">DEMO</span>
+                  <span className="demo-label">2026 YTD</span>
                 </div>
                 <div className="hero-stock">
                   <div>
                     <small>PBB · XETRA</small>
-                    <strong>€5.82</strong>
+                    <strong>{latest ? formatEuro(latest.close) : '–'}</strong>
                   </div>
-                  <span>↗ +1.8%</span>
+                  <span>{change === null ? '–' : `${change >= 0 ? '↗' : '↘'} ${formatPercent(change)}`}</span>
                 </div>
                 <div className="mini-chart">
-                  {[35, 48, 42, 61, 54, 73, 65, 88, 76, 94].map((height, index) => (
-                    <i key={index} style={{ height: `${height}%` }} />
+                  {lastCloses.map((close, index) => (
+                    <i key={index} style={{ height: `${high > low ? 25 + ((close - low) / (high - low)) * 70 : 60}%` }} />
                   ))}
                 </div>
                 <div className="hero-card-bottom">
@@ -770,7 +738,7 @@ function MarketChart({
       },
       timeScale: {
         borderColor: '#e5e9ef',
-        timeVisible: true,
+        timeVisible: false,
         secondsVisible: false,
         rightOffset: 3,
       },
@@ -818,8 +786,12 @@ function MarketChart({
     })
 
     price.setData(points.map((point) => ({ time: point.time, value: point.close })))
-    ema20.setData(points.map((point) => ({ time: point.time, value: point.ema20 })))
-    ema50.setData(points.map((point) => ({ time: point.time, value: point.ema50 })))
+    ema20.setData(
+      points.flatMap((point) => (point.ema20 === null ? [] : [{ time: point.time, value: point.ema20 }])),
+    )
+    ema50.setData(
+      points.flatMap((point) => (point.ema50 === null ? [] : [{ time: point.time, value: point.ema50 }])),
+    )
     chart.timeScale().fitContent()
 
     chart.subscribeCrosshairMove((parameter) => {
@@ -843,10 +815,7 @@ function MarketChart({
       }
 
       setHover({
-        date: new Date(Number(point.time) * 1000).toLocaleString('en-GB', {
-          dateStyle: 'medium',
-          timeStyle: 'short',
-        }),
+        date: formatDate(point.date),
         value: row.value,
         x: parameter.point.x,
         y: parameter.point.y,
@@ -900,7 +869,7 @@ function MarketChart({
         )}
       </div>
       <p className="chart-note">
-        Historical trading data · Demo values · Drag to pan and scroll to zoom
+        Daily Xetra closing prices · Drag to pan and scroll to zoom
       </p>
     </div>
   )
@@ -961,22 +930,34 @@ function WeeklyMovement({ points }: { points: StockPoint[] }) {
   )
 }
 
+type AnalysisRequest = { from: string; to: string; question: string }
+
 function AnalysisAssistant({
   point,
   onClose,
+  openImpact,
 }: {
   point: StockPoint
   onClose: () => void
+  openImpact: (path: string) => void
 }) {
-  const date = point.date.slice(0, 10)
-  const [from, setFrom] = useState(date)
-  const [to, setTo] = useState(date)
+  const [from, setFrom] = useState(point.date)
+  const [to, setTo] = useState(point.date)
   const [question, setQuestion] = useState('')
-  const [sent, setSent] = useState(false)
+  const [request, setRequest] = useState<AnalysisRequest | null>(null)
+
+  // Un jour -> day card (résumé IA du jour) ; une période -> report de la période (résumé IA de la période)
+  const singleDay = request !== null && request.from === request.to
+  const dayPath = singleDay ? `/days/${ISIN}/${request.from}/impact-card` : null
+  const reportPath =
+    request !== null && !singleDay ? `/stocks/${ISIN}/report?from=${request.from}&to=${request.to}` : null
+  const day = useApi<ImpactCardResponse>(dayPath)
+  const period = useApi<ReportResponse>(reportPath)
+  const validRange = from !== '' && to !== '' && from <= to
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSent(true)
+    if (validRange) setRequest({ from, to, question: question.trim() })
   }
 
   return (
@@ -999,18 +980,18 @@ function AnalysisAssistant({
         <div className="selected-point-card">
           <span>Selected chart point</span>
           <strong>{formatEuro(point.close)}</strong>
-          <small>{new Date(point.time * 1000).toLocaleString('en-GB')}</small>
+          <small>{formatDate(point.date)}</small>
         </div>
 
         <form className="analysis-form" onSubmit={submit}>
           <div className="date-range">
             <label>
               From
-              <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+              <input type="date" min="2026-01-02" max="2026-10-30" value={from} onChange={(event) => setFrom(event.target.value)} />
             </label>
             <label>
               To
-              <input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+              <input type="date" min="2026-01-02" max="2026-10-30" value={to} onChange={(event) => setTo(event.target.value)} />
             </label>
           </div>
 
@@ -1023,23 +1004,74 @@ function AnalysisAssistant({
             rows={4}
           />
 
-          <button className="primary-button full-width" type="submit">
-            Prepare analysis request <span>→</span>
+          {!validRange && <p className="login-error">“From” must be on or before “To”.</p>}
+          <button className="primary-button full-width" type="submit" disabled={!validRange}>
+            {from === to ? 'Analyse this day' : 'Analyse this period'} <span>→</span>
           </button>
         </form>
 
-        {sent && (
+        {singleDay && <LoadState loading={day.loading} error={day.error} />}
+        {!singleDay && request && <LoadState loading={period.loading} error={period.error} />}
+
+        {request && (day.data || period.data) && (
           <div className="request-ready">
-            <strong>Request prepared</strong>
-            <p>
-              The selected point and {from}–{to} interval are ready to send. The backend
-              connection will be added later.
-            </p>
+            {request.question && (
+              <p>
+                <strong>Your question:</strong> {request.question}
+                <br />
+                <small>
+                  Free-text questions are not sent to the AI yet. Below is the standard AI summary for the
+                  selected {singleDay ? 'day' : 'period'}.
+                </small>
+              </p>
+            )}
+
+            {singleDay && day.data && (
+              <>
+                <strong>
+                  {day.data.event ? day.data.event.title : `Trading on ${formatDate(request.from)}`}
+                </strong>
+                <p>{day.data.ai_summary}</p>
+                <button
+                  className="text-button"
+                  onClick={() => {
+                    onClose()
+                    openImpact(dayPath as string)
+                  }}
+                >
+                  Open the full impact card →
+                </button>
+              </>
+            )}
+
+            {!singleDay && period.data && (
+              <>
+                <strong>
+                  {formatDate(period.data.period.from)} – {formatDate(period.data.period.to)}
+                </strong>
+                <p>{period.data.headline}</p>
+                {period.data.sections
+                  .filter((section) => section.text)
+                  .map((section) => (
+                    <p key={section.title}>
+                      <strong>{section.title}:</strong> {section.text}
+                    </p>
+                  ))}
+                <a
+                  className="text-button"
+                  href={apiUrl(`/stocks/${ISIN}/report.pdf?from=${request.from}&to=${request.to}`)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Export this period as PDF ↓
+                </a>
+              </>
+            )}
           </div>
         )}
 
         <p className="small-note">
-          Demo only · No analysis is sent to an AI service yet.
+          Summaries generated from historical Xetra data. Not investment advice.
         </p>
       </section>
     </div>
@@ -1053,6 +1085,7 @@ function DashboardPage({
   onPointSelect,
   selectedPoint,
   setSelectedPoint,
+  openImpact,
 }: {
   navigate: (page: Page) => void
   loggedIn: boolean
@@ -1060,16 +1093,24 @@ function DashboardPage({
   onPointSelect: (point: StockPoint) => void
   selectedPoint: StockPoint | null
   setSelectedPoint: (point: StockPoint | null) => void
+  openImpact: (path: string) => void
 }) {
-  const [period, setPeriod] = useState<Period>('1M')
-  const fullSeries = useMemo(() => makeMockSeries('1Y'), [])
-  const points = useMemo(() => {
-    if (period === '1Y') return fullSeries
-    if (period === '3M') return fullSeries.slice(-90)
-    if (period === '1M') return fullSeries.slice(-30)
-    if (period === '1W') return fullSeries.slice(-7)
-    return makeMockSeries('1D')
-  }, [period, fullSeries])
+  const [period, setPeriod] = useState<Period>('3M')
+  const dashboard = useApi<DashboardResponse>(DASHBOARD_PATH)
+  const events = useApi<EventsResponse>(`/stocks/${ISIN}/events`)
+  const fullSeries = useMemo(
+    () => (dashboard.data ? toStockPoints(dashboard.data.series) : []),
+    [dashboard.data],
+  )
+  const points = useMemo(
+    () => (period === 'YTD' ? fullSeries : fullSeries.slice(-periodSessions[period])),
+    [period, fullSeries],
+  )
+  const notableDays = useMemo(
+    () => byDateDesc(dashboard.data?.anomalies ?? []).slice(0, 4),
+    [dashboard.data],
+  )
+  const recentEvents = useMemo(() => byDateDesc(events.data?.events ?? []).slice(0, 2), [events.data])
 
   const latest = points[points.length - 1]
   const first = points[0]
@@ -1101,12 +1142,14 @@ function DashboardPage({
             </div>
           </div>
 
+          <LoadState loading={dashboard.loading} error={dashboard.error} />
+
           <div className="dashboard-toolbar">
             <div className="stock-identity">
               <span className="stock-mark">pbb</span>
               <div>
-                <strong>{COMPANY}</strong>
-                <small>Xetra · {ISIN} · SDAX</small>
+                <strong>{dashboard.data?.stock.name ?? COMPANY}</strong>
+                <small>Xetra · {ISIN} · {dashboard.data?.stock.index ?? 'SDAX'}</small>
               </div>
             </div>
             <div className="period-select" aria-label="Select chart period">
@@ -1130,7 +1173,9 @@ function DashboardPage({
               <section className="panel chart-panel">
                 <div className="chart-heading">
                   <div>
-                    <span className="kicker">SHARE PRICE · EUR · DEMO DATA</span>
+                    <span className="kicker">
+                      SHARE PRICE · EUR · {hasDemoData(dashboard.data?._data_status) ? 'PARTLY DEMO DATA' : 'XETRA'}
+                    </span>
                     <div className="price-line">
                       <strong>{latest ? formatEuro(latest.close) : '–'}</strong>
                       <span className={`price-change ${periodChange >= 0 ? 'positive' : 'negative'}`}>
@@ -1140,7 +1185,7 @@ function DashboardPage({
                   </div>
                   <div className="chart-period-label">
                     <span>Range: {period}</span>
-                    <span>Currency: EUR</span>
+                    <span>{latest ? `Last close ${formatDate(latest.date)}` : 'Currency: EUR'}</span>
                   </div>
                 </div>
 
@@ -1151,8 +1196,7 @@ function DashboardPage({
                     <div>
                       <span>Selected point</span>
                       <strong>
-                        {formatEuro(selectedPoint.close)} ·{' '}
-                        {new Date(selectedPoint.time * 1000).toLocaleDateString('en-GB')}
+                        {formatEuro(selectedPoint.close)} · {formatDate(selectedPoint.date)}
                       </strong>
                     </div>
                     <button className="outline-button" onClick={() => navigate('indicators')}>
@@ -1184,8 +1228,8 @@ function DashboardPage({
                   <strong>{formatEuro(latest?.turnover)}</strong>
                 </div>
                 <div className="mini-stat">
-                  <span>XLM spread</span>
-                  <strong>{latest ? `${formatNumber(latest.spreadBps, 1)} bps` : '–'}</strong>
+                  <span>XLM spread (25k EUR)</span>
+                  <strong>{latest?.spreadBps == null ? '–' : `${formatNumber(latest.spreadBps, 1)} bps`}</strong>
                 </div>
                 <button className="text-button" onClick={() => navigate('indicators')}>
                   View all indicators →
@@ -1206,26 +1250,25 @@ function DashboardPage({
                     Configure alerts →
                   </button>
                 </div>
-                <button className="signal-row" onClick={() => navigate('impact')}>
-                  <span className="signal-dot high" />
-                  <span className="signal-date">08 Oct 2026</span>
-                  <span className="signal-copy">
-                    <strong>Spread widening</strong>
-                    <small>Unusual spread compared with the recent baseline.</small>
-                  </span>
-                  <span className="signal-value">3.1×</span>
-                  <span>↗</span>
-                </button>
-                <button className="signal-row" onClick={() => navigate('impact')}>
-                  <span className="signal-dot medium" />
-                  <span className="signal-date">29 Sep 2026</span>
-                  <span className="signal-copy">
-                    <strong>Volume spike</strong>
-                    <small>Volume exceeded the 20-day average.</small>
-                  </span>
-                  <span className="signal-value">2.4×</span>
-                  <span>↗</span>
-                </button>
+                {notableDays.map((anomaly) => (
+                  <button
+                    className="signal-row"
+                    key={`${anomaly.date}-${anomaly.type}-${anomaly.description}`}
+                    onClick={() => openImpact(anomaly.detail_url)}
+                  >
+                    <span className={`signal-dot ${anomaly.severity}`} />
+                    <span className="signal-date">{formatDate(anomaly.date)}</span>
+                    <span className="signal-copy">
+                      <strong>{anomalyLabels[anomaly.type] ?? anomaly.type}</strong>
+                      <small>{anomaly.description}</small>
+                    </span>
+                    <span className="signal-value">{formatAnomalyValue(anomaly.type, anomaly.value)}</span>
+                    <span>↗</span>
+                  </button>
+                ))}
+                {dashboard.data && notableDays.length === 0 && (
+                  <p className="muted">No unusual trading day in the period.</p>
+                )}
               </section>
             </Reveal>
 
@@ -1240,11 +1283,12 @@ function DashboardPage({
                     See all →
                   </button>
                 </div>
-                {eventData.slice(0, 2).map((event) => (
+                <LoadState loading={events.loading} error={events.error} />
+                {recentEvents.map((event) => (
                   <button
                     className="recent-event"
                     key={event.event_id}
-                    onClick={() => navigate('impact')}
+                    onClick={() => openImpact(`/events/${event.event_id}/impact-card`)}
                   >
                     <span className="event-date-block">
                       <strong>{new Date(`${event.date}T12:00:00`).getDate()}</strong>
@@ -1275,11 +1319,16 @@ function EventsPage({
   navigate,
   loggedIn,
   logout,
+  openImpact,
 }: {
   navigate: (page: Page) => void
   loggedIn: boolean
   logout: () => void
+  openImpact: (path: string) => void
 }) {
+  const { data, error, loading } = useApi<EventsResponse>(`/stocks/${ISIN}/events`)
+  const events = useMemo(() => byDateDesc(data?.events ?? []), [data])
+
   return (
     <>
       <Header page="events" loggedIn={loggedIn} navigate={navigate} logout={logout} />
@@ -1291,12 +1340,16 @@ function EventsPage({
             description="Company announcements and related trading metrics."
           />
 
-          <div className="notice-box">
-            These example events are fictional. API fields that are null appear as “–”.
-          </div>
+          <LoadState loading={loading} error={error} />
+          {data && (
+            <div className="notice-box">
+              {events.length} announcements from public sources (pbb IR, EQS). Values that are
+              not available appear as “–”.
+            </div>
+          )}
 
           <div className="timeline">
-            {eventData.map((event) => (
+            {events.map((event) => (
               <article className="timeline-item" key={event.event_id}>
                 <div className="timeline-date">
                   <strong>{formatDate(event.date)}</strong>
@@ -1305,16 +1358,20 @@ function EventsPage({
                 <div className="timeline-card">
                   <div className="timeline-card-top">
                     <span>{eventLabels[event.type] ?? event.type}</span>
-                    <small>DEMO EVENT</small>
+                    {event.source_url && (
+                      <a href={event.source_url} target="_blank" rel="noreferrer">
+                        <small>SOURCE ↗</small>
+                      </a>
+                    )}
                   </div>
                   <h2>{event.title}</h2>
                   <p>Trading day: {formatDate(event.trading_day)}</p>
                   <div className="event-metrics">
-                    <Metric label="Volume ratio" value={event.headline_metric.volume_ratio == null ? '–' : `${formatNumber(event.headline_metric.volume_ratio, 1)}×`} />
+                    <Metric label="Volume ratio" value={formatRatio(event.headline_metric.volume_ratio)} />
                     <Metric label="Price change" value={formatPercent(event.headline_metric.price_change_pct)} tone={trendClass(event.headline_metric.price_change_pct)} />
                     <Metric label="Spread change" value={formatPercent(event.headline_metric.spread_change_pct)} tone={trendClass(event.headline_metric.spread_change_pct)} />
                   </div>
-                  <button className="text-button" onClick={() => navigate('impact')}>
+                  <button className="text-button" onClick={() => openImpact(`/events/${event.event_id}/impact-card`)}>
                     View impact card →
                   </button>
                 </div>
@@ -1372,12 +1429,16 @@ function ImpactPage({
   navigate,
   loggedIn,
   logout,
+  impactPath,
 }: {
   navigate: (page: Page) => void
   loggedIn: boolean
   logout: () => void
+  impactPath: string
 }) {
-  const event = eventData[1]
+  const { data: card, error, loading } = useApi<ImpactCardResponse>(impactPath)
+  const maxRatio = Math.max(1, ...(card?.window ?? []).map((day) => day.volume_ratio ?? 0))
+  const eventDay = card?.window.find((day) => day.offset === 0)?.date
 
   return (
     <>
@@ -1387,70 +1448,111 @@ function ImpactPage({
           <PageHeading
             eyebrow="ONE-CLICK EVENT ANALYSIS"
             title="Impact card"
-            description="Market reaction around a selected company announcement."
+            description="Market reaction around a selected company announcement or unusual trading day."
           />
 
-          <section className="panel impact-card">
-            <div className="timeline-card-top">
-              <span>{eventLabels[event.type]}</span>
-              <small>FICTIONAL EVENT</small>
-            </div>
-            <h2>{event.title}</h2>
-            <p className="muted">{formatDate(event.date)} · {event.time}</p>
+          <LoadState loading={loading} error={error} />
 
-            <div className="impact-metrics">
-              <Metric label="Price change" value={formatPercent(event.headline_metric.price_change_pct)} tone="negative" />
-              <Metric label="Volume vs. average" value={`${formatNumber(event.headline_metric.volume_ratio, 1)}×`} />
-              <Metric label="Spread change" value={formatPercent(event.headline_metric.spread_change_pct)} tone="positive" />
-              <Metric label="Auction participation" value="–" />
-            </div>
-
-            <div className="impact-window">
-              <div className="panel-title">
-                <div>
-                  <span className="kicker">TRADING WINDOW</span>
-                  <h3>Before and after the event</h3>
-                </div>
-                <span className="muted">−5 to +5 trading days</span>
+          {card && (
+            <section className="panel impact-card">
+              <div className="timeline-card-top">
+                <span>{card.event ? eventLabels[card.event.type] ?? card.event.type : 'Notable trading day'}</span>
+                {card.event?.source_url ? (
+                  <a href={card.event.source_url} target="_blank" rel="noreferrer">
+                    <small>SOURCE ↗</small>
+                  </a>
+                ) : (
+                  <small>{hasDemoData(card._data_status) ? 'PARTLY DEMO DATA' : 'XETRA DATA'}</small>
+                )}
               </div>
-              <div className="window-bars">
-                {Array.from({ length: 11 }, (_, index) => {
-                  const offset = index - 5
-                  const height = 35 + Math.abs(Math.sin(index * 1.8)) * 95
-                  return (
-                    <div className="window-column" key={offset}>
-                      <i
-                        className={offset === 0 ? 'event-day' : index % 3 === 0 ? 'bar-down' : 'bar-up'}
-                        style={{ height }}
-                      />
-                      <small>{offset > 0 ? `+${offset}` : offset}</small>
-                    </div>
-                  )
-                })}
-              </div>
-              <p className="small-note">Illustrative values only. Offset 0 is the event trading day.</p>
-            </div>
-
-            <div className="ai-summary">
-              <strong>AI summary · Demo</strong>
-              <p>
-                In this fictional example, volume increased and the spread widened
-                after the announcement. This text will be supplied by the backend later.
+              <h2>{card.event ? card.event.title : `Unusual trading on ${formatDate(eventDay ?? '')}`}</h2>
+              <p className="muted">
+                {card.event
+                  ? `${formatDate(card.event.trading_day)} · ${card.event.published_at ? card.event.published_at.slice(11, 16) : 'time unavailable'}`
+                  : 'No announcement on record for this day'}
               </p>
-            </div>
 
-            <div className="coming-soon">
-              <strong>Intraday reaction</strong>
-              <span>
-                Minute-by-minute VWAP and volume will be added when the intraday data
-                is available.
-              </span>
-            </div>
+              <div className="impact-metrics">
+                <Metric label="Price change" value={formatPercent(card.metrics.price.change_pct)} tone={trendClass(card.metrics.price.change_pct)} />
+                <Metric label="Volume vs. average" value={formatRatio(card.metrics.volume.ratio)} />
+                <Metric label="Spread change" value={formatPercent(card.metrics.spread_bps.change_pct)} tone={trendClass(card.metrics.spread_bps.change_pct)} />
+                <Metric
+                  label="Auction participation"
+                  value={card.metrics.auction_share.event === null ? '–' : `${formatNumber(card.metrics.auction_share.event * 100, 1)}%`}
+                />
+              </div>
 
-            <button className="primary-button compact" onClick={() => navigate('report')}>
-              Open IR snapshot →
-            </button>
-          </section>
+              <div className="impact-window">
+                <div className="panel-title">
+                  <div>
+                    <span className="kicker">TRADING WINDOW</span>
+                    <h3>Volume before and after the event</h3>
+                  </div>
+                  <span className="muted">−5 to +5 trading days</span>
+                </div>
+                <div className="window-bars">
+                  {card.window.map((day, index) => {
+                    const previous = card.window[index - 1]?.close ?? null
+                    const down = day.close !== null && previous !== null && day.close < previous
+                    return (
+                      <div className="window-column" key={day.offset} title={`${formatDate(day.date)} · ${formatRatio(day.volume_ratio)} volume · ${formatEuro(day.close)}`}>
+                        <i
+                          className={day.offset === 0 ? 'event-day' : down ? 'bar-down' : 'bar-up'}
+                          style={{ height: 20 + ((day.volume_ratio ?? 0) / maxRatio) * 110 }}
+                        />
+                        <small>{day.offset > 0 ? `+${day.offset}` : day.offset}</small>
+                      </div>
+                    )
+                  })}
+                </div>
+                <p className="small-note">
+                  Bar height = volume vs. 20-day average. Offset 0 is the event trading day.
+                </p>
+              </div>
+
+              <div className="ai-summary">
+                <strong>AI summary</strong>
+                <p>{card.ai_summary}</p>
+              </div>
+
+              {card.intraday ? (
+                <div className="ai-summary">
+                  <strong>
+                    Intraday reaction · from{' '}
+                    {card.intraday.during_session ? 'the announcement' : 'the market open'} (
+                    {card.intraday.reference_time.slice(11, 16)})
+                  </strong>
+                  <div className="impact-metrics">
+                    <Metric label="First 15 min volume" value={formatRatio(card.intraday.first_15min.ratio)} />
+                    <Metric label="Price after 5 min" value={formatPercent(card.intraday.price_change_pct.after_5min)} tone={trendClass(card.intraday.price_change_pct.after_5min)} />
+                    <Metric label="Price after 30 min" value={formatPercent(card.intraday.price_change_pct.after_30min)} tone={trendClass(card.intraday.price_change_pct.after_30min)} />
+                    <Metric label="Price after 60 min" value={formatPercent(card.intraday.price_change_pct.after_60min)} tone={trendClass(card.intraday.price_change_pct.after_60min)} />
+                  </div>
+                </div>
+              ) : (
+                <div className="coming-soon">
+                  <strong>Intraday reaction</strong>
+                  <span>No on-book trades available for this day.</span>
+                </div>
+              )}
+
+              {card.pre_disclosure_activity && (
+                <div className="coming-soon">
+                  <strong>Before the disclosure</strong>
+                  <span>{card.pre_disclosure_activity.summary}</span>
+                </div>
+              )}
+
+              <div className="report-actions">
+                <a className="primary-button compact" href={apiUrl(card.export.pdf_url)} target="_blank" rel="noreferrer">
+                  Export PDF ↓
+                </a>
+                <button className="outline-button" onClick={() => navigate('report')}>
+                  Open IR snapshot →
+                </button>
+              </div>
+            </section>
+          )}
         </div>
       </main>
       <Footer />
@@ -1470,18 +1572,25 @@ function IndicatorsPage({
   selectedPoint: StockPoint | null
 }) {
   const [activeIndicator, setActiveIndicator] = useState<(typeof indicators)[number] | null>(null)
-  const point = selectedPoint ?? makeMockSeries('1M').slice(-1)[0]
+  const { data } = useApi<DashboardResponse>(DASHBOARD_PATH)
+  const points = useMemo(() => (data ? toStockPoints(data.series) : []), [data])
+  const point = selectedPoint ?? points[points.length - 1] ?? null
+  // Rendement : depuis le début de la série jusqu'au point affiché
+  const firstClose = points[0]?.close
+  const returnPct = point && firstClose ? ((point.close - firstClose) / firstClose) * 100 : null
 
-  const values: Record<string, string> = {
-    'share-price': formatEuro(point.close),
-    returns: formatPercent(1.8),
-    volume: formatCompact(point.volume),
-    rvol: `${formatNumber(point.volumeRatio, 2)}×`,
-    'turnover-vwap': `${formatEuro(point.turnover)} / ${formatEuro(point.vwap)}`,
-    spread: `${formatNumber(point.spreadBps, 1)} bps`,
-    ema: `${formatEuro(point.ema20)} / ${formatEuro(point.ema50)} / ${formatEuro(point.ema200)}`,
-    auction: point.auctionShare === null ? '–' : formatPercent(point.auctionShare * 100),
-  }
+  const values: Record<string, string> = point
+    ? {
+        'share-price': formatEuro(point.close),
+        returns: `${formatPercent(returnPct)} since ${formatDate(points[0].date)}`,
+        volume: formatCompact(point.volume),
+        rvol: formatRatio(point.volumeRatio, 2),
+        'turnover-vwap': `${formatEuro(point.turnover)} / ${formatEuro(point.vwap)}`,
+        spread: point.spreadBps === null ? '–' : `${formatNumber(point.spreadBps, 1)} bps`,
+        ema: `${formatEuro(point.ema20)} / ${formatEuro(point.ema50)}`,
+        auction: point.auctionShare === null ? '–' : `${formatNumber(point.auctionShare * 100, 1)}%`,
+      }
+    : {}
 
   return (
     <>
@@ -1493,8 +1602,10 @@ function IndicatorsPage({
             title="Indicator details"
             description={
               selectedPoint
-                ? `Selected chart point: ${new Date(selectedPoint.time * 1000).toLocaleString('en-GB')}. Choose an indicator to open its details.`
-                : 'Choose an indicator to inspect its value and calculation.'
+                ? `Selected chart point: ${formatDate(selectedPoint.date)}. Choose an indicator to open its details.`
+                : point
+                  ? `Latest trading day: ${formatDate(point.date)}. Choose an indicator to inspect its value and calculation.`
+                  : 'Choose an indicator to inspect its value and calculation.'
             }
             action={
               <button className="outline-button" onClick={() => navigate('dashboard')}>
@@ -1550,7 +1661,7 @@ function IndicatorsPage({
               <span>Selected value</span>
               <strong>{values[activeIndicator.id] ?? '–'}</strong>
               <small>
-                {new Date(point.time * 1000).toLocaleString('en-GB')} · Demo data
+                {point ? `${formatDate(point.date)} · Xetra data` : '–'}
               </small>
             </div>
             <div className="modal-explanation">
@@ -1571,11 +1682,15 @@ function AlertsPage({
   navigate,
   loggedIn,
   logout,
+  openImpact,
 }: {
   navigate: (page: Page) => void
   loggedIn: boolean
   logout: () => void
+  openImpact: (path: string) => void
 }) {
+  const { data: dashboard } = useApi<DashboardResponse>(DASHBOARD_PATH)
+  const detected = useMemo(() => byDateDesc(dashboard?.anomalies ?? []).slice(0, 8), [dashboard])
   const [thresholds, setThresholds] = useState(defaultThresholds)
   const [inputs, setInputs] = useState(defaultAlertInputs)
   const [alerts, setAlerts] = useState<string[]>([])
@@ -1654,8 +1769,33 @@ function AlertsPage({
           <PageHeading
             eyebrow="CONFIGURATION"
             title="Thresholds & alerts"
-            description="Configure demo rules and preview the alerts they would trigger."
+            description="Alerts detected in the Xetra data, and demo rules to preview your own thresholds."
           />
+
+          <section className="panel lower-panel">
+            <div className="panel-title">
+              <div>
+                <span className="kicker">DETECTED IN XETRA DATA · {dashboard?.anomalies.length ?? '–'} ALERTS IN 2026</span>
+                <h2>Latest alerts</h2>
+              </div>
+            </div>
+            {detected.map((anomaly) => (
+              <button
+                className="signal-row"
+                key={`${anomaly.date}-${anomaly.type}-${anomaly.description}`}
+                onClick={() => openImpact(anomaly.detail_url)}
+              >
+                <span className={`signal-dot ${anomaly.severity}`} />
+                <span className="signal-date">{formatDate(anomaly.date)}</span>
+                <span className="signal-copy">
+                  <strong>{anomalyLabels[anomaly.type] ?? anomaly.type}</strong>
+                  <small>{anomaly.description}</small>
+                </span>
+                <span className="signal-value">{formatAnomalyValue(anomaly.type, anomaly.value)}</span>
+                <span>↗</span>
+              </button>
+            ))}
+          </section>
 
           <div className="threshold-layout">
             <section className="panel threshold-panel">
@@ -1888,11 +2028,21 @@ function ComparePage({
   navigate,
   loggedIn,
   logout,
+  openImpact,
 }: {
   navigate: (page: Page) => void
   loggedIn: boolean
   logout: () => void
+  openImpact: (path: string) => void
 }) {
+  const [eventType, setEventType] = useState('quarterly_results')
+  const [index, setIndex] = useState('ALL')
+  const [from, setFrom] = useState('2026-01-02')
+  const [to, setTo] = useState('2026-10-30')
+  const query = new URLSearchParams({ type: eventType, index, from, to })
+  const validRange = from !== '' && to !== '' && from <= to
+  const { data, error, loading } = useApi<CompareResponse>(validRange ? `/compare?${query}` : null)
+
   return (
     <>
       <Header page="compare" loggedIn={loggedIn} navigate={navigate} logout={logout} />
@@ -1907,38 +2057,38 @@ function ComparePage({
           <div className="compare-controls">
             <label>
               Event type
-              <select defaultValue="quarterly_results">
-                <option value="quarterly_results">Quarterly results</option>
-                <option value="annual_results">Annual results</option>
-                <option value="ad_hoc">Ad hoc announcement</option>
-                <option value="dividend">Dividend</option>
-                <option value="voting_rights">Voting rights</option>
-                <option value="directors_dealings">Directors' dealings</option>
+              <select value={eventType} onChange={(event) => setEventType(event.target.value)}>
+                {Object.entries(eventLabels).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
               </select>
             </label>
             <label>
               Index
-              <select defaultValue="SDAX">
+              <select value={index} onChange={(event) => setIndex(event.target.value)}>
+                <option value="ALL">All indices</option>
                 <option>DAX</option>
                 <option>MDAX</option>
                 <option>SDAX</option>
-                <option>ALL</option>
               </select>
             </label>
             <label>
               From
-              <input type="date" defaultValue="2026-01-02" />
+              <input type="date" min="2026-01-02" max="2026-10-30" value={from} onChange={(event) => setFrom(event.target.value)} />
             </label>
             <label>
               To
-              <input type="date" defaultValue="2026-10-30" />
+              <input type="date" min="2026-01-02" max="2026-10-30" value={to} onChange={(event) => setTo(event.target.value)} />
             </label>
           </div>
+
+          {!validRange && <div className="notice-box">“From” must be on or before “To”.</div>}
+          <LoadState loading={loading} error={error} />
 
           <section className="panel compare-panel">
             <div className="panel-title">
               <div>
-                <span className="kicker">EVENT COMPARISON · DEMO DATA</span>
+                <span className="kicker">EVENT COMPARISON · {data?.summary.n_events ?? 0} EVENTS</span>
                 <h2>Historical event responses</h2>
               </div>
             </div>
@@ -1947,7 +2097,7 @@ function ComparePage({
                 <thead>
                   <tr>
                     <th>Date</th>
-                    <th>Event</th>
+                    <th>Company</th>
                     <th>Volume ratio</th>
                     <th>Price change</th>
                     <th>Spread change</th>
@@ -1955,32 +2105,38 @@ function ComparePage({
                   </tr>
                 </thead>
                 <tbody>
-                  {eventData.slice(0, 3).map((event) => (
-                    <tr key={event.event_id}>
+                  {(data?.events ?? []).map((event) => (
+                    <tr key={event.event_id} onClick={() => openImpact(`/events/${event.event_id}/impact-card`)} style={{ cursor: 'pointer' }}>
                       <td>{formatDate(event.date)}</td>
-                      <td>{eventLabels[event.type] ?? event.type}</td>
-                      <td>{event.headline_metric.volume_ratio == null ? '–' : `${formatNumber(event.headline_metric.volume_ratio, 1)}×`}</td>
-                      <td className={trendClass(event.headline_metric.price_change_pct)}>
-                        {formatPercent(event.headline_metric.price_change_pct)}
+                      <td>{event.name}</td>
+                      <td>{formatRatio(event.volume_ratio)}</td>
+                      <td className={trendClass(event.price_change_pct)}>
+                        {formatPercent(event.price_change_pct)}
                       </td>
-                      <td className={trendClass(event.headline_metric.spread_change_pct)}>
-                        {formatPercent(event.headline_metric.spread_change_pct)}
+                      <td className={trendClass(event.spread_change_pct)}>
+                        {formatPercent(event.spread_change_pct)}
                       </td>
-                      <td>–</td>
+                      <td>
+                        {event.auction_share_change_pts === null
+                          ? '–'
+                          : `${event.auction_share_change_pts > 0 ? '+' : ''}${formatNumber(event.auction_share_change_pts * 100, 1)} pts`}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             <p className="small-note">
-              Null values are shown as a dash. Comparison values are fictional examples.
+              {data && data.events.length === 0
+                ? 'No event of this type in the selected index and period.'
+                : 'Click a row to open its impact card. Null values are shown as a dash.'}
             </p>
           </section>
 
           <div className="summary-tiles">
-            <div><span>Median volume ratio</span><strong>1.9×</strong><small>Demo value</small></div>
-            <div><span>Median price move</span><strong>−0.6%</strong><small>Demo value</small></div>
-            <div><span>Median spread move</span><strong>+2.1%</strong><small>Demo value</small></div>
+            <div><span>Median volume ratio</span><strong>{formatRatio(data?.summary.median_volume_ratio)}</strong><small>{data?.summary.n_events ?? 0} events</small></div>
+            <div><span>Median price move (absolute)</span><strong>{data?.summary.median_abs_price_change_pct == null ? '–' : `${formatNumber(data.summary.median_abs_price_change_pct, 1)}%`}</strong><small>Size of the move, up or down</small></div>
+            <div><span>Median spread move</span><strong>{formatPercent(data?.summary.median_spread_change_pct)}</strong><small>vs. 20-day baseline</small></div>
           </div>
         </div>
       </main>
@@ -1993,20 +2149,25 @@ function ReportPage({
   navigate,
   loggedIn,
   logout,
+  openImpact,
 }: {
   navigate: (page: Page) => void
   loggedIn: boolean
   logout: () => void
+  openImpact: (path: string) => void
 }) {
+  const { data: report, error, loading } = useApi<ReportResponse>(`/stocks/${ISIN}/report`)
+  const items = report?.sections.flatMap((section) => section.items ?? []) ?? []
+
   function exportCsv() {
     const rows = [
-      ['Date', 'Event type', 'Volume ratio', 'Price change (%)', 'Spread change (%)'],
-      ...eventData.map((event) => [
-        event.date,
-        event.type,
-        event.headline_metric.volume_ratio ?? '',
-        event.headline_metric.price_change_pct ?? '',
-        event.headline_metric.spread_change_pct ?? '',
+      ['Date', 'Event', 'Volume ratio', 'Price change (%)', 'Spread change (%)'],
+      ...items.map((item) => [
+        item.date,
+        `"${item.title.replace(/"/g, '""')}"`,
+        item.volume_ratio ?? '',
+        item.price_change_pct ?? '',
+        item.spread_change_pct ?? '',
       ]),
     ]
     const csv = rows.map((row) => row.join(';')).join('\n')
@@ -2014,7 +2175,7 @@ function ReportPage({
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'pbb-demo-ir-snapshot.csv'
+    link.download = 'pbb-ir-snapshot-events.csv'
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -2030,51 +2191,79 @@ function ReportPage({
             description={`Concise historical summary for ${COMPANY}.`}
           />
 
-          <section className="panel report-panel">
-            <div className="report-cover">
-              <span className="company-logo">pbb</span>
-              <div>
-                <span className="kicker">ISSUER MARKET REPORT · DEMO</span>
-                <h2>{COMPANY}</h2>
-                <p>ISIN {ISIN} · SDAX · 02 Jan–30 Oct 2026</p>
+          <LoadState loading={loading} error={error} />
+
+          {report && (
+            <section className="panel report-panel">
+              <div className="report-cover">
+                <span className="company-logo">pbb</span>
+                <div>
+                  <span className="kicker">ISSUER MARKET REPORT</span>
+                  <h2>{report.stock.name}</h2>
+                  <p>
+                    ISIN {report.stock.isin} · {report.stock.index} · {formatDate(report.period.from)}–{formatDate(report.period.to)}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="report-section">
-              <span className="kicker">EXECUTIVE SUMMARY</span>
-              <p>
-                This prototype report groups historical price and liquidity context,
-                notable trading days and company events. Replace the demo values with
-                API values when the backend connection is added.
-              </p>
-            </div>
-            <div className="report-section">
-              <span className="kicker">NOTABLE EVENTS</span>
-              {eventData.slice(0, 3).map((event) => (
-                <div className="report-event" key={event.event_id}>
-                  <span>{formatDate(event.date)}</span>
-                  <strong>{eventLabels[event.type] ?? event.type}</strong>
-                  <span>Spread {formatPercent(event.headline_metric.spread_change_pct)}</span>
+              <div className="report-section">
+                <span className="kicker">EXECUTIVE SUMMARY</span>
+                <p>{report.headline}</p>
+              </div>
+              {report.sections.map((section) => (
+                <div className="report-section" key={section.title}>
+                  <span className="kicker">{section.title.toUpperCase()}</span>
+                  {(section.kpis ?? []).map((kpi) => (
+                    <div className="report-event" key={kpi.label}>
+                      <span>{kpi.label}</span>
+                      <strong>{formatKpi(kpi.value, kpi.unit)}</strong>
+                      <span>
+                        {kpi.change_pct == null ? kpi.trend ?? '' : `${formatPercent(kpi.change_pct)} ${kpi.trend ?? ''}`}
+                      </span>
+                    </div>
+                  ))}
+                  {section.text && <p>{section.text}</p>}
+                  {(section.items ?? []).map((item) => (
+                    <button
+                      className="report-event"
+                      key={item.event_id}
+                      onClick={() => openImpact(`/events/${item.event_id}/impact-card`)}
+                    >
+                      <span>{formatDate(item.date)}</span>
+                      <strong>{item.title}</strong>
+                      <span>Spread {formatPercent(item.spread_change_pct)}</span>
+                    </button>
+                  ))}
                 </div>
               ))}
-            </div>
-            <div className="report-disclaimer">
-              Descriptive analysis of historical trading data. Not investment advice.
-              All figures in this report are fictional demo values.
-            </div>
-            <div className="report-actions">
-              <button className="primary-button compact" onClick={exportCsv}>
-                Export CSV ↓
-              </button>
-              <button className="outline-button" disabled title="PDF endpoint not connected">
-                Export PDF · unavailable
-              </button>
-            </div>
-          </section>
+              <div className="report-disclaimer">{report.disclaimer}</div>
+              <div className="report-actions">
+                <a className="primary-button compact" href={apiUrl(report.export.pdf_url)} target="_blank" rel="noreferrer">
+                  Export PDF ↓
+                </a>
+                <button className="outline-button" onClick={exportCsv}>
+                  Export events CSV ↓
+                </button>
+              </div>
+            </section>
+          )}
         </div>
       </main>
       <Footer />
     </>
   )
+}
+
+function formatKpi(value: number | null, unit: string) {
+  if (unit === 'EUR') return formatEuro(value)
+  if (unit === 'bps') return value === null ? '–' : `${formatNumber(value, 1)} bps`
+  if (unit === 'ratio') return value === null ? '–' : `${formatNumber(value * 100, 1)}%`
+  if (unit === 'pct') return formatPercent(value)
+  return value === null ? '–' : formatNumber(value, 0) // shares, count
+}
+
+function formatRange(stat: PreviewStat, format: (value: number | null) => string) {
+  if (stat.n === 0) return 'No past event'
+  return `Range: ${format(stat.min)} to ${format(stat.max)}`
 }
 
 function PreviewPage({
@@ -2086,6 +2275,17 @@ function PreviewPage({
   loggedIn: boolean
   logout: () => void
 }) {
+  const [eventType, setEventType] = useState('quarterly_results')
+  const { data: preview, error, loading } = useApi<EventPreviewResponse>(
+    `/stocks/${ISIN}/event-preview?type=${eventType}`,
+  )
+  const history = preview?.own_history
+  const sessions = (value: number | null) => {
+    if (value === null) return '–'
+    const rounded = Math.round(value)
+    return `${rounded} session${rounded === 1 ? '' : 's'}`
+  }
+
   return (
     <>
       <Header page="dashboard" loggedIn={loggedIn} navigate={navigate} logout={logout} />
@@ -2097,33 +2297,72 @@ function PreviewPage({
             description="Historical reactions provide context, not a price prediction."
           />
 
-          <section className="panel preview-panel">
-            <div className="panel-title">
-              <div>
-                <span className="kicker">UPCOMING EVENT · FICTIONAL EXAMPLE</span>
-                <h2>Quarterly results announcement</h2>
-                <p className="muted">Example date: 12 November 2026</p>
+          <div className="compare-controls">
+            <label>
+              Announcement type
+              <select value={eventType} onChange={(event) => setEventType(event.target.value)}>
+                {Object.entries(eventLabels).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <LoadState loading={loading} error={error} />
+
+          {preview && history && (
+            <section className="panel preview-panel">
+              <div className="panel-title">
+                <div>
+                  <span className="kicker">
+                    {preview.upcoming ? 'UPCOMING EVENT' : 'NEXT EVENT OF THIS TYPE'} · BASED ON {history.n} PAST EVENT{history.n === 1 ? '' : 'S'}
+                  </span>
+                  <h2>{preview.upcoming?.title ?? eventLabels[preview.event_type] ?? preview.event_type}</h2>
+                  <p className="muted">
+                    {preview.upcoming ? `Scheduled: ${formatDate(preview.upcoming.date)}` : 'No date announced'}
+                  </p>
+                </div>
+                <span className="confidence">
+                  {preview.confidence.charAt(0).toUpperCase() + preview.confidence.slice(1)} confidence
+                </span>
               </div>
-              <span className="confidence">Medium confidence</span>
-            </div>
 
-            <div className="preview-grid">
-              <div><span>Historical spread change</span><strong>+22%</strong><small>Range: +9% to +38%</small></div>
-              <div><span>Historical volume</span><strong>2.1×</strong><small>Range: 1.6× to 2.8×</small></div>
-              <div><span>Return to normal</span><strong>~1 session</strong><small>Range: 1 to 3 sessions</small></div>
-            </div>
+              <div className="preview-grid">
+                <div>
+                  <span>Historical spread change</span>
+                  <strong>{formatPercent(history.spread_change_pct.median)}</strong>
+                  <small>{formatRange(history.spread_change_pct, formatPercent)}</small>
+                </div>
+                <div>
+                  <span>Historical volume</span>
+                  <strong>{formatRatio(history.volume_ratio.median)}</strong>
+                  <small>{formatRange(history.volume_ratio, (value) => formatRatio(value))}</small>
+                </div>
+                <div>
+                  <span>Return to normal</span>
+                  <strong>{history.sessions_to_normal.median === null ? '–' : `~${sessions(history.sessions_to_normal.median)}`}</strong>
+                  <small>{formatRange(history.sessions_to_normal, sessions)}</small>
+                </div>
+              </div>
 
-            <div className="attention-box">
-              <span className="kicker">POINTS TO WATCH</span>
-              <ul>
-                <li>Liquidity may take more than one trading session to normalise.</li>
-                <li>Past reactions in this demo were stronger than the peer median.</li>
-              </ul>
-            </div>
-            <p className="small-note">
-              Fictional preview values. This is not a forecast or investment recommendation.
-            </p>
-          </section>
+              <div className="ai-summary">
+                <strong>AI summary</strong>
+                <p>{preview.ai_summary}</p>
+              </div>
+
+              {preview.attention_points.length > 0 && (
+                <div className="attention-box">
+                  <span className="kicker">POINTS TO WATCH</span>
+                  <ul>
+                    {preview.attention_points.map((point) => (
+                      <li key={point}>{point}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p className="small-note">{preview.note} This is not a forecast or investment recommendation.</p>
+            </section>
+          )}
         </div>
       </main>
       <Footer />
@@ -2144,7 +2383,7 @@ function AssistantPage({
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      text: 'Hello. I can help you explore pbb trading activity and company events once the assistant is connected.',
+      text: 'Hello. Free-form chat is not available yet. For AI analysis, click a day on the dashboard chart and choose “Analyse with AI”, or open an impact card from the events timeline.',
     },
   ])
 
@@ -2158,7 +2397,7 @@ function AssistantPage({
       { role: 'user', text },
       {
         role: 'assistant',
-        text: 'This is a frontend prototype. AI responses will be connected to Alfred’s backend later.',
+        text: 'Free-form questions are not supported yet. Use “Analyse with AI” on the dashboard chart, or an impact card, to get an AI summary of a trading day or announcement.',
       },
     ])
     setDraft('')
@@ -2193,7 +2432,7 @@ function AssistantPage({
             <button type="submit">Send →</button>
           </form>
           <p className="small-note">
-            Frontend demo only · No API key or backend connection is used.
+            AI summaries are available on impact cards and through “Analyse with AI” on the chart.
           </p>
         </section>
       </main>
@@ -2209,6 +2448,7 @@ function App() {
   const [page, setPage] = useState<Page>('home')
   const [selectedPoint, setSelectedPoint] = useState<StockPoint | null>(null)
   const [assistantPoint, setAssistantPoint] = useState<StockPoint | null>(null)
+  const [impactPath, setImpactPath] = useState(DEFAULT_IMPACT)
 
   const navigate = useCallback(
     (target: Page) => {
@@ -2237,6 +2477,15 @@ function App() {
     setAssistantPoint(null)
     setPage('home')
   }, [])
+
+  // detail_url d'une anomalie, /events/{id}/impact-card ou /days/{isin}/{date}/impact-card
+  const openImpact = useCallback(
+    (path: string) => {
+      setImpactPath(path)
+      navigate('impact')
+    },
+    [navigate],
+  )
 
   const selectChartPoint = useCallback((point: StockPoint) => {
     setSelectedPoint(point)
@@ -2274,12 +2523,13 @@ function App() {
         onPointSelect={selectChartPoint}
         selectedPoint={selectedPoint}
         setSelectedPoint={setSelectedPoint}
+        openImpact={openImpact}
       />
     )
   } else if (page === 'events') {
-    content = <EventsPage navigate={navigate} loggedIn={loggedIn} logout={logout} />
+    content = <EventsPage navigate={navigate} loggedIn={loggedIn} logout={logout} openImpact={openImpact} />
   } else if (page === 'impact') {
-    content = <ImpactPage navigate={navigate} loggedIn={loggedIn} logout={logout} />
+    content = <ImpactPage navigate={navigate} loggedIn={loggedIn} logout={logout} impactPath={impactPath} />
   } else if (page === 'indicators') {
     content = (
       <IndicatorsPage
@@ -2290,11 +2540,11 @@ function App() {
       />
     )
   } else if (page === 'alerts') {
-    content = <AlertsPage navigate={navigate} loggedIn={loggedIn} logout={logout} />
+    content = <AlertsPage navigate={navigate} loggedIn={loggedIn} logout={logout} openImpact={openImpact} />
   } else if (page === 'compare') {
-    content = <ComparePage navigate={navigate} loggedIn={loggedIn} logout={logout} />
+    content = <ComparePage navigate={navigate} loggedIn={loggedIn} logout={logout} openImpact={openImpact} />
   } else if (page === 'report') {
-    content = <ReportPage navigate={navigate} loggedIn={loggedIn} logout={logout} />
+    content = <ReportPage navigate={navigate} loggedIn={loggedIn} logout={logout} openImpact={openImpact} />
   } else if (page === 'preview') {
     content = <PreviewPage navigate={navigate} loggedIn={loggedIn} logout={logout} />
   } else if (page === 'assistant') {
@@ -2302,12 +2552,6 @@ function App() {
   } else {
     content = <HomePage navigate={navigate} loggedIn={loggedIn} />
   }
-  useEffect(() => {
-  apiGet<unknown>('/stocks')
-    .then((data) => console.log('Stocks reçus :', data))
-    .catch((error) => console.error('Erreur API :', error))
-}, [])
-
   return (
     <div className="app-shell">
       {content}
@@ -2315,6 +2559,7 @@ function App() {
         <AnalysisAssistant
           point={assistantPoint}
           onClose={() => setAssistantPoint(null)}
+          openImpact={openImpact}
         />
       )}
     </div>
