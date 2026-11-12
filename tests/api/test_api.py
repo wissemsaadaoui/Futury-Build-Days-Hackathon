@@ -346,3 +346,10 @@ def test_ai_points_in_api_responses() -> None:
                 f"/stocks/{PBB}/event-preview?type=quarterly_results", f"/stocks/{PBB}/report?from=2026-10-26&to=2026-10-30"):
         pts = _get(url)["ai_points"]
         assert 3 <= len(pts) <= 4 and all(isinstance(p, str) and p for p in pts), url
+
+
+@needs_data
+def test_key_finding_in_dashboard() -> None:
+    kf = _get(f"/stocks/{PBB}/dashboard")["key_finding"]
+    assert kf["text"].startswith("pbb's cost to trade €25k rose from 54.3 to 97.4 bps")
+    assert kf["numbers"]["position_first"] == "below" and kf["numbers"]["position_last"] == "above"

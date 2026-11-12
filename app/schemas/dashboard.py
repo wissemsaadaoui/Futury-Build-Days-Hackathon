@@ -89,10 +89,16 @@ class SupportResistance(Schema):
     resistance: list[PriceLevel]
 
 
+class KeyFinding(Schema):
+    text: str
+    numbers: dict[str, Optional[float | str | int]]  # chiffres sources de la phrase (calcul par règles)
+
+
 class DashboardResponse(DataStatusMixin, Schema):
     stock: StockRef
     period: Period
     as_of: ISODate  # v0.5 : dernière date des données (indépendante de la période demandée)
+    key_finding: Optional[KeyFinding] = None  # v0.7 : phrase clé par règles (premier vs dernier mois)
     kpis: DashboardKpis
     series: list[DailyPoint]
     peers_series: list[PeerPoint]
