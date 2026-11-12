@@ -22,10 +22,13 @@ def _event_by_day(isin: str) -> dict[pd.Timestamp, str]:
 
 
 def _anomaly_rows(isin: str, spread: pd.Series, volume: pd.Series | None, start, end) -> list[dict]:
+    from app.analytics import thresholds
+
+    th = thresholds.current(isin)  # seuils de l'équipe IR (défauts = code), y compris un éventuel aperçu
     ev_day = _event_by_day(isin)
-    frames = [metrics.spread_anomalies(spread)]
+    frames = [metrics.spread_anomalies(spread, z_min=th["spread_z_min"], ratio_min=th["spread_ratio_min"])]
     if volume is not None:
-        frames.append(metrics.volume_anomalies(volume))
+        frames.append(metrics.volume_anomalies(volume, z_min=th["volume_z_min"]))
     rows = []
     for f in frames:
         f = f[(f.index >= start) & (f.index <= end)]
@@ -160,3 +163,21 @@ def build_dashboard(isin: str, start, end) -> dict:
     k["anomaly_days"] = len(flagged)
     dash["_data_status"] = status
     return clean(dash)
+
+
+def flag_count(isin: str) -> int:
+    """Nombre d'anomalies + alertes sur toutes les données, avec les seuils appliqués (ou l'aperçu en cours)."""
+    days = data.trading_days()
+    px = data.ohlc(isin)
+    vol = px["volume"].astype(float) if not px.empty else None
+    return len(_anomaly_rows(isin, data.spread_series(isin), vol, days[0], days[-1]))
+
+
+def threshold_preview(isin: str, values: dict) -> dict:
+    """« With these thresholds: N alerts (currently M) » – sans rien enregistrer."""
+    from app.analytics import thresholds
+
+    current = flag_count(isin)
+    with thresholds.override(isin, values):
+        proposed = flag_count(isin)
+    return {"isin": isin, "alerts_with_values": proposed, "alerts_current": current}

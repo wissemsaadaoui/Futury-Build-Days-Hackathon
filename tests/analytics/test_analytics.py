@@ -1077,3 +1077,55 @@ def test_ai_points_llm_kept_only_if_each_point_passes(monkeypatch):
 def test_ai_points_no_past_events():
     p = A.build_event_preview(PBB, "dividend")
     assert p["ai_points"] == ["No past dividend announcements are available in the 2026 data."]
+
+
+# ---------- Seuils modifiables (point 16) ----------
+@pytest.fixture()
+def clean_thresholds():
+    from app.analytics import thresholds as TH
+
+    TH.reset(PBB, "tests")
+    yield TH
+    TH.reset(PBB, "tests")
+
+
+def test_threshold_change_changes_alert_count(clean_thresholds):
+    TH = clean_thresholds
+    from app.analytics.dashboard import flag_count
+
+    base = flag_count(PBB)
+    assert base == 149  # 149 alertes avec les seuils du code
+    log = TH.save(PBB, {"net_flow_adtv_pct": 50, "volume_z_min": 3.0}, "tests")
+    assert {e["item_id"] for e in log} == {"net_flow_adtv_pct", "volume_z_min"}
+    assert all(e["decision"] == "threshold_changed" for e in log)
+    assert next(e for e in log if e["item_id"] == "net_flow_adtv_pct")["old_value"] == "20"
+    stricter = flag_count(PBB)
+    assert stricter < base and TH.is_custom(PBB)
+    d = A.build_dashboard(PBB, "2026-01-02", "2026-10-30")
+    assert len(d["anomalies"]) == stricter  # dashboard, top 5 et chat lisent les mêmes seuils
+    TH.reset(PBB, "tests")
+    assert flag_count(PBB) == base and not TH.is_custom(PBB) and TH.current(PBB) == TH.defaults()
+
+
+def test_threshold_bounds_and_preview(clean_thresholds):
+    TH = clean_thresholds
+    from app.analytics.dashboard import threshold_preview
+
+    with pytest.raises(TH.InvalidThresholds) as e:
+        TH.validate({"volume_z_min": 9, "sweep_min_trades": 2.5, "nope": 1})
+    assert set(e.value.errors) == {"volume_z_min", "sweep_min_trades", "nope"}
+    p = threshold_preview(PBB, {"net_flow_adtv_pct": 200})
+    assert p["alerts_current"] == 149 and p["alerts_with_values"] < 149
+    assert TH.current(PBB)["net_flow_adtv_pct"] == 20  # l'aperçu n'enregistre rien
+
+
+def test_defaults_equal_code_values():
+    from app import config
+    from app.analytics import thresholds as TH
+
+    d = TH.defaults()
+    assert d["large_trade_adtv_pct"] == config.ALERT_LARGE_TRADE_ADTV_SHARE * 100
+    assert d["sweep_min_trades"] == config.ALERT_SWEEP_MIN_TRADES
+    assert d["net_flow_adtv_pct"] == config.ALERT_NET_FLOW_ADTV_SHARE * 100
+    assert d["auction_spike_ratio"] == config.ALERT_AUCTION_SPIKE_RATIO
+    assert (d["volume_z_min"], d["spread_z_min"], d["spread_ratio_min"]) == (2.0, 3.0, 1.2)
