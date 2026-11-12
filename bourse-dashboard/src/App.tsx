@@ -37,6 +37,7 @@ import { HelpTip } from './components/HelpTip.tsx'
 import { PdfButton } from './components/PdfButton.tsx'
 import { WhatToExpect } from './components/WhatToExpect.tsx'
 import { tone, toneForUnit } from './utils/tone.ts'
+import { ADTV_SESSIONS, BASELINE_SESSIONS, alertRules, anomalyRules, type DetectionRule } from './content/detectionRules.ts'
 import {
   DISCLAIMER,
   eventLabels,
@@ -96,25 +97,6 @@ const SUGGESTED_QUESTIONS = [
   "What to expect from today's Q3 release?",
   'How does pbb compare with its peers?',
 ]
-
-type Thresholds = {
-  volumeRatio: number
-  breakoutDistance: number
-  ema200Distance: number
-  macdBars: number
-  maxRisk: number
-  rewardRisk: number
-  directorsDealings: number
-}
-
-type AlertInputs = {
-  ownershipPct: number
-  volumeRatio: number
-  breakoutDistance: number
-  ema200Distance: number
-  macdBars: number
-  directorsDealings: number
-}
 
 const ISIN = 'DE0008019001'
 const COMPANY = 'Deutsche Pfandbriefbank AG'
@@ -176,27 +158,6 @@ const indicators = [
     formula: 'Auction volume ÷ total trading volume.',
   },
 ]
-
-const defaultThresholds: Thresholds = {
-  volumeRatio: 1.5,
-  breakoutDistance: 1,
-  ema200Distance: 0.5,
-  macdBars: 2,
-  maxRisk: 2,
-  rewardRisk: 2,
-  directorsDealings: 20000,
-}
-
-const defaultAlertInputs: AlertInputs = {
-  ownershipPct: 2.7,
-  volumeRatio: 1.7,
-  breakoutDistance: 0.4,
-  ema200Distance: 0.8,
-  macdBars: 2,
-  directorsDealings: 12500,
-}
-
-const holdingThresholds = [3, 5, 10, 15, 20, 25, 30, 50, 75]
 
 // Série quotidienne de l'API -> points du graphique (jours sans prix de clôture ignorés)
 function toStockPoints(series: DailyPoint[]): StockPoint[] {
@@ -1593,6 +1554,32 @@ function IndicatorsPage({
   )
 }
 
+// Seuils de détection : uniquement les règles appliquées par app/analytics (src/content/detectionRules.ts),
+// en lecture seule. Aucun réglage de trader ni de données absentes (voting rights, directors' dealings).
+function RuleTable({ title, kicker, rules }: { title: string; kicker: string; rules: DetectionRule[] }) {
+  return (
+    <section className="panel threshold-panel">
+      <div className="panel-title">
+        <div>
+          <span className="kicker">{kicker}</span>
+          <h2>{title}</h2>
+        </div>
+      </div>
+      <div className="rule-list">
+        {rules.map((rule) => (
+          <div className="rule-row" key={rule.type}>
+            <strong>{rule.name}</strong>
+            <span>{rule.rule}</span>
+            <small>
+              High severity: {rule.high} · <code>{rule.source}</code>
+            </small>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function AlertsPage({
   navigate,
   loggedIn,
@@ -1605,75 +1592,6 @@ function AlertsPage({
   openImpact: (path: string) => void
 }) {
   const { data: dashboard } = useApi<DashboardResponse>(DASHBOARD_PATH)
-  const [thresholds, setThresholds] = useState(defaultThresholds)
-  const [inputs, setInputs] = useState(defaultAlertInputs)
-  const [alerts, setAlerts] = useState<string[]>([])
-
-  function updateThreshold<K extends keyof Thresholds>(key: K, value: number) {
-    setThresholds((current) => ({ ...current, [key]: value }))
-  }
-
-  function updateInput<K extends keyof AlertInputs>(key: K, value: number) {
-    setInputs((current) => ({ ...current, [key]: value }))
-  }
-
-  function evaluateAlerts() {
-    const results: string[] = []
-
-    const nextOwnershipThreshold = holdingThresholds.find(
-      (threshold) => inputs.ownershipPct < threshold,
-    )
-    if (
-      nextOwnershipThreshold !== undefined &&
-      inputs.ownershipPct >= nextOwnershipThreshold - 0.5
-    ) {
-      results.push(
-        `Shareholding is approaching the ${nextOwnershipThreshold}% voting-rights threshold.`,
-      )
-    }
-
-    if (inputs.ownershipPct >= 30) {
-      results.push(
-        'The entered shareholding is at or above 30%. Review the applicable takeover rules.',
-      )
-    }
-
-    if (inputs.volumeRatio >= thresholds.volumeRatio) {
-      results.push(
-        `Relative volume alert: ${formatNumber(inputs.volumeRatio, 2)}× meets the ${formatNumber(thresholds.volumeRatio, 2)}× threshold.`,
-      )
-    }
-
-    if (inputs.breakoutDistance >= thresholds.breakoutDistance) {
-      results.push(
-        `Breakout distance alert: price is ${formatNumber(inputs.breakoutDistance, 2)}% beyond the entered reference level.`,
-      )
-    }
-
-    if (inputs.ema200Distance >= thresholds.ema200Distance) {
-      results.push(
-        `EMA 200 trend alert: price is ${formatNumber(inputs.ema200Distance, 2)}% above the configured threshold.`,
-      )
-    }
-
-    if (inputs.macdBars >= thresholds.macdBars) {
-      results.push(
-        `MACD confirmation: ${inputs.macdBars} consecutive expanding bars meet the configured minimum.`,
-      )
-    }
-
-    if (inputs.directorsDealings >= thresholds.directorsDealings) {
-      results.push(
-        `Directors' dealings entered amount is at or above €${formatNumber(thresholds.directorsDealings, 0)}.`,
-      )
-    }
-
-    setAlerts(
-      results.length > 0
-        ? results
-        : ['No configured thresholds were crossed by the entered demo values.'],
-    )
-  }
 
   return (
     <>
@@ -1681,9 +1599,9 @@ function AlertsPage({
       <main className="workspace-page">
         <div className="workspace-container">
           <PageHeading
-            eyebrow="CONFIGURATION"
+            eyebrow="DETECTION RULES"
             title="Thresholds & alerts"
-            description="Alerts detected in the Xetra data, and demo rules to preview your own thresholds."
+            description="Alerts detected in the Xetra data, and the exact rules used to detect them."
           />
 
           <section className="panel lower-panel">
@@ -1696,230 +1614,20 @@ function AlertsPage({
             {dashboard && <AnomalyList anomalies={dashboard.anomalies} onOpen={openImpact} />}
           </section>
 
-          <div className="threshold-layout">
-            <section className="panel threshold-panel">
-              <div className="panel-title">
-                <div>
-                  <span className="kicker">LEGAL & REGULATORY REFERENCES</span>
-                  <h2>Shareholding thresholds</h2>
-                </div>
-              </div>
-              <p className="section-description">
-                Voting-rights thresholds shown here are reference values from the
-                supplied project notes. Confirm applicability before production use.
-              </p>
-
-              <div className="threshold-chips">
-                {holdingThresholds.map((value) => (
-                  <span key={value}>{value}%</span>
-                ))}
-              </div>
-
-              <div className="threshold-reference">
-                <strong>30% control reference</strong>
-                <span>
-                  At 30%, review the applicable takeover rules and circumstances.
-                </span>
-              </div>
-
-              <label className="field-label" htmlFor="ownership-input">
-                Current entered voting-rights share (%)
-              </label>
-              <input
-                id="ownership-input"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={inputs.ownershipPct}
-                onChange={(event) => updateInput('ownershipPct', Number(event.target.value))}
-              />
-
-              <div className="form-divider" />
-
-              <div className="panel-title">
-                <div>
-                  <span className="kicker">TECHNICAL SIGNALS</span>
-                  <h2>Trading thresholds</h2>
-                </div>
-              </div>
-
-              <NumberSetting
-                label="Relative volume threshold (×)"
-                description="Suggested demo range: 1.5×–2.0× 30-day average daily volume."
-                value={thresholds.volumeRatio}
-                step={0.1}
-                onChange={(value) => updateThreshold('volumeRatio', value)}
-              />
-              <NumberSetting
-                label="Breakout distance (%)"
-                description="Distance beyond a reference support or resistance level."
-                value={thresholds.breakoutDistance}
-                step={0.1}
-                onChange={(value) => updateThreshold('breakoutDistance', value)}
-              />
-              <NumberSetting
-                label="EMA 200 distance (%)"
-                description="Price distance above the 200-day moving average."
-                value={thresholds.ema200Distance}
-                step={0.1}
-                onChange={(value) => updateThreshold('ema200Distance', value)}
-              />
-              <NumberSetting
-                label="MACD confirmation bars"
-                description="Minimum consecutive expanding bars."
-                value={thresholds.macdBars}
-                step={1}
-                onChange={(value) => updateThreshold('macdBars', value)}
-              />
-
-              <div className="form-divider" />
-
-              <div className="panel-title">
-                <div>
-                  <span className="kicker">RISK MANAGEMENT REFERENCES</span>
-                  <h2>Risk settings</h2>
-                </div>
-              </div>
-
-              <NumberSetting
-                label="Maximum risk per trade (%)"
-                description="Configurable reference range: 1%–2% of entered portfolio equity."
-                value={thresholds.maxRisk}
-                step={0.1}
-                onChange={(value) => updateThreshold('maxRisk', value)}
-              />
-              <NumberSetting
-                label="Minimum reward-to-risk ratio"
-                description="Example: 2 means a 1:2 risk-to-reward ratio."
-                value={thresholds.rewardRisk}
-                step={0.1}
-                onChange={(value) => updateThreshold('rewardRisk', value)}
-              />
-
-              <div className="form-divider" />
-
-              <div className="panel-title">
-                <div>
-                  <span className="kicker">DIRECTORS’ DEALINGS</span>
-                  <h2>Annual amount reference</h2>
-                </div>
-              </div>
-              <NumberSetting
-                label="Entered annual transaction amount (€)"
-                description="Reference amount from the project notes; verify applicable rules."
-                value={inputs.directorsDealings}
-                step={500}
-                onChange={(value) => updateInput('directorsDealings', value)}
-              />
-              <NumberSetting
-                label="Configured alert amount (€)"
-                description="Amount that triggers a demo alert in this prototype."
-                value={thresholds.directorsDealings}
-                step={500}
-                onChange={(value) => updateThreshold('directorsDealings', value)}
-              />
-            </section>
-
-            <aside className="threshold-side">
-              <section className="panel threshold-panel">
-                <div className="panel-title">
-                  <div>
-                    <span className="kicker">DEMO INPUTS</span>
-                    <h2>Test the alert rules</h2>
-                  </div>
-                </div>
-
-                <NumberSetting
-                  label="Relative volume (×)"
-                  value={inputs.volumeRatio}
-                  step={0.1}
-                  onChange={(value) => updateInput('volumeRatio', value)}
-                />
-                <NumberSetting
-                  label="Breakout distance (%)"
-                  value={inputs.breakoutDistance}
-                  step={0.1}
-                  onChange={(value) => updateInput('breakoutDistance', value)}
-                />
-                <NumberSetting
-                  label="Distance above EMA 200 (%)"
-                  value={inputs.ema200Distance}
-                  step={0.1}
-                  onChange={(value) => updateInput('ema200Distance', value)}
-                />
-                <NumberSetting
-                  label="Consecutive MACD bars"
-                  value={inputs.macdBars}
-                  step={1}
-                  onChange={(value) => updateInput('macdBars', value)}
-                />
-
-                <button className="primary-button full-width" onClick={evaluateAlerts}>
-                  Evaluate demo alerts →
-                </button>
-              </section>
-
-              <section className="panel alert-results">
-                <span className="kicker">ALERT PREVIEW</span>
-                <h2>Triggered alerts</h2>
-                {alerts.length === 0 ? (
-                  <p className="muted">
-                    Change the demo inputs and evaluate to preview alerts.
-                  </p>
-                ) : (
-                  <ul>
-                    {alerts.map((alert) => (
-                      <li key={alert}>
-                        <span />
-                        {alert}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            </aside>
+          <div className="notice-box rules-note">
+            Baseline: the previous {BASELINE_SESSIONS} trading days, excluding the measured day. ADTV: average daily
+            turnover of the previous {ADTV_SESSIONS} trading days. Alerts describe executions, not who traded. These
+            rules are fixed in the analytics and are shown here for transparency.
           </div>
 
-          <p className="legal-note">
-            These controls are a software prototype, not legal, investment or trading
-            advice. Regulatory thresholds and reporting duties can depend on facts and
-            current rules.
-          </p>
+          <div className="rules-grid">
+            <RuleTable kicker="STATISTICAL ANOMALIES" title="Volume and spread" rules={anomalyRules} />
+            <RuleTable kicker="EXECUTION ALERTS" title="Intraday executions, flows and auctions" rules={alertRules} />
+          </div>
         </div>
       </main>
       <Footer />
     </>
-  )
-}
-
-function NumberSetting({
-  label,
-  description,
-  value,
-  step,
-  onChange,
-}: {
-  label: string
-  description?: string
-  value: number
-  step: number
-  onChange: (value: number) => void
-}) {
-  return (
-    <label className="number-setting">
-      <span>
-        <strong>{label}</strong>
-        {description && <small>{description}</small>}
-      </span>
-      <input
-        type="number"
-        min="0"
-        step={step}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-    </label>
   )
 }
 
