@@ -38,6 +38,7 @@ import { HelpTip } from './components/HelpTip.tsx'
 import { PdfButton } from './components/PdfButton.tsx'
 import { WhatToExpect } from './components/WhatToExpect.tsx'
 import { tone, toneForUnit } from './utils/tone.ts'
+import { announcementsLabel, groupByTradingDay } from './utils/events.ts'
 import { ADTV_SESSIONS, BASELINE_SESSIONS, alertRules, anomalyRules, type DetectionRule } from './content/detectionRules.ts'
 import {
   DISCLAIMER,
@@ -180,10 +181,6 @@ function toStockPoints(series: DailyPoint[]): StockPoint[] {
         auctionShare: day.auction_share,
       }
     })
-}
-
-function byDateDesc<T extends { date: string }>(items: T[]): T[] {
-  return [...items].sort((a, b) => b.date.localeCompare(a.date))
 }
 
 const DASHBOARD_PATH = `/stocks/${ISIN}/dashboard`
@@ -1060,7 +1057,7 @@ function DashboardPage({
     if (last.length === 0 || !dashboard.data) return null
     return { from: last[0].date, to: dashboard.data.as_of, label: formatDateRange(last[0].date, dashboard.data.as_of) }
   }, [dashboard.data])
-  const recentEvents = useMemo(() => byDateDesc(events.data?.events ?? []).slice(0, 5), [events.data])
+  const recentDays = useMemo(() => groupByTradingDay(events.data?.events ?? []).slice(0, 5), [events.data])
 
   const latest = points[points.length - 1]
   const first = points[0]
@@ -1251,23 +1248,27 @@ function DashboardPage({
                   </button>
                 </div>
                 <LoadState loading={events.loading} error={events.error} />
-                {recentEvents.map((event) => (
+                {recentDays.map((day) => (
                   <button
                     className="recent-event"
-                    key={event.event_id}
-                    onClick={() => openImpact(`/events/${event.event_id}/impact-card`)}
+                    key={day.trading_day}
+                    onClick={() => openImpact(`/events/${day.primary.event_id}/impact-card`)}
                   >
                     <span className="event-date-block">
-                      <strong>{new Date(`${event.date}T12:00:00`).getDate()}</strong>
+                      <strong>{new Date(`${day.trading_day}T12:00:00`).getDate()}</strong>
                       <small>
-                        {new Date(`${event.date}T12:00:00`).toLocaleDateString('en-GB', {
+                        {new Date(`${day.trading_day}T12:00:00`).toLocaleDateString('en-GB', {
                           month: 'short',
                         })}
                       </small>
                     </span>
                     <span className="recent-event-copy">
-                      <strong>{event.title}</strong>
-                      <small>{eventLabels[event.type] ?? event.type}</small>
+                      <strong>{day.primary.title}</strong>
+                      <small>
+                        {day.events.length > 1
+                          ? `${announcementsLabel(day.events.length)} · ${[...new Set(day.events.map((e) => eventLabels[e.type] ?? e.type))].join(', ')}`
+                          : eventLabels[day.primary.type] ?? day.primary.type}
+                      </small>
                     </span>
                     <span>↗</span>
                   </button>
@@ -1294,7 +1295,8 @@ function EventsPage({
   openImpact: (path: string) => void
 }) {
   const { data, error, loading } = useApi<EventsResponse>(`/stocks/${ISIN}/events`)
-  const events = useMemo(() => byDateDesc(data?.events ?? []), [data])
+  const events = data?.events ?? []
+  const days = useMemo(() => groupByTradingDay(data?.events ?? []), [data])
 
   return (
     <>
@@ -1317,29 +1319,56 @@ function EventsPage({
           )}
 
           <div className="timeline">
-            {events.map((event) => (
-              <article className="timeline-item" key={event.event_id}>
+            {days.map((day) => (
+              <article className="timeline-item" key={day.trading_day}>
                 <div className="timeline-date">
-                  <strong>{formatDate(event.date)}</strong>
-                  <span>{event.time || 'Time unavailable'}</span>
+                  <strong>{formatDate(day.trading_day)}</strong>
+                  <span>
+                    {day.events.length > 1
+                      ? `${day.events.length} announcements`
+                      : day.primary.time || 'Time unavailable'}
+                  </span>
                 </div>
                 <div className="timeline-card">
                   <div className="timeline-card-top">
-                    <span>{eventLabels[event.type] ?? event.type}</span>
-                    {event.source_url && (
-                      <a href={event.source_url} target="_blank" rel="noreferrer">
+                    <span>
+                      {day.events.length > 1
+                        ? announcementsLabel(day.events.length)
+                        : eventLabels[day.primary.type] ?? day.primary.type}
+                    </span>
+                    {day.events.length === 1 && day.primary.source_url && (
+                      <a href={day.primary.source_url} target="_blank" rel="noreferrer">
                         <small>SOURCE ↗</small>
                       </a>
                     )}
                   </div>
-                  <h2>{event.title}</h2>
-                  <p>Trading day: {formatDate(event.trading_day)}</p>
+                  {day.events.length === 1 ? (
+                    <h2>{day.primary.title}</h2>
+                  ) : (
+                    <ul className="day-announcements">
+                      {day.events.map((event) => (
+                        <li key={event.event_id}>
+                          <span className="day-announcement-meta">
+                            {event.time || '–'} · {eventLabels[event.type] ?? event.type}
+                          </span>
+                          <strong>{event.title}</strong>
+                          {event.source_url && (
+                            <a href={event.source_url} target="_blank" rel="noreferrer">Source ↗</a>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <p>
+                    Trading day: {formatDate(day.trading_day)}
+                    {day.events.length > 1 ? ' · one set of trading figures for the session' : ''}
+                  </p>
                   <div className="event-metrics">
-                    <Metric label="Volume ratio" value={formatRatio(event.headline_metric.volume_ratio)} />
-                    <Metric label="Price change" value={formatPercent(event.headline_metric.price_change_pct)} tone={tone(event.headline_metric.price_change_pct)} />
-                    <Metric label="Spread change" value={formatPercent(event.headline_metric.spread_change_pct)} tone={tone(event.headline_metric.spread_change_pct, 'cost')} />
+                    <Metric label="Volume ratio" value={formatRatio(day.headline_metric.volume_ratio)} />
+                    <Metric label="Price change" value={formatPercent(day.headline_metric.price_change_pct)} tone={tone(day.headline_metric.price_change_pct)} />
+                    <Metric label="Spread change" value={formatPercent(day.headline_metric.spread_change_pct)} tone={tone(day.headline_metric.spread_change_pct, 'cost')} />
                   </div>
-                  <button className="text-button" onClick={() => openImpact(`/events/${event.event_id}/impact-card`)}>
+                  <button className="text-button" onClick={() => openImpact(`/events/${day.primary.event_id}/impact-card`)}>
                     View impact card →
                   </button>
                 </div>
@@ -1412,6 +1441,12 @@ function ImpactPage({
     () => (dashboard.data?.anomalies ?? []).filter((anomaly) => anomaly.date === day),
     [dashboard.data, day],
   )
+  // Toutes les annonces du même jour de trading (une seule carte : les chiffres sont ceux de la séance)
+  const events = useApi<EventsResponse>(`/stocks/${ISIN}/events`)
+  const sameDayEvents = useMemo(
+    () => (events.data?.events ?? []).filter((event) => event.trading_day === day),
+    [events.data, day],
+  )
 
   return (
     <>
@@ -1430,7 +1465,7 @@ function ImpactPage({
           />
 
           <LoadState loading={loading} error={error} />
-          {card && <DayDetail card={card} dayAnomalies={dayAnomalies} />}
+          {card && <DayDetail card={card} dayAnomalies={dayAnomalies} sameDayEvents={sameDayEvents} />}
         </div>
       </main>
       <Footer />

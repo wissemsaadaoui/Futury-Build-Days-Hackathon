@@ -3955,3 +3955,39 @@ button.report-event {
     margin-top: 8px;
   }
 }
+
+/* ---------- Annonces du même jour de trading (une seule carte) ---------- */
+.day-announcements {
+  margin: 10px 0 6px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.day-announcements li {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 3px solid var(--pbb-green);
+  border-radius: 4px;
+  background: #fafbfd;
+}
+
+.day-announcement-meta {
+  color: #8792a2;
+  font-size: 13px;
+}
+
+.day-announcements strong {
+  color: #24334b;
+  font-size: 15px;
+}
+
+.day-announcements a {
+  width: fit-content;
+  color: var(--navy);
+  font-size: 13px;
+}

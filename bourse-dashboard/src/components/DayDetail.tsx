@@ -14,7 +14,7 @@ import {
   YAxis,
 } from 'recharts'
 
-import type { Anomaly, ImpactCardResponse, Num } from '../api/types.ts'
+import type { Anomaly, CorporateEvent, ImpactCardResponse, Num } from '../api/types.ts'
 import {
   anomalyLabels,
   eventLabels,
@@ -29,6 +29,7 @@ import {
   isMissing,
 } from '../format.ts'
 import type { MetricHelpKey } from '../content/metricHelp.ts'
+import { announcementsLabel } from '../utils/events.ts'
 import { AiPoints } from './AiPoints.tsx'
 import { HelpTip } from './HelpTip.tsx'
 import { PdfButton } from './PdfButton.tsx'
@@ -192,7 +193,18 @@ function WindowChart({ card }: { card: ImpactCardResponse }) {
   )
 }
 
-export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; dayAnomalies: Anomaly[] }) {
+export function DayDetail({
+  card,
+  dayAnomalies,
+  sameDayEvents = [],
+}: {
+  card: ImpactCardResponse
+  dayAnomalies: Anomaly[]
+  sameDayEvents?: CorporateEvent[]
+}) {
+  // Plusieurs annonces le même jour : une seule carte, un seul jeu de chiffres, toutes les annonces listées
+  const dayEvents = [...sameDayEvents].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'))
+  const several = dayEvents.length > 1
   const m = card.metrics
   const day = card.window.find((w) => w.offset === 0)?.date ?? card.event?.trading_day ?? ''
   const signals = dayAnomalies.filter((a) => SIGNAL_TYPES.has(a.type))
@@ -204,7 +216,11 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
     <div className="day-detail">
       <section className="panel impact-card day-hero">
         <div className="timeline-card-top">
-          <span>{card.event ? eventLabels[card.event.type] ?? card.event.type : 'Trading day'}</span>
+          <span>
+            {several
+              ? announcementsLabel(dayEvents.length)
+              : card.event ? eventLabels[card.event.type] ?? card.event.type : 'Trading day'}
+          </span>
           <small>{hasDemoData(card._data_status) ? 'PARTLY DEMO DATA' : 'XETRA DATA'}</small>
         </div>
         <h2>{card.event ? card.event.title : `Trading on ${formatDate(day)}`}</h2>
@@ -306,8 +322,33 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
           <WindowChart card={card} />
         </Section>
 
-        <Section kicker="6 · ANNOUNCEMENT" title={card.event ? 'Linked announcement' : 'No linked announcement'} empty={false} wide>
-          {card.event ? (
+        <Section
+          kicker="6 · ANNOUNCEMENT"
+          title={several ? announcementsLabel(dayEvents.length) : card.event ? 'Linked announcement' : 'No linked announcement'}
+          empty={false}
+          wide
+        >
+          {several ? (
+            <>
+              <ul className="day-announcements">
+                {dayEvents.map((event) => (
+                  <li key={event.event_id}>
+                    <span className="day-announcement-meta">
+                      {event.time || '–'} · {eventLabels[event.type] ?? event.type}
+                    </span>
+                    <strong>{event.title}</strong>
+                    {event.source_url && (
+                      <a href={event.source_url} target="_blank" rel="noreferrer">Source ↗</a>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="muted">
+                One set of trading figures for the session of {formatDate(day)}: the figures cannot be attributed to a
+                single announcement.
+              </p>
+            </>
+          ) : card.event ? (
             <>
               <p className="day-event-title">{card.event.title}</p>
               <p className="muted">
