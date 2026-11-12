@@ -10,6 +10,7 @@ export const metricHelp = {
     'How unusual the value is compared with the previous 20 trading days: volume is flagged above 2 (high above 3); the spread is flagged above 3 and only when it is also more than 20% above its baseline.',
   volume: 'Number of shares traded on Xetra that day.',
   turnover: 'Value in euros traded on Xetra that day.',
+  vwap: 'Volume-weighted average price of the day: turnover ÷ number of shares traded.',
   auctionShare: 'Share of volume executed in the opening, intraday and closing auctions.',
   peers:
     'Median of comparable listed financials with data that day: GRENKE, Hypoport, MLP, ProCredit (data from 14 Oct 2026), W&W (data until 5 Oct 2026) and flatexDEGIRO.',

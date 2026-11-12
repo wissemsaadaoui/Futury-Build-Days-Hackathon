@@ -94,3 +94,14 @@ export function isMissing(value: number | null | undefined): value is null | und
 }
 
 export const DISCLAIMER = 'Descriptive analysis of historical Xetra trading data. Not investment advice.'
+
+// "2026-10-26", "2026-10-30" -> "26–30 Oct 2026" (même mois) ; "29 Sep – 2 Oct 2026" sinon
+export function formatDateRange(from: string, to: string) {
+  const a = new Date(`${from}T12:00:00`)
+  const b = new Date(`${to}T12:00:00`)
+  const month = (d: Date) => d.toLocaleDateString('en-GB', { month: 'short' })
+  if (a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()) {
+    return `${a.getDate()}–${b.getDate()} ${month(b)} ${b.getFullYear()}`
+  }
+  return `${a.getDate()} ${month(a)} – ${b.getDate()} ${month(b)} ${b.getFullYear()}`
+}

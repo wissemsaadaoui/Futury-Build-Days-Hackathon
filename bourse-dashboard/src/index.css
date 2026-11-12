@@ -3700,3 +3700,125 @@ button.report-event {
 .text-button.show-all {
   margin-top: 8px;
 }
+
+/* ---------- Front démo (v0.5) : peers, checklist IR, weekly snapshot, mise à l'échelle du nouveau design ---------- */
+.expect-peer-line {
+  margin-top: 10px;
+  padding: 9px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 18px;
+  border-radius: 7px;
+  background: #f4f7fb;
+  color: #60718b;
+  font-size: 15px;
+}
+
+.expect-peer-line strong {
+  color: #24334b;
+}
+
+.expect-peer-label {
+  color: #24334b;
+  font-weight: 700;
+}
+
+.expect-peer-line small {
+  color: #8792a2;
+  font-size: 13px;
+}
+
+.expect-checklist {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e3efc8;
+  border-radius: 7px;
+  background: #f9fcf2;
+}
+
+.expect-checklist ul {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.expect-checklist label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: #34425a;
+  font-size: 15px;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.expect-checklist input {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  flex: 0 0 auto;
+  accent-color: var(--pbb-green);
+}
+
+.expect-checklist li.done span {
+  color: #8792a2;
+  text-decoration: line-through;
+}
+
+.heading-actions .weekly-snapshot {
+  border-color: var(--navy);
+  color: var(--navy);
+  font-weight: 700;
+}
+
+.heading-actions .login-error {
+  align-self: center;
+}
+
+/* Éléments ajoutés avant le nouveau design : même échelle que lui (14–15 px) */
+.footer-contact > span:not(.footer-label) {
+  color: #7b8797;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.chat-suggestions button {
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+.chat-link {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.help-tip-button {
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+}
+
+.help-tip-bubble {
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+@media (max-width: 760px) {
+  .expect-peer-line {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+/* Bulle rendue dans document.body (portail) : visible via sa propre classe .open */
+.help-tip-bubble {
+  pointer-events: none;
+}
+
+.help-tip-bubble.open {
+  display: block;
+}
