@@ -993,11 +993,9 @@ def test_future_event_has_no_market_data_yet():
 
 
 def test_future_event_api_returns_clean_404():
-    from fastapi.testclient import TestClient
+    from tests.helpers import logged_in_client
 
-    from app.main import app
-
-    c = TestClient(app)
+    c = logged_in_client()
     for url in ("/events/evt_026/impact-card", "/events/evt_026/impact-card.pdf"):
         r = c.get(url)
         assert r.status_code == 404 and r.json()["detail"].startswith("No market data yet for evt_026")

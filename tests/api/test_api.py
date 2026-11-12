@@ -4,10 +4,9 @@ import json
 import re
 
 import pytest
-from fastapi.testclient import TestClient
 
 from app import config, etl
-from app.main import app
+from tests.helpers import logged_in_client
 from app.schemas import (
     CompareResponse,
     DashboardResponse,
@@ -19,7 +18,7 @@ from app.schemas import (
 )
 
 PBB = "DE0008019001"
-client = TestClient(app)
+client = logged_in_client()  # toutes les routes exigent une session (app/api/auth.py)
 
 needs_data = pytest.mark.skipif(etl.load_xlm().empty, reason="data/raw/spreads absent")
 

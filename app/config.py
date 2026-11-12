@@ -6,6 +6,7 @@ app/assistant (Alfred) : ne pas les renommer sans prévenir.
 from __future__ import annotations
 
 import os
+import secrets
 from pathlib import Path
 
 try:
@@ -32,6 +33,11 @@ MOCKS_DIR = ROOT / "mocks"
 
 # API
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")  # plusieurs origines : séparées par des virgules
+
+# Login applicatif (app/api/auth.py) – jamais de valeur réelle dans le code
+APP_PASSWORD = os.getenv("APP_PASSWORD", "")  # vide = aucun login possible
+SESSION_SECRET = os.getenv("SESSION_SECRET") or secrets.token_hex(32)  # vide = aléatoire (sessions perdues au redémarrage)
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "true").strip().lower() not in ("0", "false", "no")  # false en local (http)
 
 TZ = "Europe/Berlin"
 DEMO_ISINS = ["DE0008019001"]  # Deutsche Pfandbriefbank AG (pbb), SDAX
