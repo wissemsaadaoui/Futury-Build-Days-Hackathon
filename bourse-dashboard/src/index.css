@@ -3211,3 +3211,57 @@ button.report-event {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ---------- AI Assistant : chat libre ---------- */
+.chat-links {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chat-link {
+  padding: 5px 9px;
+  border: 1px solid #cfdcf3;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--navy);
+  font-size: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chat-link:hover {
+  border-color: var(--navy);
+}
+
+.chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.chat-suggestions button {
+  padding: 7px 11px;
+  border: 1px solid #dce2ea;
+  border-radius: 999px;
+  background: #fff;
+  color: #34425a;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.chat-suggestions button:hover:not(:disabled) {
+  border-color: var(--pbb-green);
+  background: #f7fbef;
+}
+
+.chat-typing {
+  color: #8490a0;
+  font-style: italic;
+}
+
+.chat-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
