@@ -201,7 +201,8 @@ def test_route_auth_schema_and_rate_limit(no_llm):
     route._calls.clear()
     r = client.post("/assistant/chat", json=body)
     assert r.status_code == 200
-    assert set(r.json()) == {"answer", "links", "as_of"} and r.json()["links"][0]["type"] == "day"
+    assert set(r.json()) == {"answer", "links", "as_of", "reason"} and r.json()["links"][0]["type"] == "day"
+    assert r.json()["reason"] is None
     assert client.post("/assistant/chat", json={**body, "isin": "XX0000000000"}).status_code == 404
     assert client.post("/assistant/chat", json={"isin": PBB, "messages": []}).status_code == 422
     route._calls.clear()
