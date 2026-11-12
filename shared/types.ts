@@ -39,6 +39,15 @@ export interface IndexPeriod {
   until?: ISODate;
 }
 
+export type PeerBasis = "manual" | "index";  // v0.11 : manual = liste config.PEERS ; index = même indice À LA DATE
+
+export interface Coverage {  // v0.11 : ce que les données couvrent pour l'émetteur
+  dashboard: boolean;  // false : < 21 séances avec un spread mesuré -> le dashboard renvoie 404 avec un message
+  events: boolean;     // annonces chargées (data/events.csv)
+  intraday: boolean;   // trades horodatés disponibles
+  sessions: number;    // séances avec un spread XLM mesuré
+}
+
 export interface Stock {
   isin: string;
   name: string;
@@ -48,12 +57,21 @@ export interface Stock {
   sector: string;
   shares_outstanding?: number;
   market_cap_eur: number;
-  is_selected: boolean;
-  peers: string[]; // ISINs
+  is_selected: boolean;  // true pour l'émetteur par défaut (pbb)
+  peers: string[]; // ISINs (liste manuelle ; vide en base index)
+  peer_basis?: PeerBasis;  // v0.11
+  coverage?: Coverage;     // v0.11
 }
 
 export interface StocksResponse {
-  stocks: Stock[];
+  stocks: Stock[];  // v0.11 : tout l'univers DAX/MDAX/SDAX, émetteur par défaut en premier puis DAX, MDAX, SDAX par nom
+  default_isin?: string;  // v0.11
+}
+
+// ---------- GET /assistant/suggestions?isin= (v0.11) ----------
+export interface SuggestionsResponse {
+  isin: string;
+  questions: string[];  // 4 questions cliquables pour l'émetteur (pbb : celles de la démo)
 }
 
 // ---------- GET /stocks/{isin}/dashboard ----------
@@ -141,6 +159,8 @@ export interface DashboardResponse {
   as_of: ISODate;  // dernière date des données (ex. "2026-10-30"), indépendante de la période demandée
   key_finding: KeyFinding | null;  // v0.7 : phrase clé calculée par règles (premier vs dernier mois des données)
   auction_trend?: AuctionTrend | null;  // v0.10 : part des enchères dans le volume (null sans Flows)
+  peer_basis?: PeerBasis;  // v0.11
+  n_peers?: number;  // v0.11 : peers comptés à la fin de la période
   kpis: DashboardKpis;
   series: DailyPoint[];
   peers_series: PeerPoint[];
@@ -347,6 +367,7 @@ export interface ReportResponse {
   disclaimer: string;
   generated_at: ISODateTime;
   export: ExportLinks;
+  peer_basis?: PeerBasis;  // v0.11
 }
 
 // ---------- 🆕 v0.4 – GET /stocks/{isin}/event-preview?type=&date=  (mocks/API.md §5.3) ----------
@@ -393,6 +414,8 @@ export interface EventPreviewResponse {
   checklist: string[];  // préparation IR par règles (volume > 1.5x, spread > +10 %, retour à la normale <= 1 séance) ; [] si rien
   confidence: "low" | "medium" | "high";  // low : n < 3, medium : 3–5, high : > 5
   note: string;
+  peer_basis?: PeerBasis;  // v0.11
+  events_note?: string | null;  // v0.11 : présent si aucune annonce n'est chargée pour l'émetteur
   ai_summary: string;
   ai_points: string[];  // v0.6 : 3–4 phrases courtes (chacune vérifiée par le garde-fou) ; à afficher en liste à puces
   ai_summary_id: string;  // v0.8 : item_id pour POST /decisions (item_type "ai_summary")
