@@ -32,6 +32,7 @@ import type {
 import { clearApiCache, useApi } from './api/useApi.ts'
 import { AnomalyList } from './components/AnomalyList.tsx'
 import { CountUp } from './components/CountUp.tsx'
+import { AiPoints } from './components/AiPoints.tsx'
 import { DayDetail } from './components/DayDetail.tsx'
 import { HelpTip } from './components/HelpTip.tsx'
 import { PdfButton } from './components/PdfButton.tsx'
@@ -976,7 +977,7 @@ function AnalysisAssistant({
                 <strong>
                   {day.data.event ? day.data.event.title : `Trading on ${formatDate(request.from)}`}
                 </strong>
-                <p>{day.data.ai_summary}</p>
+                <AiPoints points={day.data.ai_points} summary={day.data.ai_summary} title={null} className="drawer-points" />
                 <button
                   className="text-button"
                   onClick={() => {
@@ -995,6 +996,7 @@ function AnalysisAssistant({
                   {formatDate(period.data.period.from)} – {formatDate(period.data.period.to)}
                 </strong>
                 <p>{period.data.headline}</p>
+                <AiPoints points={period.data.ai_points} title={null} className="drawer-points" />
                 {period.data.sections
                   .filter((section) => section.text)
                   .map((section) => (
@@ -1815,6 +1817,7 @@ function ReportPage({
               <div className="report-section">
                 <span className="kicker">EXECUTIVE SUMMARY</span>
                 <p>{report.headline}</p>
+                <AiPoints points={report.ai_points} title={null} className="report-points" />
               </div>
               {report.sections.map((section) => (
                 <div className="report-section" key={section.title}>
@@ -1952,10 +1955,7 @@ function PreviewPage({
                 </div>
               </div>
 
-              <div className="ai-summary">
-                <strong>AI summary</strong>
-                <p>{preview.ai_summary}</p>
-              </div>
+              <AiPoints points={preview.ai_points} summary={preview.ai_summary} />
 
               {preview.attention_points.length > 0 && (
                 <div className="attention-box">

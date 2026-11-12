@@ -3880,3 +3880,30 @@ button.report-event {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ---------- AI summary en points (ai_points) ---------- */
+.ai-points ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-points li {
+  line-height: 1.5;
+}
+
+.ai-points li::marker {
+  color: var(--pbb-green);
+}
+
+.report-points,
+.drawer-points {
+  color: inherit;
+}
+
+.report-points ul,
+.drawer-points ul {
+  margin-top: 4px;
+}

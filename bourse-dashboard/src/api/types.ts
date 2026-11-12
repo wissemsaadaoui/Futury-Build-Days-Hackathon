@@ -111,6 +111,7 @@ export type ImpactCardResponse = {
   } | null
   pre_disclosure_activity: { summary: string } | null
   ai_summary: string
+  ai_points?: string[] // v0.6
   generated_at?: string
   export: { pdf_url: string }
   _data_status?: DataStatus
@@ -142,6 +143,7 @@ export type ReportResponse = {
   stock: StockRef
   period: { from: string; to: string }
   headline: string
+  ai_points?: string[] // v0.6
   sections: {
     title: string
     kpis?: ReportKpi[] | null
@@ -190,6 +192,7 @@ export type EventPreviewResponse = {
   confidence: 'low' | 'medium' | 'high'
   note: string
   ai_summary: string
+  ai_points?: string[] // v0.6
   _data_status?: DataStatus
 }
 

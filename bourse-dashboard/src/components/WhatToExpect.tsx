@@ -8,6 +8,7 @@ import { useApi } from '../api/useApi.ts'
 import type { MetricHelpKey } from '../content/metricHelp.ts'
 import { eventLabels, formatDate, formatNumber, formatPercent, formatRatio, isMissing } from '../format.ts'
 import { CountUp } from './CountUp.tsx'
+import { AiPoints } from './AiPoints.tsx'
 import { HelpTip } from './HelpTip.tsx'
 
 // /events ne liste que les annonces déjà mesurées (données jusqu'au 30.10.2026) : la Quartalsmitteilung Q3 du
@@ -198,10 +199,7 @@ export function WhatToExpect({ isin, onOpenFull }: { isin: string; onOpenFull: (
             <p className="expect-intro">
               Past {typeLabel.toLowerCase()} releases of pbb: trading on the publication day vs its 20-day average.
             </p>
-            <div className="ai-summary">
-              <strong>AI summary</strong>
-              <p>{p.ai_summary || 'No data'}</p>
-            </div>
+            <AiPoints points={p.ai_points} summary={p.ai_summary} />
             <div className="expect-footer">
               <p className="small-note">
                 {p.note} Statistics on past trading reactions only: no price direction is implied.

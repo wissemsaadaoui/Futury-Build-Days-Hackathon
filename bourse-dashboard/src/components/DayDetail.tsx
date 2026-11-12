@@ -29,6 +29,7 @@ import {
   isMissing,
 } from '../format.ts'
 import type { MetricHelpKey } from '../content/metricHelp.ts'
+import { AiPoints } from './AiPoints.tsx'
 import { HelpTip } from './HelpTip.tsx'
 import { PdfButton } from './PdfButton.tsx'
 import { tone } from '../utils/tone.ts'
@@ -323,10 +324,7 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
           ) : (
             <p className="muted">No company announcement on record for this trading day.</p>
           )}
-          <div className="ai-summary">
-            <strong>AI summary</strong>
-            <p>{card.ai_summary || 'No data'}</p>
-          </div>
+          <AiPoints points={card.ai_points} summary={card.ai_summary} />
         </Section>
 
         <Section
