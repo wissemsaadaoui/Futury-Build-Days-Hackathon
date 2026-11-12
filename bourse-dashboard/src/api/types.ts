@@ -61,11 +61,13 @@ export type CorporateEvent = {
   type: string
   title: string
   source_url: string | null
+  has_impact_card?: boolean
   headline_metric: { volume_ratio: Num; price_change_pct: Num; spread_change_pct: Num }
 }
 
 export type EventsResponse = { isin: string; events: CorporateEvent[]; event_types: string[] }
 
+// Champs vérifiés sur /days/{isin}/{date}/impact-card et /events/{id}/impact-card (API locale, 12.11.2026).
 export type ImpactCardResponse = {
   card_id: string
   stock: StockRef
@@ -77,22 +79,38 @@ export type ImpactCardResponse = {
     trading_day: string
     source_url: string | null
   } | null
+  baseline?: { method: string; from: string; to: string }
   metrics: {
-    volume: { event: Num; baseline: Num; ratio: Num }
-    price: { prev_close: Num; open: Num; close: Num; change_pct: Num }
+    volume: { event: Num; baseline: Num; ratio: Num; z_score?: Num }
+    turnover_eur?: { event: Num; baseline: Num; ratio: Num; z_score?: Num }
+    price: { prev_close: Num; open: Num; close: Num; change_pct: Num; intraday_range_pct?: Num }
     spread_bps: { event: Num; baseline: Num; change_pct: Num }
     auction_share: { event: Num; baseline: Num; change_pts: Num }
+    opening_auction?: { volume: Num; baseline: Num; ratio: Num }
+    closing_auction?: { volume: Num; baseline: Num; ratio: Num }
+  }
+  flows?: {
+    by_participant: { type: string; buy: Num; sell: Num; net: Num }[]
+    by_mode: { mode: string; share: Num }[]
   }
   window: { offset: number; date: string; close: Num; volume_ratio: Num; spread_bps: Num }[]
-  vs_peers: { excess_return_pct: Num }
+  vs_peers: { peer_avg_volume_ratio?: Num; peer_avg_price_change_pct?: Num; excess_return_pct: Num }
+  technical_context?: {
+    trend_before?: string | null
+    macd_before?: string | null
+    macd_after?: string | null
+    broke_level?: { type: string; price: Num } | null
+  } | null
   intraday: {
     reference_time: string
     during_session: boolean
-    first_15min: { ratio: Num }
+    minutes?: { offset_min: number; time: string; vwap: Num; volume: Num; cum_volume: Num; buy_aggressor_share: Num }[]
+    first_15min: { volume?: Num; baseline?: Num; ratio: Num }
     price_change_pct: { after_5min: Num; after_30min: Num; after_60min: Num }
   } | null
   pre_disclosure_activity: { summary: string } | null
   ai_summary: string
+  generated_at?: string
   export: { pdf_url: string }
   _data_status?: DataStatus
 }
@@ -135,17 +153,39 @@ export type ReportResponse = {
 
 export type PreviewStat = { n: number; median: Num; min: Num; max: Num }
 
+export type PreviewEvent = {
+  event_id: string
+  date: string
+  spread_change_pct: Num
+  volume_ratio: Num
+  price_abs_change_pct: Num
+  sessions_to_normal: Num
+  auction_share_change_pts: Num
+  first_15min_ratio: Num
+}
+
+export type PreviewHistory = {
+  n: number
+  events: PreviewEvent[]
+  spread_change_pct: PreviewStat
+  volume_ratio: PreviewStat
+  price_abs_change_pct: PreviewStat
+  sessions_to_normal: PreviewStat
+  auction_share_change_pts: PreviewStat
+  first_15min_ratio: PreviewStat
+}
+
+// Champs vérifiés sur /stocks/{isin}/event-preview?type=&date= (API locale, 12.11.2026).
 export type EventPreviewResponse = {
+  stock?: StockRef
   event_type: string
-  upcoming: { date: string; title: string | null } | null
-  own_history: {
-    n: number
-    spread_change_pct: PreviewStat
-    volume_ratio: PreviewStat
-    sessions_to_normal: PreviewStat
-  }
+  as_of?: string | null
+  upcoming: { date: string; title: string | null; event_id?: string | null; source_url?: string | null } | null
+  own_history: PreviewHistory
+  peers: PreviewHistory & { peers_note?: string | null }
   attention_points: string[]
   confidence: 'low' | 'medium' | 'high'
   note: string
   ai_summary: string
+  _data_status?: DataStatus
 }
