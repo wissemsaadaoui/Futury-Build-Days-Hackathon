@@ -338,3 +338,11 @@ def test_as_of_and_checklist_in_responses() -> None:
     assert _get(f"/stocks/{PBB}/events")["as_of"] == "2026-10-30"
     p = _get(f"/stocks/{PBB}/event-preview?type=quarterly_results&date=2026-11-12")
     assert p["as_of"] == "2026-10-30" and len(p["checklist"]) == 3 and p["peers"]["n"] > 0
+
+
+@needs_data
+def test_ai_points_in_api_responses() -> None:
+    for url in (f"/events/evt_002/impact-card", f"/days/{PBB}/2026-09-29/impact-card",
+                f"/stocks/{PBB}/event-preview?type=quarterly_results", f"/stocks/{PBB}/report?from=2026-10-26&to=2026-10-30"):
+        pts = _get(url)["ai_points"]
+        assert 3 <= len(pts) <= 4 and all(isinstance(p, str) and p for p in pts), url

@@ -183,5 +183,6 @@ class ImpactCardResponse(DataStatusMixin, Schema):
     intraday: Optional[IntradayBlock] = None  # v0.2 : null si pas de trades ce jour-là
     pre_disclosure_activity: Optional[PreDisclosureActivity] = None  # v0.3 : voting_rights uniquement
     ai_summary: str
+    ai_points: list[str] = []  # v0.6 : 3–4 phrases courtes, chacune vérifiée par le garde-fou
     generated_at: ISODateTime
     export: ExportLinks

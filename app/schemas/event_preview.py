@@ -59,3 +59,4 @@ class EventPreviewResponse(DataStatusMixin, Schema):
     confidence: Literal["low", "medium", "high"]  # low : n < 3, medium : 3–5, high : > 5
     note: str
     ai_summary: str
+    ai_points: list[str] = []  # v0.6
