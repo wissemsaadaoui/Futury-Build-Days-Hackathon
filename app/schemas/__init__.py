@@ -6,6 +6,7 @@ Miroir de `shared/types.ts` et des mocks JSON (snake_case). Écarts volontaires 
 """
 from __future__ import annotations
 
+from app.schemas.assistant import ChatRequest, ChatResponse
 from app.schemas.compare import CompareResponse
 from app.schemas.dashboard import DashboardResponse
 from app.schemas.event_preview import EventPreviewResponse
@@ -22,4 +23,6 @@ __all__ = [
     "CompareResponse",
     "ReportResponse",
     "EventPreviewResponse",
+    "ChatRequest",
+    "ChatResponse",
 ]

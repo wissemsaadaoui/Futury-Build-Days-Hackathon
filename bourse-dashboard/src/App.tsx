@@ -17,6 +17,8 @@ import {
 
 import { ApiError, UNAUTHORIZED_EVENT, apiGet, apiPost, clearToken, getToken, setToken } from './api/clients.ts'
 import type {
+  ChatLink,
+  ChatResponse,
   CompareResponse,
   DailyPoint,
   DashboardResponse,
@@ -77,7 +79,20 @@ type StockPoint = {
 type ChatMessage = {
   role: 'assistant' | 'user'
   text: string
+  links?: ChatLink[]
 }
+
+const WELCOME: ChatMessage = {
+  role: 'assistant',
+  text: 'Hello. Ask me about pbb\'s historical Xetra trading: a period, a specific day, an announcement or the peers. Answers are built from the analyses in this tool.',
+}
+
+const SUGGESTED_QUESTIONS = [
+  'What happened in the latest week?',
+  'Why was 29 Sep unusual?',
+  "What to expect from today's Q3 release?",
+  'How does pbb compare with its peers?',
+]
 
 type Thresholds = {
   volumeRatio: number
@@ -938,8 +953,8 @@ function AnalysisAssistant({
                 <strong>Your question:</strong> {request.question}
                 <br />
                 <small>
-                  Free-text questions are not sent to the AI yet. Below is the standard AI summary for the
-                  selected {singleDay ? 'day' : 'period'}.
+                  Below is the standard AI summary for the selected {singleDay ? 'day' : 'period'}. For
+                  free-form questions, use the AI Assistant page.
                 </small>
               </p>
             )}
@@ -2205,34 +2220,64 @@ function AssistantPage({
   navigate,
   loggedIn,
   logout,
+  messages,
+  setMessages,
+  openDay,
+  openImpact,
 }: {
   navigate: (page: Page) => void
   loggedIn: boolean
   logout: () => void
+  messages: ChatMessage[]
+  setMessages: (update: (current: ChatMessage[]) => ChatMessage[]) => void
+  openDay: (date: string) => void
+  openImpact: (path: string) => void
 }) {
   const [draft, setDraft] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: 'assistant',
-      text: 'Hello. Free-form chat is not available yet. For AI analysis, click a day on the dashboard chart and choose “Analyse with AI”, or open an impact card from the events timeline.',
-    },
-  ])
+  const [pending, setPending] = useState(false)
+  const endRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
+  }, [messages, pending])
+
+  async function ask(question: string) {
+    const text = question.trim()
+    if (!text || pending) return
+    // Historique envoyé : les échanges réels (sans le message d'accueil) ; l'API n'en garde que les 6 derniers
+    const history = [...messages.filter((m) => m !== WELCOME), { role: 'user' as const, text }]
+    setMessages((current) => [...current, { role: 'user', text }])
+    setDraft('')
+    setPending(true)
+    try {
+      const reply = await apiPost<ChatResponse>('/assistant/chat', {
+        isin: ISIN,
+        messages: history.map((m) => ({ role: m.role, content: m.text })),
+      })
+      setMessages((current) => [...current, { role: 'assistant', text: reply.answer, links: reply.links }])
+    } catch (error) {
+      const detail = error instanceof ApiError && error.status === 429
+        ? 'Too many questions in a short time. Please wait a minute and try again.'
+        : 'The assistant could not answer right now. Please try again.'
+      setMessages((current) => [...current, { role: 'assistant', text: detail }])
+    } finally {
+      setPending(false)
+    }
+  }
+
+  function openLink(link: ChatLink) {
+    if (link.type === 'day') openDay(link.ref)
+    else if (link.type === 'event') openImpact(`/events/${link.ref}/impact-card`)
+    else if (link.type === 'preview') navigate('preview')
+    else navigate('compare')
+  }
 
   function sendMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const text = draft.trim()
-    if (!text) return
-
-    setMessages((current) => [
-      ...current,
-      { role: 'user', text },
-      {
-        role: 'assistant',
-        text: 'Free-form questions are not supported yet. Use “Analyse with AI” on the dashboard chart, or an impact card, to get an AI summary of a trading day or announcement.',
-      },
-    ])
-    setDraft('')
+    void ask(draft)
   }
+
+  const onlyWelcome = messages.length === 1
 
   return (
     <>
@@ -2243,15 +2288,35 @@ function AssistantPage({
             <div>
               <span className="kicker">PBB · IR</span>
               <h1>AI Assistant</h1>
-              <p>Ask about trading activity, events or share-price history.</p>
+              <p>Ask about trading activity, events, peers or a specific day.</p>
             </div>
           </div>
-          <div className="chat-messages">
+          <div className="chat-messages" aria-live="polite">
             {messages.map((message, index) => (
               <div className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
                 {message.text}
+                {message.links && message.links.length > 0 && (
+                  <div className="chat-links">
+                    {message.links.map((link) => (
+                      <button key={`${link.type}-${link.ref}`} className="chat-link" onClick={() => openLink(link)}>
+                        {link.label} ↗
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
+            {onlyWelcome && (
+              <div className="chat-suggestions">
+                {SUGGESTED_QUESTIONS.map((question) => (
+                  <button key={question} onClick={() => void ask(question)} disabled={pending}>
+                    {question}
+                  </button>
+                ))}
+              </div>
+            )}
+            {pending && <div className="chat-message assistant chat-typing">Analysing…</div>}
+            <div ref={endRef} />
           </div>
           <form className="chat-form" onSubmit={sendMessage}>
             <input
@@ -2259,11 +2324,12 @@ function AssistantPage({
               onChange={(event) => setDraft(event.target.value)}
               placeholder="Ask a question..."
               aria-label="Your question"
+              maxLength={2000}
             />
-            <button type="submit">Send →</button>
+            <button type="submit" disabled={pending || draft.trim() === ''}>Send →</button>
           </form>
           <p className="small-note">
-            AI summaries are available on impact cards and through “Analyse with AI” on the chart.
+            Answers are based only on historical Xetra data in this tool. Not investment advice.
           </p>
         </section>
       </main>
@@ -2282,6 +2348,7 @@ function App() {
   const [selectedPoint, setSelectedPoint] = useState<StockPoint | null>(null)
   const [assistantPoint, setAssistantPoint] = useState<StockPoint | null>(null)
   const [impactPath, setImpactPath] = useState(DEFAULT_IMPACT)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([WELCOME]) // historique de la session
 
   const navigate = useCallback(
     (target: Page) => {
@@ -2335,6 +2402,7 @@ function App() {
   const logout = useCallback(() => {
     clearToken() // token sans état côté serveur : l'effacer suffit
     clearApiCache()
+    setChatMessages([WELCOME])
     setAuth('out')
     setSelectedPoint(null)
     setAssistantPoint(null)
@@ -2405,7 +2473,17 @@ function App() {
   } else if (page === 'preview') {
     content = <PreviewPage navigate={navigate} loggedIn={loggedIn} logout={logout} />
   } else if (page === 'assistant') {
-    content = <AssistantPage navigate={navigate} loggedIn={loggedIn} logout={logout} />
+    content = (
+      <AssistantPage
+        navigate={navigate}
+        loggedIn={loggedIn}
+        logout={logout}
+        messages={chatMessages}
+        setMessages={setChatMessages}
+        openDay={openDay}
+        openImpact={openImpact}
+      />
+    )
   } else {
     content = <HomePage navigate={navigate} loggedIn={loggedIn} />
   }
