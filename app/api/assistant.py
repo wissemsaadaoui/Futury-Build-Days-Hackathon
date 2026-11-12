@@ -6,8 +6,9 @@ from collections import defaultdict, deque
 
 from fastapi import APIRouter, HTTPException, Request
 
-from app.assistant.chat import chat
-from app.schemas.assistant import ChatRequest, ChatResponse
+from app.analytics import NotFound, data
+from app.assistant.chat import chat, suggested_questions
+from app.schemas.assistant import ChatRequest, ChatResponse, SuggestionsResponse
 
 router = APIRouter(prefix="/assistant", tags=["assistant"])
 
@@ -30,3 +31,11 @@ def _check_rate(token: str, now: float | None = None) -> None:
 def post_chat(body: ChatRequest, request: Request) -> dict:
     _check_rate(request.headers.get("authorization", ""))
     return chat(body.isin, [m.model_dump() for m in body.messages])
+
+
+@router.get("/suggestions", response_model=SuggestionsResponse)
+def get_suggestions(isin: str) -> dict:
+    """4 questions suggérées pour l'émetteur (pbb : celles de la démo)."""
+    if not data.known_isin(isin):
+        raise NotFound(f"Unknown ISIN {isin}")
+    return {"isin": isin, "questions": list(suggested_questions(isin))}

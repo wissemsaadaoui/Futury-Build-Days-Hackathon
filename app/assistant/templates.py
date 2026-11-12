@@ -100,11 +100,11 @@ def peers_label(sector: str | None) -> str:
     return f"{adj} peers" if adj else "peers"
 
 
-def peers_text(own: float | None, peers: float | None, n_peers: int, sector: str | None = None) -> str:
+def peers_text(own: float | None, peers: float | None, n_peers: int, sector: str | None = None, label: str | None = None) -> str:
     if own is None or peers is None:
         return ""
     rel = "tighter" if own < peers else "wider"
-    return (f"Average spread of {fmt.bps(own)} is {rel} than the median of its {n_peers} {peers_label(sector)} "
+    return (f"Average spread of {fmt.bps(own)} is {rel} than the median of its {n_peers} {label or peers_label(sector)} "
             f"({fmt.bps(peers)}).")
 
 
@@ -116,7 +116,7 @@ def report_headline(report: dict) -> str:
     if sp and sp.get("change_pct") is not None:
         basis = "the first half of the period" if sp.get("change_basis") == "first_half" else "the previous period"
         bits.append(f"Spreads {'tightened' if sp['change_pct'] < 0 else 'widened'} {abs(sp['change_pct']):.1f}% vs {basis}")
-    if peer:
+    if peer and peer.get("value") is not None:
         bits.append(f"{fmt.bps(abs(peer['value']))} {'tighter' if peer['value'] < 0 else 'wider'} than peers")
     return (", ".join(bits) + ".") if bits else "Trading profile for the selected period."
 
@@ -152,6 +152,8 @@ def preview_summary(preview: dict) -> str:
     f = preview_facts(preview)
     n, label, et = f["past_events_n"], f["event_type"], preview["event_type"]
     who = f["company"]
+    if preview.get("events_note"):
+        return f"No announcements are loaded for {who} yet, so there are no past trading reactions to measure."
     if n == 0:
         return (f"No past {_noun(et, label, 2)} are available in the 2026 data for {who}, "
                 f"so there is no reference trading reaction to show.")
@@ -240,7 +242,7 @@ def chat_peers(res: dict) -> str:
     rk = res["spread_rank_tightest_first"]
     parts = [f"Over {per['label']}, {who}'s average spread for a {fmt.eur(25_000)} trade was "
              f"{fmt.bps(own['avg_spread_bps'])} versus a median of {fmt.bps(med['avg_spread_bps'])} across its "
-             f"{res['n_peers']} peers (rank {rk['rank']} of {rk['of']}, tightest first)."]
+             f"{res['n_peers']} {res['index'] + ' ' if res.get('peer_basis') == 'index' and res.get('index') else ''}peers (rank {rk['rank']} of {rk['of']}, tightest first)."]
     if own.get("return_pct") is not None and med.get("return_pct") is not None:
         parts.append(f"Its share price moved {own['return_pct']:+.1f}% versus a peer median of {med['return_pct']:+.1f}%.")
     if own.get("avg_turnover_eur") is not None and med.get("avg_turnover_eur") is not None:
@@ -286,6 +288,8 @@ def impact_points(card: dict) -> list[str]:
 def preview_points(preview: dict) -> list[str]:
     f = preview_facts(preview)
     n, label, et = f["past_events_n"], f["event_type"], preview["event_type"]
+    if preview.get("events_note"):
+        return ["No announcements are loaded for this issuer yet."]
     if n == 0:
         return [f"No past {_noun(et, label, 2)} are available in the 2026 data."]
     pts = []

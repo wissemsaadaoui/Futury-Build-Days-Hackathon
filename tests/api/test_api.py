@@ -67,7 +67,8 @@ def test_stocks_lists_pbb_selected_with_peers() -> None:
     selected = [s for s in stocks if s["is_selected"]]
     assert [s["isin"] for s in selected] == [PBB]
     assert selected[0]["ticker"] == "PBB"
-    assert {s["isin"] for s in stocks} <= {PBB, *config.PEERS[PBB]}
+    assert {PBB, *config.PEERS[PBB]} <= {s["isin"] for s in stocks}  # v0.11 : tout l'univers DAX/MDAX/SDAX
+    assert stocks[0]["isin"] == PBB  # pbb reste l'émetteur par défaut, en premier
 
 
 @needs_data

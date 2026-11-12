@@ -10,6 +10,7 @@ import { eventLabels, formatDate, formatNumber, formatPercent, formatRatio, isMi
 import { CountUp } from './CountUp.tsx'
 import { AiPoints } from './AiPoints.tsx'
 import { HelpTip } from './HelpTip.tsx'
+import { useIssuer } from '../issuer/context.ts'
 
 // /events ne liste que les annonces déjà mesurées (données jusqu'au 30.10.2026) : la Quartalsmitteilung Q3 du
 // 12.11.2026 (evt_026) n'y figure pas. Repli explicite pour la démo.
@@ -114,6 +115,24 @@ export function WhatToExpect({ isin, onOpenFull }: { isin: string; onOpenFull: (
   const p = preview.data
   const own = p?.own_history
   const typeLabel = eventLabels[next.type] ?? next.type
+  const { issuer } = useIssuer()
+
+  // Aucune annonce chargée pour cet émetteur (events.csv) : état vide, pas de carte à moitié remplie
+  if (p?.events_note || (events.data && events.data.events.length === 0 && !p?.upcoming)) {
+    return (
+      <section className="panel expect-card" aria-label="What to expect">
+        <div className="expect-head">
+          <div className="expect-title">
+            <span className="expect-kicker">WHAT TO EXPECT</span>
+            <h2>No announcements loaded for this issuer yet</h2>
+            <span className="expect-meta">
+              Past trading reactions to announcements appear here once the issuer's event calendar is added.
+            </span>
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="panel expect-card" aria-label="What to expect">
@@ -168,7 +187,7 @@ export function WhatToExpect({ isin, onOpenFull }: { isin: string; onOpenFull: (
           {p.peers.n > 0 ? (
             <div className="expect-peer-line">
               <span className="expect-peer-label">
-                pbb vs peers <HelpTip metric="peers" label="peers" />
+                {issuer.short} vs peers <HelpTip metric={p.peer_basis === 'index' ? 'peersIndex' : 'peers'} label="peers" />
               </span>
               <span>
                 Spread change <strong>{formatPercent(own.spread_change_pct.median)}</strong> vs{' '}
@@ -200,7 +219,7 @@ export function WhatToExpect({ isin, onOpenFull }: { isin: string; onOpenFull: (
           <details className="expect-details">
             <summary>Show details</summary>
             <p className="expect-intro">
-              Past {typeLabel.toLowerCase()} releases of pbb: trading on the publication day vs its 20-day average.
+              Past {typeLabel.toLowerCase()} releases of {issuer.short}: trading on the publication day vs its 20-day average.
             </p>
             <AiPoints
               points={p.ai_points}

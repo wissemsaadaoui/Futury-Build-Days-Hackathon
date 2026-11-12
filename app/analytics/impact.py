@@ -17,6 +17,10 @@ class NotFound(KeyError):
     """ISIN, événement ou jour inconnu -> l'API renvoie 404."""
 
 
+class InsufficientData(NotFound):
+    """Émetteur connu mais avec trop peu de séances pour une baseline de 20 jours -> 404 avec un message clair."""
+
+
 class NoMarketData(NotFound):
     """Événement connu mais postérieur aux données de marché (ex. annonce à venir) -> 404 explicite, jamais 500."""
 
@@ -60,7 +64,7 @@ def _ohlc_blocks(isin: str, days: pd.DatetimeIndex, td: pd.Timestamp, card: dict
 
     # Peers : même jour de trading
     peer_ratios, peer_moves = [], []
-    for p in data.peers_of(isin):
+    for p in data.peers_on(isin, td):  # peers valides ce jour-là (base index : même indice à la date)
         ppx = data.ohlc(p)
         if ppx.empty or td not in ppx.index:
             continue
@@ -155,6 +159,10 @@ def _build(isin: str, td: pd.Timestamp, event_row: dict | None, with_summary: bo
         status["flows"] = "real"
     if _auction_blocks(isin, days, td, card):
         status["opening_closing_auction"] = "real"
+    else:  # pas de trades horodatés pour cet émetteur : aucune valeur (jamais celles du mock)
+        status["opening_closing_auction"] = "missing"
+        for key in ("opening_auction", "closing_auction"):
+            card["metrics"][key] = {"volume": None, "baseline": None, "ratio": None}
     # Notifications WpHG : activité des 7 séances AVANT la publication (null pour les autres types)
     card["pre_disclosure_activity"] = None
     if event_row and event_row.get("type") == "voting_rights":

@@ -433,6 +433,7 @@
   "export": {
     "pdf_url": "/stocks/DE0008019001/report.pdf"
   },
+  "peer_basis": "manual",
   "_data_status": {
     "spreads": "real",
     "ohlc": "real",

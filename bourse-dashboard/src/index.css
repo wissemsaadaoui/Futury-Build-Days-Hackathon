@@ -4459,3 +4459,242 @@ button.report-event {
     margin-left: 0;
   }
 }
+
+/* ---------- Roll-out : sélecteur d'émetteur, pastille mnemonic, badge peers, états vides ---------- */
+.issuer-pill {
+  --logo-h: 28px;
+  height: var(--logo-h);
+  min-width: var(--logo-h);
+  padding: 0 calc(var(--logo-h) * 0.28);
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: calc(var(--logo-h) * 0.22);
+  background: #eef1fb;
+  box-shadow: inset 0 0 0 1px #d6dcf2;
+  color: var(--navy);
+  font-family: 'Manrope', sans-serif;
+  font-size: calc(var(--logo-h) * 0.42);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.issuer-pill.footer-logo {
+  --logo-h: 40px;
+}
+
+.issuer-pill.stock-logo {
+  --logo-h: 36px;
+}
+
+.issuer-picker {
+  position: relative;
+  min-width: 0;
+}
+
+.issuer-picker-toggle {
+  max-width: 300px;
+  height: 38px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dfe5ec;
+  border-radius: 8px;
+  background: #fff;
+  color: #24334b;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.issuer-picker-toggle:hover,
+.issuer-picker-toggle[aria-expanded='true'] {
+  border-color: var(--navy);
+}
+
+.issuer-picker-toggle strong {
+  color: var(--navy);
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+}
+
+.issuer-picker-name {
+  min-width: 0;
+  overflow: hidden;
+  color: #5d6a7d;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.issuer-picker-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 60;
+  width: min(380px, calc(100vw - 32px));
+  padding: 10px;
+  border: 1px solid #e1e6ed;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(23, 45, 77, 0.14);
+}
+
+.issuer-picker-popover input {
+  width: 100%;
+  height: 38px;
+  padding: 0 11px;
+  border: 1px solid #dfe5ec;
+  border-radius: 7px;
+  color: #24334b;
+  font-size: 15px;
+}
+
+.issuer-picker-popover input:focus {
+  border-color: var(--navy);
+  outline: none;
+}
+
+.issuer-picker-list {
+  max-height: min(420px, 60vh);
+  margin-top: 8px;
+  overflow-y: auto;
+}
+
+.issuer-picker-group {
+  position: sticky;
+  top: 0;
+  padding: 8px 6px 4px;
+  display: block;
+  background: #fff;
+  color: #8994a4;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.15px;
+}
+
+.issuer-option {
+  width: 100%;
+  padding: 7px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.issuer-option span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.issuer-option strong {
+  overflow: hidden;
+  color: #24334b;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.issuer-option small {
+  color: #8792a2;
+  font-size: 13px;
+}
+
+.issuer-option em {
+  flex: 0 0 auto;
+  color: #8792a2;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.issuer-option.is-active {
+  background: #f2f5fb;
+}
+
+.issuer-option[aria-selected='true'] em {
+  color: var(--navy);
+}
+
+.issuer-option.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.issuer-picker-empty {
+  margin: 10px 6px;
+  color: #8792a2;
+  font-size: 14px;
+}
+
+.peer-basis-badge {
+  width: fit-content;
+  margin-top: 4px;
+  padding: 3px 9px;
+  display: inline-block;
+  border: 1px solid #c9d6ea;
+  border-radius: 999px;
+  background: #f2f5fb;
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.empty-state {
+  margin: 10px 0 0;
+  color: #7d899a;
+  font-size: 15px;
+}
+
+.brand-copy {
+  white-space: nowrap;
+}
+
+.issuer-picker-name {
+  max-width: 180px;
+}
+
+@media (max-width: 1240px) {
+  .issuer-picker-name {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .issuer-pill {
+    --logo-h: 22px;
+  }
+
+  .issuer-pill.stock-logo {
+    --logo-h: 30px;
+  }
+
+  .issuer-picker-toggle {
+    height: 34px;
+    padding: 0 9px;
+  }
+
+  .issuer-picker-popover {
+    position: fixed;
+    top: 74px;
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+}
+
+/* Pastille texte (accueil, IR snapshot) pour un mnemonic plus long que « pbb » */
+.company-logo.is-ticker {
+  width: auto;
+  min-width: 43px;
+  padding: 0 8px;
+  font-size: 14px;
+}

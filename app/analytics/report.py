@@ -110,6 +110,7 @@ def build_report(isin: str, start, end) -> dict:
     rng = days[(days >= start) & (days <= end)]
     if len(rng) < 2:
         raise NotFound("Not enough trading days in the requested period")
+    data.require_sessions(isin)
     # Période précédente de même longueur, pour les tendances
     i0 = days.get_loc(rng[0])
     prev = days[max(0, i0 - len(rng)) : i0]
@@ -161,13 +162,16 @@ def build_report(isin: str, start, end) -> dict:
         "headline": "",
         "sections": [
             {"title": "Trading profile", "kpis": profile, "text": templates.profile_text(profile)},
-            {"title": "Peer comparison", "kpis": peers_kpis, "text": templates.peers_text(r1(sp_now), r1(peer_sp), len(data.peers_of(isin)), config.SECTORS.get(isin))},
+            {"title": "Peer comparison", "kpis": peers_kpis,
+             "text": templates.peers_text(r1(sp_now), r1(peer_sp), data.n_peers(isin, rng[-1]), config.SECTORS.get(isin),
+                                          label=None if data.peer_basis(isin) == "manual" else f"{data.index_on(isin, rng[-1]) or 'index'} peers")},
             {"title": "Notable events", "items": notable},
             alerts_section(isin, rng),
         ],
         "disclaimer": DISCLAIMER,
         "generated_at": now_iso(),
         "export": {"pdf_url": f"/stocks/{isin}/report.pdf"},
+        "peer_basis": data.peer_basis(isin),
         "_data_status": status,
     }
     report = clean(report)

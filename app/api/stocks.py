@@ -6,7 +6,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Response
 
-from app import analytics, config, etl, export
+from app import analytics, export
 from app.api.impact_cards import PDF_RESPONSE, pdf_response
 from app.api.params import DateRange, date_range
 from app.schemas import DashboardResponse, EventPreviewResponse, EventsResponse, ReportResponse, StocksResponse
@@ -17,27 +17,8 @@ router = APIRouter(prefix="/stocks", tags=["stocks"])
 
 @router.get("", response_model=StocksResponse)
 def get_stocks() -> dict:
-    """Action(s) de démo + leurs peers (sélecteur d'action)."""
-    universe = etl.get_universe().set_index("isin")
-    stocks = []
-    for isin in config.DEMO_ISINS:
-        for s in [isin, *config.PEERS.get(isin, [])]:
-            if s not in universe.index or any(x["isin"] == s for x in stocks):
-                continue
-            row = universe.loc[s]
-            stocks.append(
-                {
-                    "isin": s,
-                    "name": row["name"],
-                    "ticker": row["mnemonic"],
-                    "index": row["index"],
-                    "sector": row["sector"],
-                    "market_cap_eur": None,
-                    "is_selected": s == isin,
-                    "peers": config.PEERS.get(s, []),
-                }
-            )
-    return {"stocks": stocks}
+    """Tous les émetteurs DAX / MDAX / SDAX (pbb en premier, sélectionné par défaut) avec leur couverture de données."""
+    return analytics.list_stocks()
 
 
 @router.get("/{isin}/dashboard", response_model=DashboardResponse)

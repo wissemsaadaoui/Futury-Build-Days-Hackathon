@@ -1,6 +1,8 @@
 """Part A – Dashboard : l'état normal du trading dans le temps."""
 from __future__ import annotations
 
+from functools import lru_cache
+
 import numpy as np
 import pandas as pd
 
@@ -8,8 +10,10 @@ from app.analytics import alerts, data, events, indicators, metrics, pricing
 from app.analytics._util import clean, iso, load_mock, pct, r0, r1, r2, ratio
 
 
+@lru_cache(maxsize=256)
 def _peer_spread_median(isin: str) -> pd.Series:
-    cols = [data.spread_series(p) for p in data.peers_of(isin)]
+    """Médiane journalière du spread des peers valides ce jour-là (data.mask_peer)."""
+    cols = [data.mask_peer(isin, p, data.spread_series(p)) for p in data.peers_of(isin)]
     cols = [c for c in cols if not c.empty]
     if not cols:
         return pd.Series(dtype=float)
@@ -67,12 +71,15 @@ def build_dashboard(isin: str, start, end) -> dict:
     rng = days[(days >= start) & (days <= end)]
     if len(rng) == 0:
         raise NotFound("No trading days in the requested period")
+    data.require_sessions(isin)
 
     dash = load_mock("dashboard")
     status = {"spreads": "real", "ohlc": "mock", "flows": "mock"}
     dash["stock"] = data.stock_ref(isin, rng[-1])
     dash["period"] = {"from": iso(rng[0]), "to": iso(rng[-1])}
     dash["as_of"] = iso(data.trading_days()[-1])  # dernière date des données (pas la fin de la période demandée)
+    dash["peer_basis"] = data.peer_basis(isin)  # manual (config.PEERS) | index (même indice à la date)
+    dash["n_peers"] = data.n_peers(isin, rng[-1])
     from app.analytics.key_finding import build_key_finding
 
     dash["key_finding"] = build_key_finding(isin)  # phrase clé par règles (premier vs dernier mois des données)
@@ -126,8 +133,8 @@ def build_dashboard(isin: str, start, end) -> dict:
                 continue
             pv = ppx["volume"].astype(float)
             pm, _ = metrics.rolling_baseline(pv)
-            p_ratio.append(pv / pm)
-            ps = data.auction_share_series(p)
+            p_ratio.append(data.mask_peer(isin, p, pv / pm))
+            ps = data.mask_peer(isin, p, data.auction_share_series(p))
             if not ps.empty:
                 p_share.append(ps)
         med = lambda lst: pd.concat(lst, axis=1).median(axis=1) if lst else pd.Series(dtype=float)

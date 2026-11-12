@@ -374,6 +374,8 @@
       "closing": 0.94
     }
   },
+  "peer_basis": "manual",
+  "n_peers": 6,
   "kpis": {
     "avg_daily_volume": 453966,
     "avg_daily_turnover_eur": 1505545,

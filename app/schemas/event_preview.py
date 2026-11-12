@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal, Optional
 
-from app.schemas.common import DataStatusMixin, EventType, ISODate, OptNumber, Schema, StockRef
+from app.schemas.common import DataStatusMixin, EventType, ISODate, OptNumber, Schema, StockRef, PeerBasis
 from app.schemas.decisions import DecisionRef
 
 
@@ -59,6 +59,8 @@ class EventPreviewResponse(DataStatusMixin, Schema):
     checklist: list[str] = []  # v0.5 : préparation IR par règles (jamais de prédiction de cours)
     confidence: Literal["low", "medium", "high"]  # low : n < 3, medium : 3–5, high : > 5
     note: str
+    peer_basis: Optional[PeerBasis] = None  # v0.11
+    events_note: Optional[str] = None  # v0.11 : présent si aucune annonce n'est chargée pour l'émetteur
     ai_summary: str
     ai_points: list[str] = []  # v0.6
     ai_summary_id: Optional[str] = None  # v0.8 : pour POST /decisions (item_type ai_summary)

@@ -182,7 +182,9 @@ def day_moves(isin: str) -> pd.DataFrame:
     if px.empty:
         return pd.DataFrame(columns=cols)
     ret = px["close"].astype(float).pct_change() * 100
-    peer_rets = [data.ohlc(p)["close"].astype(float).pct_change() * 100 for p in data.peers_of(isin) if not data.ohlc(p).empty]
+    peer_rets = [data.mask_peer(isin, p, data.ohlc(p)["close"].astype(float).pct_change() * 100)
+                 for p in data.peers_of(isin) if not data.ohlc(p).empty]
+    peer_rets = [r for r in peer_rets if not r.empty]
     peer = pd.concat(peer_rets, axis=1).median(axis=1, skipna=True).reindex(ret.index) if peer_rets else pd.Series(np.nan, index=ret.index)
     vol = px["volume"].astype(float)
     vmean, _ = metrics.rolling_baseline(vol)

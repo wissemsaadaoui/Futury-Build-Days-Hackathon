@@ -1,4 +1,4 @@
-# Issuer Intelligence Hub – API pour le front-end (v0.10)
+# Issuer Intelligence Hub – API pour le front-end (v0.11)
 
 > Pour Yassine · Démo : **Deutsche Pfandbriefbank AG (pbb)**, ISIN `DE0008019001`, SDAX
 > Ce document remplace `mocks/API.md` v0.1. Les changements depuis la v0.1 sont marqués **🆕**, et ce qui arrive bientôt est marqué **🔜**.
@@ -50,6 +50,10 @@ En attendant l'API, utilise `mocks/*.json` et `shared/types.ts` : même format.
 | 30 | 🆕 v0.8 : **`rank`** (sévérité puis récence) calculé sans les éléments `dismissed` (`rank: null`) | Top 5 = rank 1–5, puis « Show all (N) » |
 | 31 | 🆕 v0.9 : `/assistant/chat` : **`reason`** (`off_topic` \| `prediction` \| `advice` \| `external_info` \| `null`) et liens de type **`question`** (suggestion cliquable, `ref` = texte). Hors périmètre : aucune donnée chiffrée | Bouton qui envoie la question suggérée |
 | 32 | 🆕 v0.10 : **`dashboard.auction_trend`** `{window, has_parts, series[{date, auction_share, baseline_20d, opening, intraday, closing}], start, latest, change_vs_start, peak}` : part des enchères dans le volume (Flows) + moyenne mobile 20 séances ; les trois parts viennent des trades horodatés. Parts 0–1, 2 décimales ; `null` = jour censuré, jamais 0 | Carte « Auction share trend » (courbe + moyenne 20 j, pic annoté, clic → vue du jour) |
+| 33 | 🆕 v0.11 : **`GET /stocks`** liste tout l'univers DAX/MDAX/SDAX (174 émetteurs ; pbb en premier, `is_selected`, `default_isin`) avec **`coverage`** `{dashboard, events, intraday, sessions}`, `peer_basis` et `index_history` si l'émetteur a changé d'indice | Sélecteur d'émetteur groupé par indice, `?isin=` dans l'URL |
+| 34 | 🆕 v0.11 : **`peer_basis`** (`manual` = liste `config.PEERS`, seulement pbb ; `index` = autres membres du même indice **à la date**) dans le dashboard (+ `n_peers`), le report et l'event preview | Badge « Peers: same index » si `index` |
+| 35 | 🆕 v0.11 : émetteur avec < 21 séances de spread mesuré → dashboard et report **404** `{"detail": "Not enough Xetra data for …"}` ; sans annonces : `/events` → `events: []`, event preview → **`events_note`** | État vide « No announcements loaded for this issuer yet » |
+| 36 | 🆕 v0.11 : **`GET /assistant/suggestions?isin=`** → `{isin, questions[4]}` (pbb : les 4 questions de la démo) | Questions suggérées du chat |
 | 17 | 🆕 v0.3 : bloc **`pre_disclosure_activity`** dans l'impact card des notifications `voting_rights` (§5.4) | Petit encadré « Before the disclosure » |
 
 ---

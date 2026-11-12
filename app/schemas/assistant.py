@@ -24,6 +24,11 @@ class ChatLink(Schema):
     ref: str
 
 
+class SuggestionsResponse(Schema):
+    isin: str
+    questions: list[str]  # v0.11 : 4 questions cliquables, construites pour l'émetteur
+
+
 class ChatResponse(Schema):
     answer: str
     links: list[ChatLink]
