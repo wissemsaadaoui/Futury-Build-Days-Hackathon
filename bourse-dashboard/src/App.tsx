@@ -35,6 +35,8 @@ import { clearApiCache, useApi } from './api/useApi.ts'
 import { AnomalyList } from './components/AnomalyList.tsx'
 import { CountUp } from './components/CountUp.tsx'
 import { AiPoints } from './components/AiPoints.tsx'
+import { BrandLogo } from './components/BrandLogo.tsx'
+import { LOGOS } from './content/logos.ts'
 import { DayDetail } from './components/DayDetail.tsx'
 import { DecisionBadge, HITL_LINE } from './components/DecisionControls.tsx'
 import { HelpTip } from './components/HelpTip.tsx'
@@ -293,8 +295,12 @@ function Header({
           )}
         </div>
 
-        <button className="brand" onClick={() => navigate('home')}>
-          <span className="brand-symbol">pbb</span>
+        <button className="brand" onClick={() => navigate('home')} aria-label="Issuer Intelligence Hub – home">
+          <span className="brand-logos">
+            <BrandLogo logo={LOGOS.deutscheBoerse} />
+            <span className="brand-divider" aria-hidden="true" />
+            <BrandLogo logo={LOGOS.pbb} />
+          </span>
           <span className="brand-copy">
             <strong>ISSUER</strong>
             <small>INTELLIGENCE HUB</small>
@@ -333,7 +339,7 @@ function Footer() {
     <footer className="site-footer" id="contact">
       <div className="footer-top">
         <div className="footer-brand">
-          <span className="brand-symbol">pbb</span>
+          <BrandLogo logo={LOGOS.pbb} className="footer-logo" />
           <div>
             <strong>Issuer Intelligence Hub</strong>
             <p>Market insight for IR teams.</p>
@@ -1131,7 +1137,7 @@ function DashboardPage({
 
           <div className="dashboard-toolbar">
             <div className="stock-identity">
-              <span className="stock-mark">pbb</span>
+              <BrandLogo logo={LOGOS.pbb} className="stock-logo" />
               <div>
                 <strong>{dashboard.data?.stock.name ?? COMPANY}</strong>
                 <small>Xetra · {ISIN} · {dashboard.data?.stock.index ?? 'SDAX'}</small>
