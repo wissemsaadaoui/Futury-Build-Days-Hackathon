@@ -27,7 +27,7 @@ def events_df(isin: str | None = None, include_future: bool = False) -> pd.DataF
     for _, row in ev.iterrows():
         td = pd.Timestamp(row["trading_day"]) if row.get("trading_day") else resolve_trading_day(row["date"], row["time"], days)
         tds.append(td)
-    ev["trading_day"] = tds
+    ev["trading_day"] = pd.to_datetime(pd.Series(tds, index=ev.index, dtype="object"))  # datetime même si vide
     ev = ev.dropna(subset=["trading_day"])
     if not include_future and len(days):
         ev = ev[pd.to_datetime(ev["trading_day"]) <= days[-1]]

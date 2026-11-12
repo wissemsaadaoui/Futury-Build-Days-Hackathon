@@ -22,8 +22,6 @@ from app import config, etl
 from app.analytics import data, pricing
 from app.analytics._util import r1
 
-# Nom court utilisé dans la phrase (marque) ; sinon le nom complet
-SHORT_NAMES = {"DE0008019001": "pbb"}
 
 
 @lru_cache(maxsize=1)
@@ -71,15 +69,16 @@ def build_key_finding(isin: str) -> dict | None:
     if any(np.isnan(v) for v in (a, b)):
         return None
     pos_a, pos_b = _position(a, pa), _position(b, pb)
-    who = SHORT_NAMES.get(isin, data.name_of(isin))
+    who = data.short_name(isin)
+    peers_word = "its peers' median" if data.peer_basis(isin) == "manual" else "its index peers' median"
     verb = "rose" if b > a else "fell"
     months = f"{days[0]:%b}–{days[-1]:%b}"
     text = f"{who}'s cost to trade €25k {verb} from {r1(a):.1f} to {r1(b):.1f} bps ({months})"
     if pos_a and pos_b:
         if pos_a != pos_b:
-            text += f", moving from {pos_a} to {pos_b} its peers' median."
+            text += f", moving from {pos_a} to {pos_b} {peers_word}."
         else:
-            text += f", staying {pos_b} its peers' median."
+            text += f", staying {pos_b} {peers_word}."
     else:
         text += "."
 
@@ -103,6 +102,6 @@ def build_key_finding(isin: str) -> dict | None:
         "change_bps": r1(b - a),
         "price_effect_pct": r1(share * 100) if share is not None and not np.isnan(share) else None,
         "liquidity_effect_pct": r1((1 - share) * 100) if share is not None and not np.isnan(share) else None,
-        "n_peers": len(data.peers_of(isin)),
+        "n_peers": data.n_peers(isin),
     }
     return {"text": text, "numbers": numbers}

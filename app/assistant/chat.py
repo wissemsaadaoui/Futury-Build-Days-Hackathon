@@ -258,7 +258,9 @@ def tool_peer_comparison(isin: str, start: str | None = None, end: str | None = 
                 "avg_turnover_eur": turn, "spread_sessions": int(sp.notna().sum())}
 
     own = row(isin)
-    peers = [row(p) for p in data.peers_of(isin)]
+    # Base index : peers = membres du même indice à la fin de la période (souvent 50 à 70 émetteurs)
+    pool = data.peers_of(isin) if data.peer_basis(isin) == "manual" else data.peers_on(isin, rng[-1])
+    peers = [row(p) for p in pool]
     peers = [p for p in peers if p["spread_sessions"] > 0]
     med = lambda k: r1(np.nanmedian([p[k] for p in peers if p[k] is not None])) if any(p[k] is not None for p in peers) else None  # noqa: E731
     ranked = sorted([own, *peers], key=lambda p: (p["avg_spread_bps"] is None, p["avg_spread_bps"] or 0))
@@ -271,7 +273,19 @@ def tool_peer_comparison(isin: str, start: str | None = None, end: str | None = 
                         if any(p["avg_turnover_eur"] for p in peers) else None},
         "spread_rank_tightest_first": {"rank": ranked.index(own) + 1, "of": len(ranked)},
         "n_peers": len(peers),
+        **_peer_rows_view(isin, own, peers),
     }
+
+
+def _peer_rows_view(isin: str, own: dict, peers: list[dict]) -> dict:
+    """Base manual : rien à changer. Base index : seulement les 5 peers au spread le plus proche (liste lisible)."""
+    if data.peer_basis(isin) == "manual":
+        return {}
+    ref = own["avg_spread_bps"]
+    near = sorted((p for p in peers if p["avg_spread_bps"] is not None),
+                  key=lambda p: abs(p["avg_spread_bps"] - ref) if ref is not None else 0)[:5]
+    return {"peers": near, "peer_basis": "index", "peers_shown": "5 index peers with the closest average spread",
+            "index": data.index_on(isin, data.trading_days()[-1])}
 
 
 TOOLS: list[dict] = [
@@ -405,6 +419,27 @@ SUGGESTED_QUESTIONS = (
     "What to expect from today's Q3 release?",
     "How does pbb compare with its peers?",
 )
+
+
+def suggested_questions(isin: str) -> tuple[str, ...]:
+    """4 questions cliquables. pbb : les questions de la démo ; sinon construites à partir des données de l'émetteur."""
+    if isin == config.DEMO_ISINS[0]:
+        return SUGGESTED_QUESTIONS
+    from app.analytics.dashboard import _anomaly_rows  # import tardif (dashboard importe impact)
+
+    days = data.trading_days()
+    px = data.ohlc(isin)
+    rows = _anomaly_rows(isin, data.spread_series(isin), px["volume"].astype(float) if not px.empty else None,
+                         days[0], days[-1]) if len(days) else []
+    order = {"high": 0, "medium": 1, "low": 2}
+    top = sorted(sorted(rows, key=lambda r: r["date"], reverse=True), key=lambda r: order.get(r["severity"], 3))
+    day_q = f"Why was {pd.Timestamp(top[0]['date']):%-d %b} unusual?" if top else "What happened in the latest month?"
+    up = _upcoming_events(isin)
+    third = (f"What to expect from the next {'quarterly' if up[0]['type'] == 'quarterly_results' else 'annual'} results?"
+             if up and up[0]["type"] in ("quarterly_results", "annual_results") else "How was liquidity last month?")
+    return ("What happened in the latest week?", day_q, third, f"How does {data.short_name(isin)} compare with its peers?")
+
+
 _SUGGEST_FOR = {"prediction": (2, 0), "advice": (0, 3), "external_info": (0, 1), "off_topic": (0, 3)}
 PAST_ONLY = "This tool describes past trading only; it does not forecast prices or give investment advice."
 
@@ -469,10 +504,13 @@ def prefilter(question: str) -> str | None:
 def _other_company(question: str, isin: str) -> bool:
     """Nom propre inconnu (hors pbb, peers, mois…) ou entreprise de l'univers autre que pbb / ses peers."""
     words = re.findall(r"[A-Za-zÀ-ÿ&][\w&'.-]*", question)
+    allowed = _ALLOWED_CAPS | _own_words(isin)
     for w in words:
         token = w.strip(".'").lower()
-        if w[0].isupper() and token not in _ALLOWED_CAPS and len(token) >= 3 and not token.endswith("'s"):
-            if token.rstrip("s") in _ALLOWED_CAPS:
+        if token.endswith("'s"):
+            token = token[:-2]
+        if w[0].isupper() and token not in allowed and len(token) >= 3 and not w.strip(".'").lower().endswith("'s"):
+            if token.rstrip("s") in allowed:
                 continue
             return True
     try:
@@ -489,6 +527,12 @@ def _other_company(question: str, isin: str) -> bool:
         if first and re.search(rf"\b{re.escape(first)}\b", q):
             return True
     return False
+
+
+def _own_words(isin: str) -> set[str]:
+    """Mots du nom de l'émetteur et son mnemonic (« SUSS », « Microtec », « SMHN ») : jamais « une autre entreprise »."""
+    text = f"{data.name_of(isin)} {data.mnemonic_of(isin) or ''} {data.short_name(isin)}"
+    return {t.strip(".'").lower() for t in re.findall(r"[A-Za-zÀ-ÿ&][\w&'.-]*", text)}
 
 
 def scope_reason(isin: str, question: str) -> str | None:
@@ -508,8 +552,9 @@ def scope_reason(isin: str, question: str) -> str | None:
 
 def decline(isin: str, reason: str) -> dict:
     """Réponse hors périmètre : aucun chiffre, deux questions suggérées cliquables (links de type question)."""
-    who = "pbb" if isin == "DE0008019001" else data.name_of(isin)
-    picks = [SUGGESTED_QUESTIONS[i] for i in _SUGGEST_FOR.get(reason, (0, 3))]
+    who = data.short_name(isin)
+    questions = suggested_questions(isin)
+    picks = [questions[i] for i in _SUGGEST_FOR.get(reason, (0, 3))]
     lead = PAST_ONLY if reason in ("prediction", "advice") else (
         f"I can only answer questions about {who}'s historical Xetra trading, its announcements and its peers in this tool.")
     answer = f"{lead} Try: “{picks[0]}” or “{picks[1]}”"

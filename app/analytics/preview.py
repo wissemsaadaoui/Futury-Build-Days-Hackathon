@@ -26,6 +26,7 @@ METRICS = (
 NORMAL_TOLERANCE = 1.1  # spread revenu à <= 110 % de sa baseline (même règle que assistant.facts)
 NOTE = "Based on 2026 data only (Jan–Oct)."
 PEERS_NOTE_EMPTY = "No peer events of this type in the event calendar"
+NO_EVENTS_NOTE = "No announcements loaded for this issuer yet: there are no past reactions to measure."
 
 # Règles des attention_points (constantes simples, pas de LLM)
 SPREAD_WIDEN_PCT = 25.0
@@ -78,12 +79,16 @@ def _stats(values: list, digits: int = 1) -> dict:
 _DIGITS = {"volume_ratio": 2, "auction_share_change_pts": 2, "first_15min_ratio": 2}
 
 
-def _history(isins: list[str], event_type: str, day: pd.Timestamp | None) -> dict:
-    """Événements passés du type pour ces ISIN, mesurés et résumés par métrique."""
+def _history(isins: list[str], event_type: str, day: pd.Timestamp | None, peers_of: str | None = None) -> dict:
+    """Événements passés du type pour ces ISIN, mesurés et résumés par métrique.
+    peers_of : émetteur dont ce sont les peers ; en base index, un événement ne compte que si son émetteur était
+    dans le même indice que lui ce jour-là."""
     ev = events.events_df()
     ev = ev[ev["isin"].isin(isins) & (ev["type"] == event_type)]
     if day is not None:
         ev = ev[pd.to_datetime(ev["trading_day"]) < day]  # jamais d'événement postérieur (ou égal) à `day`
+    if peers_of is not None and data.peer_basis(peers_of) == "index" and not ev.empty:
+        ev = ev[[r.isin in data.peers_on(peers_of, r.trading_day) for r in ev.itertuples()]]
     rows = [event_metrics(e) for e in ev["event_id"]]
     out = {"n": len(rows), "events": rows}
     for k in METRICS:
@@ -162,7 +167,7 @@ def build_event_preview(isin: str, event_type: str, day=None) -> dict:
     day = pd.Timestamp(day).normalize() if day is not None else None
 
     own = _history([isin], event_type, day)
-    peers = _history(data.peers_of(isin), event_type, day)
+    peers = _history(data.peers_of(isin), event_type, day, peers_of=isin)
     peers_block = {"n": peers["n"], "events": peers["events"], **{k: peers[k] for k in METRICS}}
     if peers["n"] == 0:
         peers_block["peers_note"] = PEERS_NOTE_EMPTY
@@ -185,9 +190,12 @@ def build_event_preview(isin: str, event_type: str, day=None) -> dict:
         "checklist": _checklist(own, event_type),
         "confidence": _confidence(own["n"]),
         "note": NOTE,
+        "peer_basis": data.peer_basis(isin),
         "ai_summary": "",
         "_data_status": status,
     }
+    if not data.has_events(isin):  # events.csv ne couvre pas encore cet émetteur : pas de réaction passée à mesurer
+        preview["events_note"] = NO_EVENTS_NOTE
     preview = clean(preview)
 
     from app.assistant import summarize_event_preview  # import tardif (évite les imports circulaires)

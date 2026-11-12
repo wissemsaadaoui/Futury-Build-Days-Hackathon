@@ -17,6 +17,10 @@ class NotFound(KeyError):
     """ISIN, événement ou jour inconnu -> l'API renvoie 404."""
 
 
+class InsufficientData(NotFound):
+    """Émetteur connu mais avec trop peu de séances pour une baseline de 20 jours -> 404 avec un message clair."""
+
+
 class NoMarketData(NotFound):
     """Événement connu mais postérieur aux données de marché (ex. annonce à venir) -> 404 explicite, jamais 500."""
 
@@ -60,7 +64,7 @@ def _ohlc_blocks(isin: str, days: pd.DatetimeIndex, td: pd.Timestamp, card: dict
 
     # Peers : même jour de trading
     peer_ratios, peer_moves = [], []
-    for p in data.peers_of(isin):
+    for p in data.peers_on(isin, td):  # peers valides ce jour-là (base index : même indice à la date)
         ppx = data.ohlc(p)
         if ppx.empty or td not in ppx.index:
             continue
