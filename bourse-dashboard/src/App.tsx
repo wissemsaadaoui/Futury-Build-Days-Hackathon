@@ -36,6 +36,7 @@ import { DayDetail } from './components/DayDetail.tsx'
 import { HelpTip } from './components/HelpTip.tsx'
 import { PdfButton } from './components/PdfButton.tsx'
 import { WhatToExpect } from './components/WhatToExpect.tsx'
+import { tone, toneForUnit } from './utils/tone.ts'
 import {
   DISCLAIMER,
   eventLabels,
@@ -47,7 +48,6 @@ import {
   formatPercent,
   formatRatio,
   hasDemoData,
-  trendClass,
 } from './format.ts'
 
 type Page =
@@ -883,7 +883,7 @@ function WeeklyMovement({ points }: { points: StockPoint[] }) {
           <div className="movement-row" key={row.label}>
             <div className="movement-label">
               <span>{row.label}</span>
-              <strong className={row.amount < 0 ? 'negative' : row.amount > 0 ? 'positive' : ''}>
+              <strong className={tone(row.amount)}>
                 <CountUp text={`${row.amount > 0 ? '+' : ''}${formatEuro(row.amount)}`} delay={1100} />
               </strong>
             </div>
@@ -1179,7 +1179,7 @@ function DashboardPage({
                     </span>
                     <div className="price-line">
                       <strong><CountUp text={latest ? formatEuro(latest.close) : '–'} delay={1000} /></strong>
-                      <span className={`price-change ${periodChange >= 0 ? 'positive' : 'negative'}`}>
+                      <span className={`price-change ${tone(periodChange)}`}>
                         {periodChange >= 0 ? '↑' : '↓'} <CountUp text={formatPercent(periodChange)} delay={1000} />
                       </span>
                     </div>
@@ -1373,8 +1373,8 @@ function EventsPage({
                   <p>Trading day: {formatDate(event.trading_day)}</p>
                   <div className="event-metrics">
                     <Metric label="Volume ratio" value={formatRatio(event.headline_metric.volume_ratio)} />
-                    <Metric label="Price change" value={formatPercent(event.headline_metric.price_change_pct)} tone={trendClass(event.headline_metric.price_change_pct)} />
-                    <Metric label="Spread change" value={formatPercent(event.headline_metric.spread_change_pct)} tone={trendClass(event.headline_metric.spread_change_pct)} />
+                    <Metric label="Price change" value={formatPercent(event.headline_metric.price_change_pct)} tone={tone(event.headline_metric.price_change_pct)} />
+                    <Metric label="Spread change" value={formatPercent(event.headline_metric.spread_change_pct)} tone={tone(event.headline_metric.spread_change_pct, 'cost')} />
                   </div>
                   <button className="text-button" onClick={() => openImpact(`/events/${event.event_id}/impact-card`)}>
                     View impact card →
@@ -2009,10 +2009,10 @@ function ComparePage({
                       <td>{formatDate(event.date)}</td>
                       <td>{event.name}</td>
                       <td>{formatRatio(event.volume_ratio)}</td>
-                      <td className={trendClass(event.price_change_pct)}>
+                      <td className={tone(event.price_change_pct)}>
                         {formatPercent(event.price_change_pct)}
                       </td>
-                      <td className={trendClass(event.spread_change_pct)}>
+                      <td className={tone(event.spread_change_pct, 'cost')}>
                         {formatPercent(event.spread_change_pct)}
                       </td>
                       <td>
@@ -2115,7 +2115,7 @@ function ReportPage({
                     <div className="report-event" key={kpi.label}>
                       <span>{kpi.label}</span>
                       <strong>{formatKpi(kpi.value, kpi.unit)}</strong>
-                      <span>
+                      <span className={tone(kpi.change_pct, toneForUnit(kpi.unit))}>
                         {kpi.change_pct == null ? kpi.trend ?? '' : `${formatPercent(kpi.change_pct)} ${kpi.trend ?? ''}`}
                       </span>
                     </div>
@@ -2129,7 +2129,7 @@ function ReportPage({
                     >
                       <span>{formatDate(item.date)}</span>
                       <strong>{item.title}</strong>
-                      <span>Spread {formatPercent(item.spread_change_pct)}</span>
+                      <span className={tone(item.spread_change_pct, 'cost')}>Spread {formatPercent(item.spread_change_pct)}</span>
                     </button>
                   ))}
                 </div>

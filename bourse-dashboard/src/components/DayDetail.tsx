@@ -27,11 +27,11 @@ import {
   formatRatio,
   hasDemoData,
   isMissing,
-  trendClass,
 } from '../format.ts'
 import type { MetricHelpKey } from '../content/metricHelp.ts'
 import { HelpTip } from './HelpTip.tsx'
 import { PdfButton } from './PdfButton.tsx'
+import { tone } from '../utils/tone.ts'
 
 // Anomalies statistiques du jour (badges en haut) ; les autres types sont des alertes d'exécution (en bas).
 const SIGNAL_TYPES = new Set(['volume_spike', 'spread_widening', 'price_move'])
@@ -41,9 +41,6 @@ const pctOfRatio = (value: Num | undefined) => (isMissing(value) ? '–' : `${fo
 const pts = (value: Num | undefined) =>
   isMissing(value) ? '–' : `${value > 0 ? '+' : ''}${formatNumber(value * 100, 1)} pts`
 const zScore = (value: Num | undefined) => (isMissing(value) ? '–' : `${value > 0 ? '+' : ''}${formatNumber(value, 1)}`)
-
-// Un spread qui s'élargit = liquidité moins bonne : affiché en rouge (inverse des prix)
-const spreadTone = (value: Num | undefined) => trendClass(isMissing(value) ? value : -value)
 
 function allMissing(...values: (Num | undefined)[]) {
   return values.every(isMissing)
@@ -235,13 +232,13 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
         >
           <div className="day-headline">
             <strong>{bps(m.spread_bps.event)}</strong>
-            <span className={spreadTone(m.spread_bps.change_pct)}>{formatPercent(m.spread_bps.change_pct)} vs 20-day avg</span>
+            <span className={tone(m.spread_bps.change_pct, 'cost')}>{formatPercent(m.spread_bps.change_pct)} vs 20-day avg</span>
           </div>
           <Rows
             rows={[
               ['Spread on the day', bps(m.spread_bps.event), undefined, 'spread'],
               ['20-day baseline', bps(m.spread_bps.baseline), undefined, 'baseline'],
-              ['Change vs baseline', formatPercent(m.spread_bps.change_pct), spreadTone(m.spread_bps.change_pct)],
+              ['Change vs baseline', formatPercent(m.spread_bps.change_pct), tone(m.spread_bps.change_pct, 'cost')],
             ]}
           />
         </Section>
@@ -249,7 +246,7 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
         <Section kicker="2 · RETURNS" title="Closing price" empty={allMissing(m.price.close, m.price.change_pct)}>
           <div className="day-headline">
             <strong>{formatEuro(m.price.close)}</strong>
-            <span className={trendClass(m.price.change_pct)}>{formatPercent(m.price.change_pct)} vs previous close</span>
+            <span className={tone(m.price.change_pct)}>{formatPercent(m.price.change_pct)} vs previous close</span>
           </div>
           <Rows
             rows={[
@@ -296,7 +293,7 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
               { label: 'Volume vs usual', own: m.volume.ratio, peers: peers.peer_avg_volume_ratio, format: (v) => formatRatio(v, 2) },
             ]}
           />
-          <Rows rows={[['Return vs peer median', formatPercent(peers.excess_return_pct), trendClass(peers.excess_return_pct)]]} />
+          <Rows rows={[['Return vs peer median', formatPercent(peers.excess_return_pct), tone(peers.excess_return_pct)]]} />
         </Section>
 
         <Section
@@ -374,9 +371,9 @@ export function DayDetail({ card, dayAnomalies }: { card: ImpactCardResponse; da
           {card.intraday && (
             <div className="impact-metrics">
               <Metric label="First 15 min volume vs usual" value={formatRatio(card.intraday.first_15min.ratio, 2)} />
-              <Metric label="Price after 5 min" value={formatPercent(card.intraday.price_change_pct.after_5min)} tone={trendClass(card.intraday.price_change_pct.after_5min)} />
-              <Metric label="Price after 30 min" value={formatPercent(card.intraday.price_change_pct.after_30min)} tone={trendClass(card.intraday.price_change_pct.after_30min)} />
-              <Metric label="Price after 60 min" value={formatPercent(card.intraday.price_change_pct.after_60min)} tone={trendClass(card.intraday.price_change_pct.after_60min)} />
+              <Metric label="Price after 5 min" value={formatPercent(card.intraday.price_change_pct.after_5min)} tone={tone(card.intraday.price_change_pct.after_5min)} />
+              <Metric label="Price after 30 min" value={formatPercent(card.intraday.price_change_pct.after_30min)} tone={tone(card.intraday.price_change_pct.after_30min)} />
+              <Metric label="Price after 60 min" value={formatPercent(card.intraday.price_change_pct.after_60min)} tone={tone(card.intraday.price_change_pct.after_60min)} />
             </div>
           )}
         </Section>

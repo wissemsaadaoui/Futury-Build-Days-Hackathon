@@ -63,13 +63,6 @@ export function formatDate(value: string) {
   })
 }
 
-export function trendClass(value: number | null | undefined) {
-  if (value === null || value === undefined || Math.abs(value) < 0.05) {
-    return 'neutral'
-  }
-  return value > 0 ? 'positive' : 'negative'
-}
-
 export function formatRatio(value: number | null | undefined, digits = 1) {
   return value === null || value === undefined ? '–' : `${formatNumber(value, digits)}×`
 }
