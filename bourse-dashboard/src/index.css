@@ -4265,3 +4265,77 @@ button.report-event {
   border-color: var(--pbb-green);
   color: #34425a;
 }
+
+/* ---------- Logos Deutsche Börse | pbb (fichiers public/logos non modifiés, recadrés sur leur zone visible) ---------- */
+.brand-logo {
+  --logo-h: 28px;
+  height: var(--logo-h);
+  width: calc(var(--logo-h) * var(--logo-w));
+  display: inline-block;
+  flex: 0 0 auto;
+  overflow: hidden;
+  line-height: 0;
+}
+
+.brand-logo img {
+  width: calc(var(--logo-h) * var(--logo-img-w));
+  height: calc(var(--logo-h) * var(--logo-img-h));
+  max-width: none;
+  margin-top: calc(var(--logo-h) * var(--logo-y) * -1);
+  margin-left: calc(var(--logo-h) * var(--logo-x) * -1);
+  display: block;
+}
+
+.brand-logos {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  flex: 0 0 auto;
+}
+
+.brand-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--line);
+}
+
+.brand {
+  gap: 16px;
+}
+
+.footer-logo {
+  --logo-h: 40px;
+}
+
+.stock-logo {
+  --logo-h: 36px;
+}
+
+/* Le texte reste à droite des logos jusqu'à 640 px (au lieu de 980 px), puis disparaît s'il manque de place */
+@media (max-width: 980px) {
+  .brand-copy {
+    display: flex;
+  }
+}
+
+@media (max-width: 640px) {
+  .brand-logo {
+    --logo-h: 22px;
+  }
+
+  .brand-logos {
+    gap: 12px;
+  }
+
+  .brand-divider {
+    height: 20px;
+  }
+
+  .brand-copy {
+    display: none;
+  }
+
+  .stock-logo {
+    --logo-h: 30px;
+  }
+}
