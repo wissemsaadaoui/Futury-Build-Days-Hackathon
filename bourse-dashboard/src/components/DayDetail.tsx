@@ -31,6 +31,7 @@ import {
 import type { MetricHelpKey } from '../content/metricHelp.ts'
 import { announcementsLabel } from '../utils/events.ts'
 import { AiPoints } from './AiPoints.tsx'
+import { DecisionControls } from './DecisionControls.tsx'
 import { HelpTip } from './HelpTip.tsx'
 import { PdfButton } from './PdfButton.tsx'
 import { tone } from '../utils/tone.ts'
@@ -231,10 +232,19 @@ export function DayDetail({
         <div className="day-badges">
           {signals.length === 0 && <span className="day-badge none">No anomaly flagged this day</span>}
           {signals.map((a) => (
-            <span className={`day-badge ${a.severity}`} key={`${a.type}-${a.description}`} title={a.description}>
-              <i className={`signal-dot ${a.severity}`} />
-              {anomalyLabels[a.type] ?? a.type} · {formatAnomalyValue(a.type, a.value)}
-              <small>{a.severity}</small>
+            <span className="day-badge-review" key={a.id ?? `${a.type}-${a.description}`}>
+              <span className={`day-badge ${a.severity}`} title={a.description}>
+                <i className={`signal-dot ${a.severity}`} />
+                {anomalyLabels[a.type] ?? a.type} · {formatAnomalyValue(a.type, a.value)}
+                <small>{a.severity}</small>
+              </span>
+              <DecisionControls
+                isin={card.stock.isin}
+                itemType={a.item_type ?? 'anomaly'}
+                itemId={a.id}
+                decision={a.decision}
+                compact
+              />
             </span>
           ))}
         </div>
@@ -365,7 +375,11 @@ export function DayDetail({
           ) : (
             <p className="muted">No company announcement on record for this trading day.</p>
           )}
-          <AiPoints points={card.ai_points} summary={card.ai_summary} />
+          <AiPoints
+            points={card.ai_points}
+            summary={card.ai_summary}
+            review={{ isin: card.stock.isin, id: card.ai_summary_id, decision: card.ai_summary_decision }}
+          />
         </Section>
 
         <Section
@@ -390,13 +404,22 @@ export function DayDetail({
 
         <Section kicker="EXECUTION ALERTS" title="Alerts on this day" empty={alerts.length === 0}>
           {alerts.map((a) => (
-            <div className="signal-row static" key={`${a.type}-${a.description}`}>
-              <span className={`signal-dot ${a.severity}`} />
-              <span className="signal-copy">
-                <strong>{anomalyLabels[a.type] ?? a.type}</strong>
-                <small>{a.description}</small>
-              </span>
-              <span className="signal-value">{formatAnomalyValue(a.type, a.value)}</span>
+            <div className="signal-row-wrap" key={a.id ?? `${a.type}-${a.description}`}>
+              <div className="signal-row static">
+                <span className={`signal-dot ${a.severity}`} />
+                <span className="signal-copy">
+                  <strong>{anomalyLabels[a.type] ?? a.type}</strong>
+                  <small>{a.description}</small>
+                </span>
+                <span className="signal-value">{formatAnomalyValue(a.type, a.value)}</span>
+              </div>
+              <DecisionControls
+                isin={card.stock.isin}
+                itemType={a.item_type ?? 'alert'}
+                itemId={a.id}
+                decision={a.decision}
+                compact
+              />
             </div>
           ))}
         </Section>

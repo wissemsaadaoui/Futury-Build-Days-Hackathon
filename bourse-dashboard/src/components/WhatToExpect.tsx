@@ -199,7 +199,11 @@ export function WhatToExpect({ isin, onOpenFull }: { isin: string; onOpenFull: (
             <p className="expect-intro">
               Past {typeLabel.toLowerCase()} releases of pbb: trading on the publication day vs its 20-day average.
             </p>
-            <AiPoints points={p.ai_points} summary={p.ai_summary} />
+            <AiPoints
+              points={p.ai_points}
+              summary={p.ai_summary}
+              review={{ isin, id: p.ai_summary_id, decision: p.ai_summary_decision }}
+            />
             <div className="expect-footer">
               <p className="small-note">
                 {p.note} Statistics on past trading reactions only: no price direction is implied.

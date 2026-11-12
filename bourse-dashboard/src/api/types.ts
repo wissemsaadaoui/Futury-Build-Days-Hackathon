@@ -35,7 +35,35 @@ export type Anomaly = {
   description: string
   linked_event_id: string | null
   detail_url: string
+  // v0.8 : human-in-the-loop
+  id?: string
+  item_type?: 'anomaly' | 'alert'
+  decision?: DecisionRef | null
+  rank?: number | null
 }
+
+export type DecisionRef = {
+  id: number
+  decision: 'approved' | 'dismissed'
+  note: string | null
+  decided_at: string
+  decided_by: string
+}
+
+export type Decision = {
+  id: number
+  item_type: 'alert' | 'ai_summary' | 'anomaly' | 'threshold'
+  item_id: string
+  isin: string
+  decision: 'approved' | 'dismissed' | 'threshold_changed'
+  note: string | null
+  old_value: string | null
+  new_value: string | null
+  decided_at: string
+  decided_by: string
+}
+
+export type DecisionLog = { isin: string | null; decisions: Decision[] }
 
 export type DashboardResponse = {
   stock: StockRef
@@ -113,6 +141,8 @@ export type ImpactCardResponse = {
   pre_disclosure_activity: { summary: string } | null
   ai_summary: string
   ai_points?: string[] // v0.6
+  ai_summary_id?: string // v0.8
+  ai_summary_decision?: DecisionRef | null
   generated_at?: string
   export: { pdf_url: string }
   _data_status?: DataStatus
@@ -145,6 +175,8 @@ export type ReportResponse = {
   period: { from: string; to: string }
   headline: string
   ai_points?: string[] // v0.6
+  ai_summary_id?: string // v0.8
+  ai_summary_decision?: DecisionRef | null
   sections: {
     title: string
     kpis?: ReportKpi[] | null
@@ -194,6 +226,8 @@ export type EventPreviewResponse = {
   note: string
   ai_summary: string
   ai_points?: string[] // v0.6
+  ai_summary_id?: string // v0.8
+  ai_summary_decision?: DecisionRef | null
   _data_status?: DataStatus
 }
 

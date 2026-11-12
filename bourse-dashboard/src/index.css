@@ -4119,3 +4119,136 @@ button.report-event {
   color: #7b8797;
   font-size: 13px;
 }
+
+/* ---------- Human-in-the-loop : décisions (points 9-10) ---------- */
+.hitl-line {
+  margin: 2px 0 6px;
+  color: #6b7a90;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.signal-row-wrap {
+  border-bottom: 1px solid #edf0f3;
+}
+
+.signal-row-wrap:last-of-type {
+  border-bottom: 0;
+}
+
+.signal-row-wrap .signal-row {
+  border-bottom: 0;
+}
+
+.signal-row-wrap.dismissed .signal-row {
+  opacity: 0.55;
+}
+
+.signal-rank {
+  min-width: 26px;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.decision-controls {
+  padding: 0 0 9px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.decision-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.decision-badge.pending {
+  background: #f1f3f6;
+  color: #6b7a90;
+}
+
+.decision-badge.approved {
+  background: #eef8dc;
+  color: #4d6c00;
+}
+
+.decision-badge.dismissed {
+  background: #fdeeee;
+  color: #a33a3a;
+}
+
+.decision-badge.threshold {
+  background: #fff7e6;
+  color: #8a5a00;
+}
+
+.decision-button,
+.decision-note-toggle {
+  padding: 3px 10px;
+  border: 1px solid #d6dde7;
+  border-radius: 6px;
+  background: #fff;
+  color: #34425a;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.decision-button.approve.active,
+.decision-button.approve:hover:not(:disabled) {
+  border-color: #8cbe00;
+  background: #f4faea;
+}
+
+.decision-button.dismiss.active,
+.decision-button.dismiss:hover:not(:disabled) {
+  border-color: #d98a8a;
+  background: #fdf3f3;
+}
+
+.decision-note-toggle {
+  border-style: dashed;
+  color: #6b7a90;
+}
+
+.decision-note {
+  flex: 1 1 220px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid #d6dde7;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.ai-review {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #dce8fb;
+}
+
+.ai-review .decision-controls {
+  padding-left: 0;
+}
+
+.ai-review small {
+  color: #7b8797;
+  font-size: 12px;
+}
+
+.day-badge-review {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.day-badge-review .decision-controls {
+  padding: 0;
+}
+
+.decision-table td {
+  white-space: normal;
+}

@@ -23,6 +23,7 @@ import type {
   CompareResponse,
   DailyPoint,
   DashboardResponse,
+  DecisionLog,
   EventPreviewResponse,
   EventsResponse,
   ImpactCardResponse,
@@ -35,6 +36,7 @@ import { AnomalyList } from './components/AnomalyList.tsx'
 import { CountUp } from './components/CountUp.tsx'
 import { AiPoints } from './components/AiPoints.tsx'
 import { DayDetail } from './components/DayDetail.tsx'
+import { DecisionBadge, HITL_LINE } from './components/DecisionControls.tsx'
 import { HelpTip } from './components/HelpTip.tsx'
 import { PdfButton } from './components/PdfButton.tsx'
 import { WhatToExpect } from './components/WhatToExpect.tsx'
@@ -44,6 +46,7 @@ import { ADTV_SESSIONS, BASELINE_SESSIONS, fixedRules, type DetectionRule } from
 import { ThresholdsEditor } from './components/ThresholdsEditor.tsx'
 import {
   DISCLAIMER,
+  anomalyLabels,
   eventLabels,
   formatCompact,
   formatDate,
@@ -67,6 +70,7 @@ type Page =
   | 'report'
   | 'preview'
   | 'assistant'
+  | 'decisions'
 
 type Period = '1W' | '1M' | '3M' | 'YTD'
 
@@ -272,6 +276,7 @@ function Header({
                 ['Thresholds & alerts', 'alerts'],
                 ['IR snapshot', 'report'],
                 ['What to expect', 'preview'],
+                ['Decision log', 'decisions'],
               ].map(([label, target]) => (
                 <button
                   key={target}
@@ -1254,15 +1259,16 @@ function DashboardPage({
               <section className="panel lower-panel">
                 <div className="panel-title">
                   <div>
-                    <span className="kicker">TRADING SIGNALS · MOST IMPORTANT FIRST</span>
-                    <h2>Notable days</h2>
+                    <span className="kicker">TRADING SIGNALS · SEVERITY, THEN MOST RECENT</span>
+                    <h2>Top 5 – latest period</h2>
                   </div>
                   <button className="text-button" onClick={() => navigate('alerts')}>
                     Configure alerts →
                   </button>
                 </div>
+                <p className="hitl-line">{HITL_LINE}</p>
                 {dashboard.data && (
-                  <AnomalyList anomalies={dashboard.data.anomalies} onOpen={openImpact} />
+                  <AnomalyList anomalies={dashboard.data.anomalies} onOpen={openImpact} isin={ISIN} />
                 )}
               </section>
             </Reveal>
@@ -1678,10 +1684,11 @@ function AlertsPage({
             <div className="panel-title">
               <div>
                 <span className="kicker">DETECTED IN XETRA DATA · {dashboard?.anomalies.length ?? '–'} ALERTS IN 2026</span>
-                <h2>Most important alerts</h2>
+                <h2>Top 5 – latest period</h2>
               </div>
             </div>
-            {dashboard && <AnomalyList anomalies={dashboard.anomalies} onOpen={openImpact} />}
+            <p className="hitl-line">{HITL_LINE}</p>
+            {dashboard && <AnomalyList anomalies={dashboard.anomalies} onOpen={openImpact} isin={ISIN} />}
           </section>
 
           <div className="notice-box rules-note">
@@ -1897,7 +1904,12 @@ function ReportPage({
               <div className="report-section">
                 <span className="kicker">EXECUTIVE SUMMARY</span>
                 <p>{report.headline}</p>
-                <AiPoints points={report.ai_points} title={null} className="report-points" />
+                <AiPoints
+                  points={report.ai_points}
+                  title={null}
+                  className="report-points"
+                  review={{ isin: ISIN, id: report.ai_summary_id, decision: report.ai_summary_decision }}
+                />
               </div>
               {report.sections.map((section) => (
                 <div className="report-section" key={section.title}>
@@ -2035,7 +2047,11 @@ function PreviewPage({
                 </div>
               </div>
 
-              <AiPoints points={preview.ai_points} summary={preview.ai_summary} />
+              <AiPoints
+                points={preview.ai_points}
+                summary={preview.ai_summary}
+                review={{ isin: ISIN, id: preview.ai_summary_id, decision: preview.ai_summary_decision }}
+              />
 
               {preview.attention_points.length > 0 && (
                 <div className="attention-box">
@@ -2181,6 +2197,102 @@ function AssistantPage({
 
 type AuthState = 'checking' | 'in' | 'out'
 
+// Libellé lisible d'un élément du journal (anomalie / alerte, résumé IA, seuil)
+function describeItem(entry: DecisionLog['decisions'][number]) {
+  if (entry.item_type === 'threshold') return entry.note ?? entry.item_id
+  if (entry.item_type === 'ai_summary') {
+    const [kind, ...rest] = entry.item_id.split(':')
+    const label = kind === 'impact' ? 'impact card' : kind === 'preview' ? 'What to expect' : kind === 'report' ? 'IR snapshot' : kind
+    return `AI summary · ${label} ${rest.filter((part) => part !== ISIN).join(' ')}`.trim()
+  }
+  const [date, type] = entry.item_id.split('|')
+  return `${anomalyLabels[type] ?? type} · ${date ? formatDate(date) : ''}`
+}
+
+function DecisionLogPage({
+  navigate,
+  loggedIn,
+  logout,
+}: {
+  navigate: (page: Page) => void
+  loggedIn: boolean
+  logout: () => void
+}) {
+  const { data, error, loading } = useApi<DecisionLog>(`/decisions?isin=${ISIN}`)
+  const entries = data?.decisions ?? []
+
+  return (
+    <>
+      <Header page="decisions" loggedIn={loggedIn} navigate={navigate} logout={logout} />
+      <main className="workspace-page">
+        <div className="workspace-container">
+          <PageHeading
+            eyebrow="HUMAN IN THE LOOP"
+            title="Decision log"
+            description={HITL_LINE}
+          />
+          <LoadState loading={loading} error={error} />
+          <section className="panel compare-panel">
+            <div className="panel-title">
+              <div>
+                <span className="kicker">{entries.length} DECISIONS · DATA/DECISIONS.DB</span>
+                <h2>Every review and threshold change</h2>
+              </div>
+            </div>
+            {data && entries.length === 0 ? (
+              <p className="muted">No decision yet. Approve or dismiss an alert, an anomaly or an AI summary to start the log.</p>
+            ) : (
+              <div className="table-scroll">
+                <table className="decision-table">
+                  <thead>
+                    <tr>
+                      <th>When (Frankfurt)</th>
+                      <th>Item</th>
+                      <th>Decision</th>
+                      <th>Note / change</th>
+                      <th>By</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.map((entry) => (
+                      <tr key={entry.id}>
+                        <td>{entry.decided_at.slice(0, 16).replace('T', ' ')}</td>
+                        <td>{describeItem(entry)}</td>
+                        <td>
+                          {entry.decision === 'threshold_changed' ? (
+                            <span className="decision-badge threshold">Threshold changed</span>
+                          ) : (
+                            <DecisionBadge
+                              decision={{
+                                id: entry.id,
+                                decision: entry.decision,
+                                note: entry.note,
+                                decided_at: entry.decided_at,
+                                decided_by: entry.decided_by,
+                              }}
+                            />
+                          )}
+                        </td>
+                        <td>
+                          {entry.decision === 'threshold_changed'
+                            ? `${entry.old_value} → ${entry.new_value}`
+                            : entry.note ?? '–'}
+                        </td>
+                        <td>{entry.decided_by}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+      <Footer />
+    </>
+  )
+}
+
 function App() {
   // Source de vérité : l'API (GET /auth/me au démarrage, puis tout 401 renvoie au login)
   const [auth, setAuth] = useState<AuthState>('checking')
@@ -2313,6 +2425,8 @@ function App() {
     content = <ReportPage navigate={navigate} loggedIn={loggedIn} logout={logout} openImpact={openImpact} />
   } else if (page === 'preview') {
     content = <PreviewPage navigate={navigate} loggedIn={loggedIn} logout={logout} />
+  } else if (page === 'decisions') {
+    content = <DecisionLogPage navigate={navigate} loggedIn={loggedIn} logout={logout} />
   } else if (page === 'assistant') {
     content = (
       <AssistantPage
