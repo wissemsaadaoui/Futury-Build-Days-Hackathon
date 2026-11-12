@@ -7,6 +7,24 @@ export type DataStatus = Record<string, 'real' | 'mock' | 'missing'>
 
 export type StockRef = { isin: string; name: string; index: string; sector?: string | null }
 
+// GET /stocks (v0.11) : tout l'univers DAX / MDAX / SDAX, émetteur par défaut (pbb) en premier
+export type PeerBasis = 'manual' | 'index' // manual = liste choisie (pbb) ; index = même indice à la date
+export type Coverage = { dashboard: boolean; events: boolean; intraday: boolean; sessions: number }
+export type Stock = {
+  isin: string
+  name: string
+  ticker: string
+  index: string
+  index_history?: { index: string; from?: string; until?: string }[] | null
+  sector: string
+  is_selected: boolean
+  peers: string[]
+  peer_basis?: PeerBasis
+  coverage?: Coverage
+}
+export type StocksResponse = { stocks: Stock[]; default_isin?: string }
+export type SuggestionsResponse = { isin: string; questions: string[] } // GET /assistant/suggestions (v0.11)
+
 export type DailyPoint = {
   date: string
   open: Num
@@ -91,6 +109,8 @@ export type DashboardResponse = {
   as_of: string // v0.5 : dernière date des données (ex. "2026-10-30")
   key_finding?: { text: string; numbers: Record<string, number | string | null> } | null // v0.7
   auction_trend?: AuctionTrend | null // v0.10 : part des enchères dans le volume (null sans Flows)
+  peer_basis?: PeerBasis // v0.11
+  n_peers?: number // v0.11
   kpis: {
     avg_daily_volume: Num
     avg_daily_turnover_eur: Num
@@ -245,6 +265,8 @@ export type EventPreviewResponse = {
   checklist: string[] // préparation IR par règles ; [] si rien
   confidence: 'low' | 'medium' | 'high'
   note: string
+  peer_basis?: PeerBasis // v0.11
+  events_note?: string | null // v0.11 : aucune annonce chargée pour l'émetteur
   ai_summary: string
   ai_points?: string[] // v0.6
   ai_summary_id?: string // v0.8

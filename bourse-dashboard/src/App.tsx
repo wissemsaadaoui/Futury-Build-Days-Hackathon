@@ -29,6 +29,8 @@ import type {
   ImpactCardResponse,
   PreviewStat,
   ReportResponse,
+  StocksResponse,
+  SuggestionsResponse,
   ThresholdsResponse,
 } from './api/types.ts'
 import { clearApiCache, useApi } from './api/useApi.ts'
@@ -37,6 +39,18 @@ import { CountUp } from './components/CountUp.tsx'
 import { AiPoints } from './components/AiPoints.tsx'
 import { BrandLogo } from './components/BrandLogo.tsx'
 import { LOGOS } from './content/logos.ts'
+import { IssuerLogo } from './components/IssuerLogo.tsx'
+import { IssuerPicker } from './components/IssuerPicker.tsx'
+import {
+  DEFAULT_ISIN,
+  IssuerContext,
+  dashboardPath,
+  filePrefix,
+  isinFromUrl,
+  issuerFrom,
+  useIssuer,
+  writeIsinToUrl,
+} from './issuer/context.ts'
 import { DayDetail } from './components/DayDetail.tsx'
 import { DecisionBadge, HITL_LINE } from './components/DecisionControls.tsx'
 import { AuctionTrendCard } from './components/AuctionTrendCard.tsx'
@@ -95,13 +109,17 @@ type ChatMessage = {
   role: 'assistant' | 'user'
   text: string
   links?: ChatLink[]
+  welcome?: boolean // message d'accueil (pas envoyé à l'API)
 }
 
-const WELCOME: ChatMessage = {
-  role: 'assistant',
-  text: 'Hello. Ask me about pbb\'s historical Xetra trading: a period, a specific day, an announcement or the peers. Answers are built from the analyses in this tool.',
+// Message d'accueil : texte construit à l'affichage avec le nom de l'émetteur choisi (welcomeText)
+const WELCOME: ChatMessage = { role: 'assistant', welcome: true, text: '' }
+
+function welcomeText(short: string) {
+  return `Hello. Ask me about ${short}'s historical Xetra trading: a period, a specific day, an announcement or the peers. Answers are built from the analyses in this tool.`
 }
 
+// Questions de la démo pbb (affichées tout de suite) ; les autres émetteurs : GET /assistant/suggestions
 const SUGGESTED_QUESTIONS = [
   'What happened in the latest week?',
   'Why was 29 Sep unusual?',
@@ -109,14 +127,13 @@ const SUGGESTED_QUESTIONS = [
   'How does pbb compare with its peers?',
 ]
 
-const ISIN = 'DE0008019001'
-const COMPANY = 'Deutsche Pfandbriefbank AG'
+const NO_ANNOUNCEMENTS = 'No announcements loaded for this issuer yet.'
 
 const periods: Period[] = ['1W', '1M', '3M', 'YTD']
 // Nombre de séances par période (le dashboard couvre 2026 jusqu'au 30.10)
 const periodSessions: Record<Period, number> = { '1W': 5, '1M': 21, '3M': 63, YTD: Infinity }
 
-// Impact card ouverte par défaut : ad hoc du 13.02.2026 (scène b de la démo)
+// Impact card ouverte par défaut pour pbb : ad hoc du 13.02.2026 (scène b de la démo) ; autres émetteurs : aucune
 const DEFAULT_IMPACT = '/events/evt_002/impact-card'
 
 const indicators = [
@@ -192,7 +209,6 @@ function toStockPoints(series: DailyPoint[]): StockPoint[] {
     })
 }
 
-const DASHBOARD_PATH = `/stocks/${ISIN}/dashboard`
 
 // Chargement / erreur d'une requête, avec le style des encadrés existants
 function LoadState({ loading, error }: { loading: boolean; error: string | null }) {
@@ -246,6 +262,7 @@ function Header({
   navigate: (page: Page) => void
   logout: () => void
 }) {
+  const { issuer } = useIssuer()
   const [menuOpen, setMenuOpen] = useState(false)
   const items: { label: string; page: Page }[] = loggedIn
     ? [
@@ -300,13 +317,15 @@ function Header({
           <span className="brand-logos">
             <BrandLogo logo={LOGOS.deutscheBoerse} />
             <span className="brand-divider" aria-hidden="true" />
-            <BrandLogo logo={LOGOS.pbb} />
+            <IssuerLogo issuer={issuer} />
           </span>
           <span className="brand-copy">
             <strong>ISSUER</strong>
             <small>INTELLIGENCE HUB</small>
           </span>
         </button>
+
+        {loggedIn && <IssuerPicker />}
 
         <nav className="main-nav" aria-label="Main navigation">
           {items.map((item) => (
@@ -336,11 +355,13 @@ function Header({
 }
 
 function Footer() {
+  const { issuer } = useIssuer()
+  const isin = issuer.isin
   return (
     <footer className="site-footer" id="contact">
       <div className="footer-top">
         <div className="footer-brand">
-          <BrandLogo logo={LOGOS.pbb} className="footer-logo" />
+          <IssuerLogo issuer={issuer} className="footer-logo" />
           <div>
             <strong>Issuer Intelligence Hub</strong>
             <p>Market insight for IR teams.</p>
@@ -353,8 +374,8 @@ function Footer() {
         </div>
         <div className="footer-company">
           <span className="footer-label">COMPANY PROFILE</span>
-          <strong>{COMPANY}</strong>
-          <span>ISIN {ISIN} · SDAX</span>
+          <strong>{issuer.name}</strong>
+          <span>ISIN {isin}{issuer.index ? ` · ${issuer.index}` : ''}</span>
         </div>
       </div>
       <div className="footer-bottom">
@@ -372,7 +393,9 @@ function HomePage({
   navigate: (page: Page) => void
   loggedIn: boolean
 }) {
-  const { data } = useApi<DashboardResponse>(DASHBOARD_PATH)
+  const { issuer } = useIssuer()
+  const isin = issuer.isin
+  const { data } = useApi<DashboardResponse>(dashboardPath(isin))
   const points = useMemo(() => (data ? toStockPoints(data.series) : []), [data])
   const latest = points[points.length - 1]
   const lastCloses = points.slice(-10).map((point) => point.close)
@@ -389,7 +412,7 @@ function HomePage({
             <div className="hero-copy">
               <p className="eyebrow">
                 <span className="eyebrow-dot" />
-                PBB · ISSUER INTELLIGENCE HUB
+                {issuer.ticker} · ISSUER INTELLIGENCE HUB
               </p>
               <h1>
                 Every market move
@@ -397,16 +420,16 @@ function HomePage({
                 <span>has a story.</span>
               </h1>
               <p className="hero-description">
-                A focused market intelligence workspace for Deutsche Pfandbriefbank.
+                A focused market intelligence workspace for {issuer.brandName}.
                 Explore trading activity, understand event impact and prepare clear
                 IR insights.
               </p>
 
               <div className="hero-company">
-                <span className="company-logo">pbb</span>
+                <span className={`company-logo${issuer.isDefault ? '' : ' is-ticker'}`}>{issuer.isDefault ? 'pbb' : issuer.ticker}</span>
                 <span>
-                  <strong>Deutsche Pfandbriefbank AG</strong>
-                  <small>ISIN {ISIN} · SDAX</small>
+                  <strong>{issuer.name}</strong>
+                  <small>ISIN {isin}{issuer.index ? ` · ${issuer.index}` : ''}</small>
                 </span>
               </div>
 
@@ -430,7 +453,7 @@ function HomePage({
                 </div>
                 <div className="hero-stock">
                   <div>
-                    <small>PBB · XETRA</small>
+                    <small>{issuer.ticker} · XETRA</small>
                     <strong>{latest ? formatEuro(latest.close) : '–'}</strong>
                   </div>
                   <span>{change === null ? '–' : `${change >= 0 ? '↗' : '↘'} ${formatPercent(change)}`}</span>
@@ -501,7 +524,7 @@ function HomePage({
           <Reveal>
             <div className="home-cta-inner">
               <div>
-                <p className="eyebrow">PBB · {ISIN}</p>
+                <p className="eyebrow">{issuer.ticker} · {isin}</p>
                 <h2>Your company. Your market view.</h2>
               </div>
               <button
@@ -522,6 +545,8 @@ function HomePage({
 // Écran de login : le mot de passe part UNE fois vers POST /auth/login ; il n'est ni stocké ni gardé en mémoire
 // après l'envoi. L'API renvoie un token signé (12 h), stocké dans localStorage.
 function LoginPage({ onLogin }: { onLogin: (password: string) => Promise<string | null> }) {
+  const { issuer } = useIssuer()
+  const isin = issuer.isin
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -540,15 +565,15 @@ function LoginPage({ onLogin }: { onLogin: (password: string) => Promise<string 
       <main className="login-page">
         <section className="login-intro-panel">
           <div className="login-brand">
-            <span className="brand-symbol">pbb</span>
+            <span className="brand-symbol">{issuer.isDefault ? 'pbb' : issuer.ticker}</span>
             <span>ISSUER INTELLIGENCE HUB</span>
           </div>
           <div className="login-copy">
             <p className="eyebrow">PRIVATE WORKSPACE</p>
             <h1>See the market with more context.</h1>
-            <p>Sign in to access the pbb market intelligence dashboard.</p>
+            <p>Sign in to access the {issuer.isDefault ? 'pbb' : 'issuer'} market intelligence dashboard.</p>
           </div>
-          <span className="login-caption">DEUTSCHE PFANDBRIEFBANK AG · {ISIN}</span>
+          <span className="login-caption">{issuer.isDefault ? 'DEUTSCHE PFANDBRIEFBANK AG · ' : ''}{isin}</span>
           <i className="login-orbit orbit-a" />
           <i className="login-orbit orbit-b" />
         </section>
@@ -889,6 +914,8 @@ function AnalysisAssistant({
   openImpact: (path: string) => void
   openDay: (date: string) => void
 }) {
+  const { issuer } = useIssuer()
+  const isin = issuer.isin
   const [from, setFrom] = useState(point.date)
   const [to, setTo] = useState(point.date)
   const [question, setQuestion] = useState('')
@@ -896,9 +923,9 @@ function AnalysisAssistant({
 
   // Un jour -> day card (résumé IA du jour) ; une période -> report de la période (résumé IA de la période)
   const singleDay = request !== null && request.from === request.to
-  const dayPath = singleDay ? `/days/${ISIN}/${request.from}/impact-card` : null
+  const dayPath = singleDay ? `/days/${isin}/${request.from}/impact-card` : null
   const reportPath =
-    request !== null && !singleDay ? `/stocks/${ISIN}/report?from=${request.from}&to=${request.to}` : null
+    request !== null && !singleDay ? `/stocks/${isin}/report?from=${request.from}&to=${request.to}` : null
   const day = useApi<ImpactCardResponse>(dayPath)
   const period = useApi<ReportResponse>(reportPath)
   const validRange = from !== '' && to !== '' && from <= to
@@ -917,7 +944,7 @@ function AnalysisAssistant({
       >
         <div className="drawer-heading">
           <div>
-            <span className="kicker">PBB · AI ANALYSIS</span>
+            <span className="kicker">{issuer.ticker} · AI ANALYSIS</span>
             <h2>Ask about this period</h2>
           </div>
           <button className="icon-button" onClick={onClose} aria-label="Close">
@@ -1017,8 +1044,8 @@ function AnalysisAssistant({
                   ))}
                 <PdfButton
                   className="text-button"
-                  path={`/stocks/${ISIN}/report.pdf?from=${request.from}&to=${request.to}`}
-                  filename={`pbb-report-${request.from}-${request.to}.pdf`}
+                  path={`/stocks/${isin}/report.pdf?from=${request.from}&to=${request.to}`}
+                  filename={`${filePrefix(issuer)}-report-${request.from}-${request.to}.pdf`}
                 >
                   Export this period as PDF ↓
                 </PdfButton>
@@ -1039,6 +1066,9 @@ function AnalysisAssistant({
 function KeyFinding({ finding }: { finding: { text: string; numbers: Record<string, number | string | null> } }) {
   const n = finding.numbers
   const num = (key: string) => (typeof n[key] === 'number' ? formatNumber(n[key] as number, 1) : '–')
+  const { issuer } = useIssuer()
+  // Spread en hausse : l'effet prix vient d'un cours plus bas (pbb) ; en baisse : d'un cours plus haut
+  const widened = Number(n.own_last_bps) >= Number(n.own_first_bps)
   return (
     <section className="panel key-finding" aria-label="Key finding">
       <span className="kicker">
@@ -1046,10 +1076,11 @@ function KeyFinding({ finding }: { finding: { text: string; numbers: Record<stri
       </span>
       <p>{finding.text}</p>
       <small>
-        Peers' median {num('peers_median_first_bps')} → {num('peers_median_last_bps')} bps
+        {issuer.peerBasis === 'index' ? 'Index peers' : 'Peers'}' median {num('peers_median_first_bps')} →{' '}
+        {num('peers_median_last_bps')} bps
         {n.index ? ` · ${n.index} median ${num('index_median_first_bps')} → ${num('index_median_last_bps')} bps` : ''}
         {typeof n.price_effect_pct === 'number'
-          ? ` · ${num('price_effect_pct')}% of the change from the lower share price, ${num('liquidity_effect_pct')}% from liquidity`
+          ? ` · ${num('price_effect_pct')}% of the change from the ${widened ? 'lower' : 'higher'} share price, ${num('liquidity_effect_pct')}% from liquidity`
           : ''}
       </small>
     </section>
@@ -1075,9 +1106,11 @@ function DashboardPage({
   openImpact: (path: string) => void
   openDay: (date: string) => void
 }) {
+  const { issuer } = useIssuer()
+  const isin = issuer.isin
   const [period, setPeriod] = useState<Period>('3M')
-  const dashboard = useApi<DashboardResponse>(DASHBOARD_PATH)
-  const events = useApi<EventsResponse>(`/stocks/${ISIN}/events`)
+  const dashboard = useApi<DashboardResponse>(dashboardPath(isin))
+  const events = useApi<EventsResponse>(`/stocks/${isin}/events`)
   const fullSeries = useMemo(
     () => (dashboard.data ? toStockPoints(dashboard.data.series) : []),
     [dashboard.data],
@@ -1092,7 +1125,7 @@ function DashboardPage({
     if (last.length === 0 || !dashboard.data) return null
     return { from: last[0].date, to: dashboard.data.as_of, label: formatDateRange(last[0].date, dashboard.data.as_of) }
   }, [dashboard.data])
-  const thresholdsInfo = useApi<ThresholdsResponse>(`/thresholds?isin=${ISIN}`)
+  const thresholdsInfo = useApi<ThresholdsResponse>(`/thresholds?isin=${isin}`)
   const recentDays = useMemo(() => groupByTradingDay(events.data?.events ?? []).slice(0, 5), [events.data])
 
   const latest = points[points.length - 1]
@@ -1111,7 +1144,7 @@ function DashboardPage({
         <div className="workspace-container">
           <div className="page-heading">
             <div>
-              <p className="eyebrow light">PBB · {ISIN}</p>
+              <p className="eyebrow light">{issuer.ticker} · {isin}</p>
               <h1>Market dashboard</h1>
               <p>Share performance, liquidity and trading context in one view.</p>
             </div>
@@ -1125,8 +1158,8 @@ function DashboardPage({
               {weekly && (
                 <PdfButton
                   className="outline-button weekly-snapshot"
-                  path={`/stocks/${ISIN}/report.pdf?from=${weekly.from}&to=${weekly.to}`}
-                  filename={`pbb-weekly-ir-snapshot-${weekly.from}-${weekly.to}.pdf`}
+                  path={`/stocks/${isin}/report.pdf?from=${weekly.from}&to=${weekly.to}`}
+                  filename={`${filePrefix(issuer)}-weekly-ir-snapshot-${weekly.from}-${weekly.to}.pdf`}
                 >
                   Weekly IR snapshot ({weekly.label}) <span>↓</span>
                 </PdfButton>
@@ -1138,12 +1171,20 @@ function DashboardPage({
 
           <div className="dashboard-toolbar">
             <div className="stock-identity">
-              <BrandLogo logo={LOGOS.pbb} className="stock-logo" />
+              <IssuerLogo issuer={issuer} className="stock-logo" />
               <div>
-                <strong>{dashboard.data?.stock.name ?? COMPANY}</strong>
-                <small>Xetra · {ISIN} · {dashboard.data?.stock.index ?? 'SDAX'}</small>
+                <strong>{dashboard.data?.stock.name ?? issuer.name}</strong>
+                <small>Xetra · {isin} · {dashboard.data?.stock.index ?? issuer.index}</small>
                 {dashboard.data && (
                   <small className="data-as-of">Data as of {formatDate(dashboard.data.as_of)}</small>
+                )}
+                {dashboard.data?.peer_basis === 'index' && (
+                  <small
+                    className="peer-basis-badge"
+                    title={`Peers are the other ${dashboard.data.stock.index} members on each day (${dashboard.data.n_peers ?? '–'} at the end of the period).`}
+                  >
+                    Peers: same index
+                  </small>
                 )}
                 {thresholdsInfo.data?.custom && (
                   <button className="custom-badge" onClick={() => navigate('alerts')} title="Alerts use thresholds set by the IR team">
@@ -1168,9 +1209,17 @@ function DashboardPage({
             </div>
           </div>
 
-          <WhatToExpect isin={ISIN} onOpenFull={() => navigate('preview')} />
+          <WhatToExpect isin={isin} onOpenFull={() => navigate('preview')} />
 
-          <LoadState loading={dashboard.loading} error={dashboard.error} />
+          {issuer.coverage && !issuer.coverage.dashboard ? (
+            <div className="notice-box">
+              Not enough Xetra data for {issuer.name}: {issuer.coverage.sessions} session
+              {issuer.coverage.sessions === 1 ? '' : 's'} with a measured spread, at least 21 are needed (20-day
+              baseline + the measured day). Choose another issuer in the header.
+            </div>
+          ) : (
+            <LoadState loading={dashboard.loading} error={dashboard.error} />
+          )}
 
           <div className="dashboard-grid">
             <Reveal>
@@ -1281,7 +1330,7 @@ function DashboardPage({
                 </div>
                 <p className="hitl-line">{HITL_LINE}</p>
                 {dashboard.data && (
-                  <AnomalyList anomalies={dashboard.data.anomalies} onOpen={openImpact} isin={ISIN} />
+                  <AnomalyList anomalies={dashboard.data.anomalies} onOpen={openImpact} isin={isin} />
                 )}
               </section>
             </Reveal>
@@ -1298,6 +1347,7 @@ function DashboardPage({
                   </button>
                 </div>
                 <LoadState loading={events.loading} error={events.error} />
+                {events.data && recentDays.length === 0 && <p className="empty-state">{NO_ANNOUNCEMENTS}</p>}
                 {recentDays.map((day) => (
                   <button
                     className="recent-event"
@@ -1344,7 +1394,9 @@ function EventsPage({
   logout: () => void
   openImpact: (path: string) => void
 }) {
-  const { data, error, loading } = useApi<EventsResponse>(`/stocks/${ISIN}/events`)
+  const { issuer } = useIssuer()
+  const isin = issuer.isin
+  const { data, error, loading } = useApi<EventsResponse>(`/stocks/${isin}/events`)
   const events = data?.events ?? []
   const days = useMemo(() => groupByTradingDay(data?.events ?? []), [data])
 
@@ -1354,7 +1406,7 @@ function EventsPage({
       <main className="workspace-page">
         <div className="workspace-container narrow">
           <PageHeading
-            eyebrow="PBB · COMPANY DISCLOSURES"
+            eyebrow={`${issuer.ticker} · COMPANY DISCLOSURES`}
             title="Events timeline"
             description="Company announcements and related trading metrics."
           />
@@ -1363,8 +1415,14 @@ function EventsPage({
           {data && (
             <div className="notice-box">
               <strong className="data-as-of">Data as of {formatDate(data.as_of)} · </strong>
-              {events.length} announcements from public sources (pbb IR, EQS). Values that are
-              not available appear as “–”.
+              {events.length > 0 ? (
+                <>
+                  {events.length} announcements from public sources ({issuer.isDefault ? 'pbb IR' : 'company IR'}, EQS).
+                  Values that are not available appear as “–”.
+                </>
+              ) : (
+                <>{NO_ANNOUNCEMENTS}</>
+              )}
             </div>
           )}
 
@@ -1483,16 +1541,18 @@ function ImpactPage({
   logout: () => void
   impactPath: string
 }) {
-  const { data: card, error, loading } = useApi<ImpactCardResponse>(impactPath)
+  const { issuer } = useIssuer()
+  const isin = issuer.isin
+  const { data: card, error, loading } = useApi<ImpactCardResponse>(impactPath || null)
   // Badges d'anomalie et alertes du jour : liste `anomalies` du dashboard (l'impact card ne la contient pas)
-  const dashboard = useApi<DashboardResponse>(DASHBOARD_PATH)
+  const dashboard = useApi<DashboardResponse>(dashboardPath(isin))
   const day = card?.window.find((w) => w.offset === 0)?.date ?? card?.event?.trading_day
   const dayAnomalies = useMemo(
     () => (dashboard.data?.anomalies ?? []).filter((anomaly) => anomaly.date === day),
     [dashboard.data, day],
   )
   // Toutes les annonces du même jour de trading (une seule carte : les chiffres sont ceux de la séance)
-  const events = useApi<EventsResponse>(`/stocks/${ISIN}/events`)
+  const events = useApi<EventsResponse>(`/stocks/${isin}/events`)
   const sameDayEvents = useMemo(
     () => (events.data?.events ?? []).filter((event) => event.trading_day === day),
     [events.data, day],
@@ -1515,6 +1575,11 @@ function ImpactPage({
           />
 
           <LoadState loading={loading} error={error} />
+          {!impactPath && (
+            <div className="notice-box empty-state">
+              Choose a day on the dashboard chart, in the trading signals or in the auction share trend to open its analysis.
+            </div>
+          )}
           {card && <DayDetail card={card} dayAnomalies={dayAnomalies} sameDayEvents={sameDayEvents} />}
         </div>
       </main>
@@ -1534,8 +1599,10 @@ function IndicatorsPage({
   logout: () => void
   selectedPoint: StockPoint | null
 }) {
+  const { issuer } = useIssuer()
+  const isin = issuer.isin
   const [activeIndicator, setActiveIndicator] = useState<(typeof indicators)[number] | null>(null)
-  const { data } = useApi<DashboardResponse>(DASHBOARD_PATH)
+  const { data } = useApi<DashboardResponse>(dashboardPath(isin))
   const points = useMemo(() => (data ? toStockPoints(data.series) : []), [data])
   const point = selectedPoint ?? points[points.length - 1] ?? null
   // Rendement : depuis le début de la série jusqu'au point affiché
@@ -1561,7 +1628,7 @@ function IndicatorsPage({
       <main className="workspace-page">
         <div className="workspace-container narrow">
           <PageHeading
-            eyebrow="PBB · SELECTED DATA POINT"
+            eyebrow={`${issuer.ticker} · SELECTED DATA POINT`}
             title="Indicator details"
             description={
               selectedPoint
@@ -1678,9 +1745,11 @@ function AlertsPage({
   logout: () => void
   openImpact: (path: string) => void
 }) {
+  const { issuer } = useIssuer()
+  const isin = issuer.isin
   // Révision : après un Save / Reset, on relit le dashboard pour que la liste des alertes suive les nouveaux seuils
   const [revision, setRevision] = useState(0)
-  const { data: dashboard } = useApi<DashboardResponse>(revision ? `${DASHBOARD_PATH}?rev=${revision}` : DASHBOARD_PATH)
+  const { data: dashboard } = useApi<DashboardResponse>(revision ? `${dashboardPath(isin)}?rev=${revision}` : dashboardPath(isin))
 
   return (
     <>
@@ -1701,7 +1770,7 @@ function AlertsPage({
               </div>
             </div>
             <p className="hitl-line">{HITL_LINE}</p>
-            {dashboard && <AnomalyList anomalies={dashboard.anomalies} onOpen={openImpact} isin={ISIN} />}
+            {dashboard && <AnomalyList anomalies={dashboard.anomalies} onOpen={openImpact} isin={isin} />}
           </section>
 
           <div className="notice-box rules-note">
@@ -1710,7 +1779,7 @@ function AlertsPage({
             is high at 2× the threshold (anomalies: z-score one point above the threshold).
           </div>
 
-          <ThresholdsEditor isin={ISIN} onSaved={() => setRevision((value) => value + 1)} />
+          <ThresholdsEditor isin={isin} onSaved={() => setRevision((value) => value + 1)} />
 
           <div className="rules-grid single">
             <RuleTable kicker="FIXED RULES" title="Not adjustable in this tool" rules={fixedRules} />
@@ -1865,7 +1934,9 @@ function ReportPage({
   logout: () => void
   openImpact: (path: string) => void
 }) {
-  const { data: report, error, loading } = useApi<ReportResponse>(`/stocks/${ISIN}/report`)
+  const { issuer } = useIssuer()
+  const isin = issuer.isin
+  const { data: report, error, loading } = useApi<ReportResponse>(`/stocks/${isin}/report`)
   const items = report?.sections.flatMap((section) => section.items ?? []) ?? []
 
   function exportCsv() {
@@ -1884,7 +1955,7 @@ function ReportPage({
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'pbb-ir-snapshot-events.csv'
+    link.download = `${filePrefix(issuer)}-ir-snapshot-events.csv`
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -1897,7 +1968,7 @@ function ReportPage({
           <PageHeading
             eyebrow="IR SNAPSHOT"
             title="Trading report"
-            description={`Concise historical summary for ${COMPANY}.`}
+            description={`Concise historical summary for ${issuer.name}.`}
           />
 
           <LoadState loading={loading} error={error} />
@@ -1905,7 +1976,7 @@ function ReportPage({
           {report && (
             <section className="panel report-panel">
               <div className="report-cover">
-                <span className="company-logo">pbb</span>
+                <span className={`company-logo${issuer.isDefault ? '' : ' is-ticker'}`}>{issuer.isDefault ? 'pbb' : issuer.ticker}</span>
                 <div>
                   <span className="kicker">ISSUER MARKET REPORT</span>
                   <h2>{report.stock.name}</h2>
@@ -1921,7 +1992,7 @@ function ReportPage({
                   points={report.ai_points}
                   title={null}
                   className="report-points"
-                  review={{ isin: ISIN, id: report.ai_summary_id, decision: report.ai_summary_decision }}
+                  review={{ isin, id: report.ai_summary_id, decision: report.ai_summary_decision }}
                 />
               </div>
               {report.sections.map((section) => (
@@ -1952,7 +2023,7 @@ function ReportPage({
               ))}
               <div className="report-disclaimer">{report.disclaimer}</div>
               <div className="report-actions">
-                <PdfButton path={report.export.pdf_url} filename="pbb-ir-snapshot.pdf">
+                <PdfButton path={report.export.pdf_url} filename={`${filePrefix(issuer)}-ir-snapshot.pdf`}>
                   Export PDF ↓
                 </PdfButton>
                 <button className="outline-button" onClick={exportCsv}>
@@ -1990,9 +2061,11 @@ function PreviewPage({
   loggedIn: boolean
   logout: () => void
 }) {
+  const { issuer } = useIssuer()
+  const isin = issuer.isin
   const [eventType, setEventType] = useState('quarterly_results')
   const { data: preview, error, loading } = useApi<EventPreviewResponse>(
-    `/stocks/${ISIN}/event-preview?type=${eventType}`,
+    `/stocks/${isin}/event-preview?type=${eventType}`,
   )
   const history = preview?.own_history
   const sessions = (value: number | null) => {
@@ -2024,8 +2097,9 @@ function PreviewPage({
           </div>
 
           <LoadState loading={loading} error={error} />
+          {preview?.events_note && <div className="notice-box empty-state">{NO_ANNOUNCEMENTS}</div>}
 
-          {preview && history && (
+          {preview && history && !preview.events_note && (
             <section className="panel preview-panel">
               <div className="panel-title">
                 <div>
@@ -2063,7 +2137,7 @@ function PreviewPage({
               <AiPoints
                 points={preview.ai_points}
                 summary={preview.ai_summary}
-                review={{ isin: ISIN, id: preview.ai_summary_id, decision: preview.ai_summary_decision }}
+                review={{ isin, id: preview.ai_summary_id, decision: preview.ai_summary_decision }}
               />
 
               {preview.attention_points.length > 0 && (
@@ -2103,9 +2177,14 @@ function AssistantPage({
   openDay: (date: string) => void
   openImpact: (path: string) => void
 }) {
+  const { issuer } = useIssuer()
+  const isin = issuer.isin
   const [draft, setDraft] = useState('')
   const [pending, setPending] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
+  // pbb : les questions de la démo ; autres émetteurs : construites par l'API à partir de leurs données
+  const suggestions = useApi<SuggestionsResponse>(issuer.isDefault ? null : `/assistant/suggestions?isin=${isin}`)
+  const suggestedQuestions = issuer.isDefault ? SUGGESTED_QUESTIONS : suggestions.data?.questions ?? []
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
@@ -2115,13 +2194,13 @@ function AssistantPage({
     const text = question.trim()
     if (!text || pending) return
     // Historique envoyé : les échanges réels (sans le message d'accueil) ; l'API n'en garde que les 6 derniers
-    const history = [...messages.filter((m) => m !== WELCOME), { role: 'user' as const, text }]
+    const history = [...messages.filter((m) => !m.welcome), { role: 'user' as const, text }]
     setMessages((current) => [...current, { role: 'user', text }])
     setDraft('')
     setPending(true)
     try {
       const reply = await apiPost<ChatResponse>('/assistant/chat', {
-        isin: ISIN,
+        isin,
         messages: history.map((m) => ({ role: m.role, content: m.text })),
       })
       setMessages((current) => [...current, { role: 'assistant', text: reply.answer, links: reply.links }])
@@ -2157,7 +2236,7 @@ function AssistantPage({
         <section className="panel assistant-card">
           <div className="panel-title">
             <div>
-              <span className="kicker">PBB · IR</span>
+              <span className="kicker">{issuer.ticker} · IR</span>
               <h1>AI Assistant</h1>
               <p>Ask about trading activity, events, peers or a specific day.</p>
             </div>
@@ -2165,7 +2244,7 @@ function AssistantPage({
           <div className="chat-messages" aria-live="polite">
             {messages.map((message, index) => (
               <div className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
-                {message.text}
+                {message.welcome ? welcomeText(issuer.short) : message.text}
                 {message.links && message.links.length > 0 && (
                   <div className="chat-links">
                     {message.links.map((link) => (
@@ -2184,7 +2263,7 @@ function AssistantPage({
             ))}
             {onlyWelcome && (
               <div className="chat-suggestions">
-                {SUGGESTED_QUESTIONS.map((question) => (
+                {suggestedQuestions.map((question) => (
                   <button key={question} onClick={() => void ask(question)} disabled={pending}>
                     {question}
                   </button>
@@ -2217,12 +2296,12 @@ function AssistantPage({
 type AuthState = 'checking' | 'in' | 'out'
 
 // Libellé lisible d'un élément du journal (anomalie / alerte, résumé IA, seuil)
-function describeItem(entry: DecisionLog['decisions'][number]) {
+function describeItem(entry: DecisionLog['decisions'][number], isin: string) {
   if (entry.item_type === 'threshold') return entry.note ?? entry.item_id
   if (entry.item_type === 'ai_summary') {
     const [kind, ...rest] = entry.item_id.split(':')
     const label = kind === 'impact' ? 'impact card' : kind === 'preview' ? 'What to expect' : kind === 'report' ? 'IR snapshot' : kind
-    return `AI summary · ${label} ${rest.filter((part) => part !== ISIN).join(' ')}`.trim()
+    return `AI summary · ${label} ${rest.filter((part) => part !== isin).join(' ')}`.trim()
   }
   const [date, type] = entry.item_id.split('|')
   return `${anomalyLabels[type] ?? type} · ${date ? formatDate(date) : ''}`
@@ -2237,7 +2316,9 @@ function DecisionLogPage({
   loggedIn: boolean
   logout: () => void
 }) {
-  const { data, error, loading } = useApi<DecisionLog>(`/decisions?isin=${ISIN}`)
+  const { issuer } = useIssuer()
+  const isin = issuer.isin
+  const { data, error, loading } = useApi<DecisionLog>(`/decisions?isin=${isin}`)
   const entries = data?.decisions ?? []
 
   return (
@@ -2276,7 +2357,7 @@ function DecisionLogPage({
                     {entries.map((entry) => (
                       <tr key={entry.id}>
                         <td>{entry.decided_at.slice(0, 16).replace('T', ' ')}</td>
-                        <td>{describeItem(entry)}</td>
+                        <td>{describeItem(entry, isin)}</td>
                         <td>
                           {entry.decision === 'threshold_changed' ? (
                             <span className="decision-badge threshold">Threshold changed</span>
@@ -2319,8 +2400,32 @@ function App() {
   const [page, setPage] = useState<Page>('home')
   const [selectedPoint, setSelectedPoint] = useState<StockPoint | null>(null)
   const [assistantPoint, setAssistantPoint] = useState<StockPoint | null>(null)
-  const [impactPath, setImpactPath] = useState(DEFAULT_IMPACT)
+  // Émetteur : ?isin= dans l'URL (lien partageable), pbb par défaut
+  const [urlIsin, setIsinState] = useState(isinFromUrl)
+  const stocksApi = useApi<StocksResponse>(loggedIn ? '/stocks' : null)
+  const stocks = useMemo(() => stocksApi.data?.stocks ?? [], [stocksApi.data])
+  // ISIN de l'URL absent de l'univers (faute de frappe, ancien lien) : on affiche pbb
+  const isin = stocks.length > 0 && !stocks.some((stock) => stock.isin === urlIsin) ? DEFAULT_ISIN : urlIsin
+  const issuer = useMemo(() => issuerFrom(isin, stocks), [isin, stocks])
+  const [impactPath, setImpactPath] = useState(urlIsin === DEFAULT_ISIN ? DEFAULT_IMPACT : '')
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([WELCOME]) // historique de la session
+
+  const setIsin = useCallback((next: string) => {
+    setIsinState(next)
+    writeIsinToUrl(next)
+    // Rien de l'émetteur précédent : point sélectionné, impact card, historique du chat
+    setSelectedPoint(null)
+    setAssistantPoint(null)
+    setImpactPath(next === DEFAULT_ISIN ? DEFAULT_IMPACT : '')
+    setChatMessages([WELCOME])
+  }, [])
+
+  // L'URL suit l'émetteur réellement affiché (ISIN inconnu corrigé en pbb)
+  useEffect(() => {
+    if (isin !== urlIsin) writeIsinToUrl(isin)
+  }, [isin, urlIsin])
+
+  const issuerState = useMemo(() => ({ issuer, stocks, setIsin }), [issuer, stocks, setIsin])
 
   const navigate = useCallback(
     (target: Page) => {
@@ -2390,13 +2495,13 @@ function App() {
     [navigate],
   )
 
-  const eventsList = useApi<EventsResponse>(loggedIn ? `/stocks/${ISIN}/events` : null)
+  const eventsList = useApi<EventsResponse>(loggedIn ? `/stocks/${isin}/events` : null)
   const openDay = useCallback(
     (date: string) => {
       const event = eventsList.data?.events.find((item) => item.trading_day === date)
-      openImpact(event ? `/events/${event.event_id}/impact-card` : `/days/${ISIN}/${date}/impact-card`)
+      openImpact(event ? `/events/${event.event_id}/impact-card` : `/days/${isin}/${date}/impact-card`)
     },
-    [eventsList.data, openImpact],
+    [eventsList.data, openImpact, isin],
   )
 
   const selectChartPoint = useCallback((point: StockPoint) => {
@@ -2462,6 +2567,7 @@ function App() {
     content = <HomePage navigate={navigate} loggedIn={loggedIn} />
   }
   return (
+    <IssuerContext.Provider value={issuerState}>
     <div className="app-shell">
       {content}
       {assistantPoint && page === 'dashboard' && (
@@ -2473,6 +2579,7 @@ function App() {
         />
       )}
     </div>
+    </IssuerContext.Provider>
   )
 }
 

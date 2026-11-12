@@ -19,6 +19,8 @@ export const metricHelp = {
   sessionsToNormal:
     'Trading sessions until the spread is back within 10% of its 20-day baseline (0 = it stayed within that range on the day); volume is not part of this measure.',
   confidence: 'Based on the number of past comparable events: low < 3, medium 3–5, high > 5.',
+  peersIndex:
+    'Median of the other members of the same index (DAX, MDAX or SDAX) on that day: when the issuer changes index, its peers change on that day.',
 } as const
 
 export type MetricHelpKey = keyof typeof metricHelp

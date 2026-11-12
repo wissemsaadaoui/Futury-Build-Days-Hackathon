@@ -35,6 +35,7 @@ import { DecisionControls } from './DecisionControls.tsx'
 import { HelpTip } from './HelpTip.tsx'
 import { PdfButton } from './PdfButton.tsx'
 import { tone } from '../utils/tone.ts'
+import { useIssuer } from '../issuer/context.ts'
 
 // Anomalies statistiques du jour (badges en haut) ; les autres types sont des alertes d'exécution (en bas).
 const SIGNAL_TYPES = new Set(['volume_spike', 'spread_widening', 'price_move'])
@@ -101,6 +102,7 @@ function Rows({ rows }: { rows: Row[] }) {
 
 // Titre vs médiane des peers : deux barres par ligne, à la même échelle
 function PeerBars({ rows }: { rows: { label: string; own: Num | undefined; peers: Num | undefined; format: (v: Num | undefined) => string }[] }) {
+  const { issuer } = useIssuer()
   const shown = rows.filter((row) => !allMissing(row.own, row.peers))
   return (
     <div className="peer-bars">
@@ -111,7 +113,7 @@ function PeerBars({ rows }: { rows: { label: string; own: Num | undefined; peers
           <div className="peer-bar-row" key={row.label}>
             <span className="peer-bar-label">{row.label}</span>
             <div className="peer-bar-line">
-              <small>pbb</small>
+              <small>{issuer.isDefault ? 'pbb' : issuer.ticker}</small>
               <div className="peer-bar-track"><i className="own" style={{ width: width(row.own) }} /></div>
               <strong>{row.format(row.own)}</strong>
             </div>
@@ -203,6 +205,7 @@ export function DayDetail({
   dayAnomalies: Anomaly[]
   sameDayEvents?: CorporateEvent[]
 }) {
+  const { issuer } = useIssuer()
   // Plusieurs annonces le même jour : une seule carte, un seul jeu de chiffres, toutes les annonces listées
   const dayEvents = [...sameDayEvents].sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'))
   const several = dayEvents.length > 1
@@ -310,8 +313,8 @@ export function DayDetail({
 
         <Section
           kicker="4 · PEERS"
-          title="pbb vs peer median"
-          help="peers"
+          title={`${issuer.short} vs peer median`}
+          help={issuer.peerBasis === 'index' ? 'peersIndex' : 'peers'}
           empty={allMissing(peers.peer_avg_price_change_pct, peers.peer_avg_volume_ratio, peers.excess_return_pct)}
         >
           <PeerBars
