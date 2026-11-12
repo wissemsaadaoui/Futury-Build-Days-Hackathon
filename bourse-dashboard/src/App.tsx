@@ -28,6 +28,7 @@ import type {
   ImpactCardResponse,
   PreviewStat,
   ReportResponse,
+  ThresholdsResponse,
 } from './api/types.ts'
 import { clearApiCache, useApi } from './api/useApi.ts'
 import { AnomalyList } from './components/AnomalyList.tsx'
@@ -39,7 +40,8 @@ import { PdfButton } from './components/PdfButton.tsx'
 import { WhatToExpect } from './components/WhatToExpect.tsx'
 import { tone, toneForUnit } from './utils/tone.ts'
 import { announcementsLabel, groupByTradingDay } from './utils/events.ts'
-import { ADTV_SESSIONS, BASELINE_SESSIONS, alertRules, anomalyRules, type DetectionRule } from './content/detectionRules.ts'
+import { ADTV_SESSIONS, BASELINE_SESSIONS, fixedRules, type DetectionRule } from './content/detectionRules.ts'
+import { ThresholdsEditor } from './components/ThresholdsEditor.tsx'
 import {
   DISCLAIMER,
   eventLabels,
@@ -1057,6 +1059,7 @@ function DashboardPage({
     if (last.length === 0 || !dashboard.data) return null
     return { from: last[0].date, to: dashboard.data.as_of, label: formatDateRange(last[0].date, dashboard.data.as_of) }
   }, [dashboard.data])
+  const thresholdsInfo = useApi<ThresholdsResponse>(`/thresholds?isin=${ISIN}`)
   const recentDays = useMemo(() => groupByTradingDay(events.data?.events ?? []).slice(0, 5), [events.data])
 
   const latest = points[points.length - 1]
@@ -1106,6 +1109,11 @@ function DashboardPage({
                 <small>Xetra · {ISIN} · {dashboard.data?.stock.index ?? 'SDAX'}</small>
                 {dashboard.data && (
                   <small className="data-as-of">Data as of {formatDate(dashboard.data.as_of)}</small>
+                )}
+                {thresholdsInfo.data?.custom && (
+                  <button className="custom-badge" onClick={() => navigate('alerts')} title="Alerts use thresholds set by the IR team">
+                    Custom thresholds ↗
+                  </button>
                 )}
               </div>
             </div>
@@ -1628,7 +1636,9 @@ function AlertsPage({
   logout: () => void
   openImpact: (path: string) => void
 }) {
-  const { data: dashboard } = useApi<DashboardResponse>(DASHBOARD_PATH)
+  // Révision : après un Save / Reset, on relit le dashboard pour que la liste des alertes suive les nouveaux seuils
+  const [revision, setRevision] = useState(0)
+  const { data: dashboard } = useApi<DashboardResponse>(revision ? `${DASHBOARD_PATH}?rev=${revision}` : DASHBOARD_PATH)
 
   return (
     <>
@@ -1638,7 +1648,7 @@ function AlertsPage({
           <PageHeading
             eyebrow="DETECTION RULES"
             title="Thresholds & alerts"
-            description="Alerts detected in the Xetra data, and the exact rules used to detect them."
+            description="Alerts detected in the Xetra data, and the thresholds used to detect them. The IR team can adjust them."
           />
 
           <section className="panel lower-panel">
@@ -1653,13 +1663,14 @@ function AlertsPage({
 
           <div className="notice-box rules-note">
             Baseline: the previous {BASELINE_SESSIONS} trading days, excluding the measured day. ADTV: average daily
-            turnover of the previous {ADTV_SESSIONS} trading days. Alerts describe executions, not who traded. These
-            rules are fixed in the analytics and are shown here for transparency.
+            turnover of the previous {ADTV_SESSIONS} trading days. Alerts describe executions, not who traded. Severity
+            is high at 2× the threshold (anomalies: z-score one point above the threshold).
           </div>
 
-          <div className="rules-grid">
-            <RuleTable kicker="STATISTICAL ANOMALIES" title="Volume and spread" rules={anomalyRules} />
-            <RuleTable kicker="EXECUTION ALERTS" title="Intraday executions, flows and auctions" rules={alertRules} />
+          <ThresholdsEditor isin={ISIN} onSaved={() => setRevision((value) => value + 1)} />
+
+          <div className="rules-grid single">
+            <RuleTable kicker="FIXED RULES" title="Not adjustable in this tool" rules={fixedRules} />
           </div>
         </div>
       </main>

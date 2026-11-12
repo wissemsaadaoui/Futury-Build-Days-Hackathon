@@ -200,3 +200,25 @@ export type EventPreviewResponse = {
 export type ChatLink = { label: string; type: 'day' | 'event' | 'preview' | 'compare'; ref: string }
 
 export type ChatResponse = { answer: string; links: ChatLink[]; as_of: string }
+
+// /thresholds (point 16) – seuils d'alerte de l'équipe IR
+export type ThresholdSpec = {
+  label: string
+  unit: string
+  group: 'anomaly' | 'alert'
+  min: number
+  max: number
+  step: number
+  integer: boolean
+  default: number
+}
+
+export type ThresholdsResponse = {
+  isin: string
+  values: Record<string, number>
+  defaults: Record<string, number>
+  bounds: Record<string, ThresholdSpec>
+  custom: boolean
+}
+
+export type ThresholdsPreview = { isin: string; alerts_with_values: number; alerts_current: number }

@@ -3991,3 +3991,110 @@ button.report-event {
   color: var(--navy);
   font-size: 13px;
 }
+
+/* ---------- Seuils modifiables (point 16) ---------- */
+.threshold-editor {
+  margin-bottom: 14px;
+  padding: 18px;
+}
+
+.threshold-groups {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.threshold-group h3 {
+  margin: 4px 0 8px;
+  color: #24334b;
+  font-family: 'Manrope', sans-serif;
+  font-size: 16px;
+}
+
+.threshold-field {
+  padding: 9px 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+  border-bottom: 1px solid #edf0f3;
+  color: #34425a;
+  font-size: 15px;
+}
+
+.threshold-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.threshold-input input {
+  width: 92px;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid #d6dde7;
+  border-radius: 6px;
+  font-size: 15px;
+  text-align: right;
+}
+
+.threshold-input small,
+.threshold-hint {
+  color: #8792a2;
+  font-size: 13px;
+}
+
+.threshold-hint {
+  grid-column: 1 / -1;
+}
+
+.threshold-field.invalid input {
+  border-color: #d64545;
+}
+
+.threshold-field.invalid .threshold-hint {
+  color: #c03b3b;
+}
+
+.threshold-preview {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border-radius: 7px;
+  background: #f4f7fb;
+  color: #4b5870;
+  font-size: 15px;
+}
+
+.threshold-preview strong {
+  color: var(--navy);
+}
+
+.threshold-message {
+  align-self: center;
+  color: #4d6c00;
+  font-size: 14px;
+}
+
+.custom-badge {
+  width: fit-content;
+  margin-top: 4px;
+  padding: 3px 9px;
+  border: 1px solid #f0c36d;
+  border-radius: 999px;
+  background: #fff7e6;
+  color: #8a5a00;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.rules-grid.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 760px) {
+  .threshold-groups {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

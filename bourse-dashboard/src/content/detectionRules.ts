@@ -1,4 +1,4 @@
-// Règles de détection RÉELLEMENT appliquées par app/analytics (lecture seule, aucune valeur réglable ici).
+// Règles de détection appliquées par app/analytics qui ne sont PAS modifiables depuis l'interface.
 // Source de vérité : app/config.py (BASELINE_DAYS, ALERT_*) et app/analytics/metrics.py (volume_anomalies,
 // spread_anomalies). À mettre à jour si ces valeurs changent côté back-end.
 export type DetectionRule = { type: string; name: string; rule: string; high: string; source: string }
@@ -6,52 +6,8 @@ export type DetectionRule = { type: string; name: string; rule: string; high: st
 export const BASELINE_SESSIONS = 20 // config.BASELINE_DAYS
 export const ADTV_SESSIONS = 30 // config.ALERT_ADTV_DAYS
 
-export const anomalyRules: DetectionRule[] = [
-  {
-    type: 'volume_spike',
-    name: 'Volume anomaly',
-    rule: 'Volume z-score above 2 versus the previous 20 trading days.',
-    high: 'z-score above 3',
-    source: 'metrics.volume_anomalies',
-  },
-  {
-    type: 'spread_widening',
-    name: 'Spread anomaly',
-    rule: 'Spread z-score above 3 and spread more than 1.2× its 20-day baseline.',
-    high: 'z-score above 4 or spread above 1.5× baseline',
-    source: 'metrics.spread_anomalies',
-  },
-]
-
-export const alertRules: DetectionRule[] = [
-  {
-    type: 'large_trade',
-    name: 'Large single execution',
-    rule: 'One execution of at least 10% of the 30-day average daily turnover (ADTV).',
-    high: 'at least 2× the threshold (20% of ADTV)',
-    source: 'config.ALERT_LARGE_TRADE_ADTV_SHARE = 0.10',
-  },
-  {
-    type: 'aggressor_sweep',
-    name: 'Aggressor sweep',
-    rule: 'At least 3 consecutive same-side aggressive executions within 1 second, together at least 10% of ADTV.',
-    high: 'at least 2× the threshold',
-    source: 'config.ALERT_SWEEP_MIN_TRADES = 3, ALERT_SWEEP_WINDOW_S = 1.0, ALERT_SWEEP_ADTV_SHARE = 0.10',
-  },
-  {
-    type: 'net_flow',
-    name: 'Unusual net flow',
-    rule: 'Net agency or proprietary flow (buying minus selling, in EUR) above 20% of ADTV on the day.',
-    high: 'at least 2× the threshold (40% of ADTV)',
-    source: 'config.ALERT_NET_FLOW_ADTV_SHARE = 0.20',
-  },
-  {
-    type: 'auction_spike',
-    name: 'Closing auction spike',
-    rule: "Closing auction share of the day's volume above 2× its 20-day baseline share.",
-    high: 'at least 2× the threshold (4× baseline)',
-    source: 'config.ALERT_AUCTION_SPIKE_RATIO = 2.0',
-  },
+// Règles fixes (non modifiables depuis l'interface). Les seuils modifiables : GET /thresholds (point 16).
+export const fixedRules: DetectionRule[] = [
   {
     type: 'price_move',
     name: 'Price move vs peers',
