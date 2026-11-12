@@ -126,6 +126,19 @@ def tool_period_summary(isin: str, start: str | None = None, end: str | None = N
         a_now, a_base = share.reindex(rng).mean(), share.reindex(base).mean()
         out["auction_share_pct"] = {"period_avg": r1(a_now * 100), "baseline_avg": r1(a_base * 100),
                                     "change_pts": r1((a_now - a_base) * 100)}
+        from app.analytics.auction_trend import trend_stats
+
+        tr = trend_stats(isin, rng)  # valeurs non arrondies -> % à 1 décimale
+        if tr["start"] and tr["peak"]:
+            p100 = lambda x: None if x is None else round(x * 100, 1)
+            out["auction_share_trend_pct"] = {
+                "definition": "share of volume executed in auctions; 20-session moving average",
+                "avg_20d_start": {"date": tr["start"]["date"], "pct": p100(tr["start"]["value"])},
+                "avg_20d_end": {"date": tr["latest"]["date"], "pct": p100(tr["latest"]["value"])},
+                "change_pts": p100(tr["change"]),
+                "peak_day": {"date": tr["peak"]["date"], "pct": p100(tr["peak"]["value"]),
+                             "closing_auction_pct": p100(tr["peak"].get("closing"))},
+            }
     signals, alerts = _anomalies(isin, rng[0], rng[-1])
     out["anomalies"] = signals[:8]
     out["execution_alerts"] = alerts[:8]
@@ -265,7 +278,8 @@ TOOLS: list[dict] = [
     {
         "name": "get_period_summary",
         "description": "Trading summary of the stock over a period vs the 20 trading days before it: volume, turnover, "
-                       "XLM spread (EUR 25,000), return, auction share of volume, anomalies and execution alerts. "
+                       "XLM spread (EUR 25,000), return, auction share of volume and its trend (20-session average at the "
+                       "start and end of the period, peak day), anomalies and execution alerts. "
                        "Dates YYYY-MM-DD within 2026-01-02..2026-10-30.",
         "input_schema": {"type": "object", "properties": {"from": {"type": "string"}, "to": {"type": "string"}},
                          "required": ["from", "to"]},

@@ -194,17 +194,25 @@ def chat_period(res: dict, latest: bool) -> str:
     parts = []
     v, pr = res.get("volume_shares"), res.get("price")
     if v and pr:
-        parts.append(f"{when}, {who} traded {fmt.shares(v['period_avg'])} a day on average, "
-                     f"{_ratio_word(v['ratio'])} its 20-day baseline, and the share price moved {pr['return_pct']:+.1f}%.")
+        vs = f", {_ratio_word(v['ratio'])} its 20-day baseline," if v.get("ratio") is not None else ""
+        parts.append(f"{when}, {who} traded {fmt.shares(v['period_avg'])} a day on average{vs} "
+                     f"and the share price moved {pr['return_pct']:+.1f}%.")
     sp = res["spread_bps_25k_eur"]
     if sp.get("period_avg") is not None:
         lead = "The" if parts else f"{when}, the"
-        parts.append(f"{lead} average spread for a {fmt.eur(25_000)} trade was {fmt.bps(sp['period_avg'])} versus "
-                     f"{fmt.bps(sp['baseline_avg'])} before"
+        before = f" versus {fmt.bps(sp['baseline_avg'])} before" if sp.get("baseline_avg") is not None else ""
+        parts.append(f"{lead} average spread for a {fmt.eur(25_000)} trade was {fmt.bps(sp['period_avg'])}{before}"
                      + (f" ({sp['change_pct']:+.1f}%)." if sp.get("change_pct") is not None else "."))
     a = res.get("auction_share_pct")
     if a and a.get("period_avg") is not None:
-        parts.append(f"Auctions accounted for {a['period_avg']:.1f}% of volume versus {a['baseline_avg']:.1f}% before.")
+        line = f"Auctions accounted for {a['period_avg']:.1f}% of volume" + (
+            f" versus {a['baseline_avg']:.1f}% before." if a.get("baseline_avg") is not None else ".")
+        tr = res.get("auction_share_trend_pct")
+        if tr and per["sessions"] > 20 and tr["avg_20d_start"]["pct"] is not None and tr["avg_20d_end"]["pct"] is not None:
+            pk = tr["peak_day"]
+            line += (f" The 20-session average auction share of volume moved from {tr['avg_20d_start']['pct']:.1f}% to "
+                     f"{tr['avg_20d_end']['pct']:.1f}%, with a peak of {pk['pct']:.1f}% on {_day(pk['date'])}.")
+        parts.append(line)
     flagged = res.get("anomalies", []) + res.get("execution_alerts", [])
     if flagged:
         top = sorted(flagged, key=lambda x: (x["severity"] != "high", x["date"]))[0]

@@ -140,6 +140,7 @@ export interface DashboardResponse {
   period: { from: ISODate; to: ISODate };
   as_of: ISODate;  // dernière date des données (ex. "2026-10-30"), indépendante de la période demandée
   key_finding: KeyFinding | null;  // v0.7 : phrase clé calculée par règles (premier vs dernier mois des données)
+  auction_trend?: AuctionTrend | null;  // v0.10 : part des enchères dans le volume (null sans Flows)
   kpis: DashboardKpis;
   series: DailyPoint[];
   peers_series: PeerPoint[];
@@ -420,6 +421,32 @@ export interface ThresholdsPreview {         // POST /thresholds/preview {isin, 
 export interface KeyFinding {
   text: string;  // ex. "pbb's cost to trade €25k rose from 54.3 to 97.4 bps (Jan–Oct), moving from below to above its peers' median."
   numbers: Record<string, number | string | null>;  // own_first_bps, own_last_bps, peers_median_*_bps, position_*, index_median_*_bps, price_effect_pct…
+}
+
+// ---------- dashboard.auction_trend (v0.10) ----------
+// Parts entre 0 et 1, 2 décimales. auction_share = volume AUCTION ÷ volume total (Flows).
+// opening / intraday / closing : trades horodatés ÷ volume du jour ; leur somme peut rester sous auction_share
+// (les Flows comptent aussi les enchères non planifiées, ex. interruptions de volatilité).
+export interface AuctionTrendPoint {
+  date: ISODate;
+  auction_share: number | null;  // null = jour censuré (< 7 exécutions) ou publié agrégé, jamais 0
+  baseline_20d: number | null;   // moyenne mobile 20 séances (jour inclus), null avant 20 valeurs
+  opening?: number | null;
+  intraday?: number | null;
+  closing?: number | null;
+}
+export interface AuctionTrendMark {
+  date: ISODate; value: number | null;
+  opening?: number | null; intraday?: number | null; closing?: number | null;  // sur `peak` uniquement
+}
+export interface AuctionTrend {
+  window: number;      // 20
+  has_parts: boolean;  // opening / intraday / closing disponibles
+  series: AuctionTrendPoint[];
+  start: AuctionTrendMark | null;   // première moyenne 20 séances de la période
+  latest: AuctionTrendMark | null;  // dernière moyenne 20 séances de la période
+  change_vs_start: number | null;   // latest − start (0.05 = +5 points)
+  peak: AuctionTrendMark | null;    // jour le plus haut de la période (valeur journalière)
 }
 
 // ---------- /decisions (v0.8, points 9-10) – « AI suggests, the IR team decides – every decision is logged. » ----------

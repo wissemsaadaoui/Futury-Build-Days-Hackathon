@@ -142,6 +142,9 @@ def build_dashboard(isin: str, start, end) -> dict:
         k["avg_daily_volume"] = r0(v_in.mean())
         k["avg_daily_turnover_eur"] = r0(t_in.mean())
         k["avg_auction_share"] = r2(share.reindex(rng).mean()) if not share.empty else None
+        from app.analytics.auction_trend import build_auction_trend
+
+        dash["auction_trend"] = build_auction_trend(isin, rng)  # None sans Flows
         closes = px["close"].reindex(rng).dropna()
         k["price_change_pct"] = r1(pct(closes.iloc[-1], closes.iloc[0])) if len(closes) > 1 else None
         own_ratio = (vol / vmean).reindex(rng).mean()

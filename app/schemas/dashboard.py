@@ -100,11 +100,39 @@ class KeyFinding(Schema):
     numbers: dict[str, Optional[float | str | int]]  # chiffres sources de la phrase (calcul par règles)
 
 
+class AuctionTrendPoint(Schema):
+    date: ISODate
+    auction_share: OptNumber  # 0–1 ; null si le jour est censuré (< 7 exécutions) ou publié agrégé
+    baseline_20d: OptNumber  # moyenne mobile 20 séances (jour inclus), null avant 20 valeurs
+    opening: OptNumber = None  # parts lues dans les trades horodatés (présentes si has_parts)
+    intraday: OptNumber = None
+    closing: OptNumber = None
+
+
+class AuctionTrendMark(Schema):
+    date: ISODate
+    value: OptNumber
+    opening: OptNumber = None  # sur `peak` uniquement
+    intraday: OptNumber = None
+    closing: OptNumber = None
+
+
+class AuctionTrend(Schema):
+    window: int  # 20
+    has_parts: bool  # True si opening / intraday / closing sont disponibles (trades horodatés)
+    series: list[AuctionTrendPoint]
+    start: Optional[AuctionTrendMark] = None  # première moyenne 20 séances de la période
+    latest: Optional[AuctionTrendMark] = None  # dernière moyenne 20 séances de la période
+    change_vs_start: OptNumber = None  # latest − start (0.05 = +5 points)
+    peak: Optional[AuctionTrendMark] = None  # jour le plus haut de la période
+
+
 class DashboardResponse(DataStatusMixin, Schema):
     stock: StockRef
     period: Period
     as_of: ISODate  # v0.5 : dernière date des données (indépendante de la période demandée)
     key_finding: Optional[KeyFinding] = None  # v0.7 : phrase clé par règles (premier vs dernier mois)
+    auction_trend: Optional[AuctionTrend] = None  # v0.9 : part des enchères dans le volume, null sans Flows
     kpis: DashboardKpis
     series: list[DailyPoint]
     peers_series: list[PeerPoint]

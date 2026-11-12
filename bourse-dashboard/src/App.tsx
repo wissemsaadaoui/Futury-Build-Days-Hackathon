@@ -39,6 +39,7 @@ import { BrandLogo } from './components/BrandLogo.tsx'
 import { LOGOS } from './content/logos.ts'
 import { DayDetail } from './components/DayDetail.tsx'
 import { DecisionBadge, HITL_LINE } from './components/DecisionControls.tsx'
+import { AuctionTrendCard } from './components/AuctionTrendCard.tsx'
 import { HelpTip } from './components/HelpTip.tsx'
 import { PdfButton } from './components/PdfButton.tsx'
 import { WhatToExpect } from './components/WhatToExpect.tsx'
@@ -1259,6 +1260,12 @@ function DashboardPage({
               </section>
             </Reveal>
           </div>
+
+          {dashboard.data?.auction_trend && (
+            <Reveal className="auction-trend-row">
+              <AuctionTrendCard trend={dashboard.data.auction_trend} openDay={openDay} />
+            </Reveal>
+          )}
 
           <div className="dashboard-lower">
             <Reveal>

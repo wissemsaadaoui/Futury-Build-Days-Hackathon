@@ -12,6 +12,8 @@ export const metricHelp = {
   turnover: 'Value in euros traded on Xetra that day.',
   vwap: 'Volume-weighted average price of the day: turnover ÷ number of shares traded.',
   auctionShare: 'Share of volume executed in the opening, intraday and closing auctions.',
+  auctionTrend:
+    'Share of volume executed in auctions. The bold line is the average of the last 20 trading sessions; days without published flows are left blank.',
   peers:
     'Median of comparable listed financials with data that day: GRENKE, Hypoport, MLP, ProCredit (data from 14 Oct 2026), W&W (data until 5 Oct 2026) and flatexDEGIRO.',
   sessionsToNormal:
