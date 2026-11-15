@@ -1,7 +1,7 @@
 // Développement : '/api' (proxy Vite, voir vite.config.ts).
-// Production (VPS) : '' via .env.production -> même domaine que l'API, servie par Caddy.
+// Production : '' via .env.production -> même domaine que l'API (reverse proxy).
 // Accès : login applicatif (POST /auth/login -> token), envoyé en « Authorization: Bearer » et vérifié par l'API
-// sur chaque route. Marche aussi d'un front local (localhost:5173/5174) vers l'API du VPS : pas de cookie.
+// sur chaque route. Marche aussi d'un front local (localhost:5173/5174) vers une API déployée : pas de cookie.
 export const API_BASE_URL = import.meta.env.VITE_API_URL ?? '/api';
 
 // Liens renvoyés par l'API (export.pdf_url, detail_url…) : chemins relatifs à préfixer.
