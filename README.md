@@ -16,6 +16,7 @@ Built in 2026 at **Futury Build Days** for the **Deutsche Börse challenge**. Th
 | Alfred Mushagalusa Munganga ([@alfredlog](https://github.com/alfredlog)) | Analytics & AI assistant |
 | Wissem Saadaoui ([@h4ngm4n](https://github.com/h4ngm4n)) | Back-end |
 | Yassine Choukairy ([@YassineChoukairy](https://github.com/YassineChoukairy)) | Front-end |
+| Rayen Boukari ([@rayen2021](https://github.com/rayen2021)) | Front-end |
 
 ## Principles
 
