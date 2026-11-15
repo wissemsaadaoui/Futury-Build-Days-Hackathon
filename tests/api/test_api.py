@@ -24,7 +24,7 @@ needs_data = pytest.mark.skipif(etl.load_xlm().empty, reason="data/raw/spreads a
 
 
 def _strict_json(text: str):
-    """json.loads qui échoue sur NaN / Infinity (interdits par CLAUDE.md)."""
+    """json.loads qui échoue sur NaN / Infinity."""
 
     def reject(c: str):
         raise ValueError(f"non-JSON constant {c}")
@@ -288,7 +288,7 @@ def test_report_alerts_section_in_json_and_pdf() -> None:
     assert re.search(rb"/Count (\d+)", r.content).group(1) == b"1"
 
 
-# ---------- T18 : JSON propre sur toutes les routes (pas de NaN/Infinity, arrondis CLAUDE.md) ----------
+# ---------- T18 : JSON propre sur toutes les routes (pas de NaN/Infinity, arrondis du contrat) ----------
 # 1 décimale : bps et % ; 2 décimales : prix et ratios. Exception : MACD (écart de prix d'une action à ~3 € :
 # ~0,003 ; arrondi à 2 décimales, la courbe serait plate). Le mock d'origine a déjà 3 décimales.
 _DECIMALS_EXCEPTIONS = {"macd": 3, "macd_signal": 3, "macd_hist": 3}
