@@ -38,7 +38,6 @@ import { AnomalyList } from './components/AnomalyList.tsx'
 import { CountUp } from './components/CountUp.tsx'
 import { AiPoints } from './components/AiPoints.tsx'
 import { BrandLogo } from './components/BrandLogo.tsx'
-import { LOGOS } from './content/logos.ts'
 import { IssuerLogo } from './components/IssuerLogo.tsx'
 import { IssuerPicker } from './components/IssuerPicker.tsx'
 import {
@@ -315,7 +314,7 @@ function Header({
 
         <button className="brand" onClick={() => navigate('home')} aria-label="Issuer Intelligence Hub – home">
           <span className="brand-logos">
-            <BrandLogo logo={LOGOS.deutscheBoerse} />
+            <BrandLogo />
             <span className="brand-divider" aria-hidden="true" />
             <IssuerLogo issuer={issuer} />
           </span>
