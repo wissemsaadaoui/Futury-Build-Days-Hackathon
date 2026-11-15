@@ -420,7 +420,7 @@ export interface EventPreviewResponse {
   ai_points: string[];  // v0.6 : 3–4 phrases courtes (chacune vérifiée par le garde-fou) ; à afficher en liste à puces
   ai_summary_id: string;  // v0.8 : item_id pour POST /decisions (item_type "ai_summary")
   ai_summary_decision: DecisionRef | null;
-  _data_status?: Record<string, "real" | "mock" | "missing">;
+  _data_status?: Record<string, "real" | "mock" | "missing" | "synthetic">;
 }
 
 // ---------- /thresholds (v0.7, point 16) – seuils d'alerte modifiables par l'équipe IR ----------

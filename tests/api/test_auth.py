@@ -111,7 +111,7 @@ def test_unknown_origin_gets_no_cors_header(anon):
     assert "access-control-allow-origin" not in r.headers
 
 
-# ---------- Prod : uvicorn --root-path /api (derrière Caddy) ----------
+# ---------- Prod : uvicorn --root-path /api (derrière un reverse proxy) ----------
 # uvicorn PRÉFIXE le chemin avec root_path (scope["path"] = "/api/health") ; TestClient(root_path=...) ne le fait pas.
 # Les requêtes ci-dessous passent donc "/api/..." pour reproduire exactement le scope de prod.
 def test_public_routes_and_token_work_behind_root_path():

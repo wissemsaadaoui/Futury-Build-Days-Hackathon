@@ -12,7 +12,7 @@ needs_raw = pytest.mark.skipif(etl.load_ohlc().empty, reason="data/raw/XETRA abs
 needs_trades = pytest.mark.skipif(not trades_path(PBB).exists(), reason="lancer : python -m scripts.extract_trades")
 
 
-# ---------- colonnes exactes (contrat CLAUDE.md) ----------
+# ---------- colonnes exactes (contrat ETL) ----------
 @pytest.mark.parametrize(
     "loader, cols",
     [

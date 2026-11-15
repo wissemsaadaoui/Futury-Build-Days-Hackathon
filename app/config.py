@@ -30,6 +30,8 @@ DATA_DIR = _path("DATA_DIR", ROOT / "data" / "raw")  # spreads/, XETRA/, EUREX/,
 PROCESSED_DIR = _path("PROCESSED_DIR", ROOT / "data" / "processed")  # sorties de scripts/ (trades_<ISIN>.csv.gz)
 EVENTS_CSV = _path("EVENTS_CSV", ROOT / "data" / "events.csv")
 MOCKS_DIR = ROOT / "mocks"
+# Sans data/raw : données de marché SYNTHÉTIQUES (app/etl/synthetic.py). "auto" (défaut) | "on" | "off"
+SYNTHETIC_DATA = os.getenv("SYNTHETIC_DATA", "auto").strip().lower()
 
 # API
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173,http://localhost:5174")  # plusieurs origines : séparées par des virgules

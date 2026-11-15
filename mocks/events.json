@@ -1,126 +1,381 @@
 {
   "_endpoint": "GET /stocks/{isin}/events",
-  "isin": "DE000A1K0235",
+  "isin": "DE0008019001",
   "as_of": "2026-10-30",
   "events": [
     {
       "event_id": "evt_001",
-      "date": "2026-03-30",
-      "time": "07:00",
-      "trading_day": "2026-03-30",
-      "type": "annual_results",
-      "title": "FY 2025 results",
-      "source_url": null,
+      "date": "2026-01-05",
+      "time": "",
+      "trading_day": "2026-01-05",
+      "type": "press_release",
+      "title": "Acquisition of Deutsche Investment Group completed",
+      "source_url": "https://www.pfandbriefbank.com/en/media/press/detail/pbb-schliesst-uebernahme-der-deutsche-investment-gruppe-ab-und-staerkt-ihr-investmentmanagement/",
       "has_impact_card": true,
       "headline_metric": {
-        "volume_ratio": 2.3,
-        "price_change_pct": -2.4,
-        "spread_change_pct": -7.1
+        "volume_ratio": null,
+        "price_change_pct": -7.5,
+        "spread_change_pct": null
       }
     },
     {
       "event_id": "evt_002",
-      "date": "2026-05-07",
-      "time": "07:00",
-      "trading_day": "2026-05-07",
-      "type": "quarterly_results",
-      "title": "Q1 2026 results",
-      "source_url": null,
+      "date": "2026-02-13",
+      "time": "12:26",
+      "trading_day": "2026-02-13",
+      "type": "ad_hoc",
+      "title": "Ad hoc: guidance for FY 2026 (profit before taxes EUR 30-40m) and preliminary FY 2025 figures",
+      "source_url": "https://www.eqs-news.com/news/ad-hoc/deutsche-pfandbriefbank-ag-deutsche-pfandbriefbank-ag-publishes-guidance-for-the-2026-financial-year/1ff41964-f7cd-4cb5-ba65-f41c4d934460_en",
       "has_impact_card": true,
       "headline_metric": {
-        "volume_ratio": 2.05,
-        "price_change_pct": 3.1,
-        "spread_change_pct": -6.7
+        "volume_ratio": 20.22,
+        "price_change_pct": -2.6,
+        "spread_change_pct": 13.5
       }
     },
     {
       "event_id": "evt_003",
-      "date": "2026-06-03",
-      "time": "10:00",
-      "trading_day": "2026-06-03",
-      "type": "agm",
-      "title": "Annual General Meeting",
-      "source_url": null,
+      "date": "2026-03-05",
+      "time": "",
+      "trading_day": "2026-03-05",
+      "type": "annual_results",
+      "title": "FY 2025 results (US exit shapes 2025 results)",
+      "source_url": "https://www.pfandbriefbank.com/en/media/press/detail/pbb-bpk/",
       "has_impact_card": true,
       "headline_metric": {
-        "volume_ratio": 1.1,
-        "price_change_pct": 0.4,
-        "spread_change_pct": 3.1
+        "volume_ratio": 1.05,
+        "price_change_pct": -4.3,
+        "spread_change_pct": 22.3
       }
     },
     {
       "event_id": "evt_004",
-      "date": "2026-06-04",
-      "time": "07:30",
-      "trading_day": "2026-06-04",
-      "type": "index_change",
-      "title": "MDAX inclusion announced (effective 22 Jun 2026)",
-      "source_url": "https://www.suss.com/en/news/corporate-news/2026/shares-of-suss-microtec-se-are-being-included-in-the-mdax-for-the-first-time",
+      "date": "2026-03-17",
+      "time": "07:05",
+      "trading_day": "2026-03-17",
+      "type": "voting_rights",
+      "title": "Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.",
+      "source_url": "https://www.eqs-news.com/news/voting-rights/the-goldman-sachs-group-inc-wilmington-de-united-states-of-america-usa/0a47ca44-7297-48b2-9122-63bb5f70cefd_en",
       "has_impact_card": true,
       "headline_metric": {
-        "volume_ratio": 3.21,
-        "price_change_pct": 8.15,
-        "spread_change_pct": -3.9
-      }
-    },
-    {
-      "event_id": "evt_006",
-      "date": "2026-06-19",
-      "time": "17:35",
-      "trading_day": "2026-06-19",
-      "type": "index_change",
-      "title": "Index rebalancing day (last closing auction before MDAX entry)",
-      "source_url": null,
-      "has_impact_card": true,
-      "headline_metric": {
-        "volume_ratio": 4.1,
-        "price_change_pct": 1.2,
-        "spread_change_pct": 2.8
+        "volume_ratio": 0.69,
+        "price_change_pct": 0.1,
+        "spread_change_pct": 27.4
       }
     },
     {
       "event_id": "evt_005",
-      "date": "2026-06-22",
-      "time": "09:00",
-      "trading_day": "2026-06-22",
-      "type": "index_change",
-      "title": "First trading day in the MDAX",
-      "source_url": null,
+      "date": "2026-03-17",
+      "time": "16:48",
+      "trading_day": "2026-03-17",
+      "type": "directors_dealings",
+      "title": "Directors' dealings: Barkha Mehmedagic (buy)",
+      "source_url": "https://www.eqs-news.com/news/directors-dealings/deutsche-pfandbriefbank-ag-barkha-mehmedagic-buy/88b31b30-3325-4a8a-940e-94e9479e5f76_en",
       "has_impact_card": true,
       "headline_metric": {
-        "volume_ratio": 1.6,
-        "price_change_pct": 0.9,
-        "spread_change_pct": 8.9
+        "volume_ratio": 0.69,
+        "price_change_pct": 0.1,
+        "spread_change_pct": 27.4
+      }
+    },
+    {
+      "event_id": "evt_006",
+      "date": "2026-03-18",
+      "time": "07:24",
+      "trading_day": "2026-03-18",
+      "type": "voting_rights",
+      "title": "Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.",
+      "source_url": "https://www.eqs-news.com/news/voting-rights/the-goldman-sachs-group-inc-wilmington-de-united-states-of-america-usa/0b641bc2-03e5-4877-8bff-3cfe539c5ef8_en",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 3.53,
+        "price_change_pct": -3.5,
+        "spread_change_pct": 20.8
       }
     },
     {
       "event_id": "evt_007",
-      "date": "2026-08-06",
-      "time": "07:00",
-      "trading_day": "2026-08-06",
-      "type": "quarterly_results",
-      "title": "H1 2026 results",
-      "source_url": null,
+      "date": "2026-03-18",
+      "time": "08:28",
+      "trading_day": "2026-03-18",
+      "type": "directors_dealings",
+      "title": "Directors' dealings: Kay Wolf (buy)",
+      "source_url": "https://www.eqs-news.com/news/directors-dealings/deutsche-pfandbriefbank-ag-kay-wolf-buy/2405f2ec-8b93-44ef-98a9-c72ab10cff34_en",
       "has_impact_card": true,
       "headline_metric": {
-        "volume_ratio": 2.4,
-        "price_change_pct": -4.2,
-        "spread_change_pct": 13.2
+        "volume_ratio": 3.53,
+        "price_change_pct": -3.5,
+        "spread_change_pct": 20.8
       }
     },
     {
       "event_id": "evt_008",
-      "date": "2026-10-27",
-      "time": "09:05",
-      "trading_day": "2026-10-27",
-      "type": "press_release",
-      "title": "Production network optimisation and FY 2026 guidance update",
-      "source_url": "https://live.deutsche-boerse.com/nachrichten/EQS-News-SUSS-optimiert-globales-Produktionsnetzwerk-zur-Unterstuetzung-des-weiteren-Wachstums-und-aktualisiert-Prognose-fuer-das-Geschaeftsjahr-2026-6e9218e2-4568-4095-9214-477e356de8db",
+      "date": "2026-03-18",
+      "time": "11:05",
+      "trading_day": "2026-03-18",
+      "type": "directors_dealings",
+      "title": "Directors' dealings: Jörn Joseph (buy)",
+      "source_url": "https://www.eqs-news.com/news/directors-dealings/deutsche-pfandbriefbank-ag-jorn-joseph-buy/6a95d781-f7a1-4d41-935e-5f6464d62899_en",
       "has_impact_card": true,
       "headline_metric": {
-        "volume_ratio": 3.8,
-        "price_change_pct": -9.6,
-        "spread_change_pct": -13.0
+        "volume_ratio": 3.53,
+        "price_change_pct": -3.5,
+        "spread_change_pct": 20.8
+      }
+    },
+    {
+      "event_id": "evt_009",
+      "date": "2026-03-18",
+      "time": "11:11",
+      "trading_day": "2026-03-18",
+      "type": "directors_dealings",
+      "title": "Directors' dealings: Jörn Joseph (buy)",
+      "source_url": "https://www.eqs-news.com/news/directors-dealings/deutsche-pfandbriefbank-ag-jorn-joseph-buy/7c612858-928b-4d42-b424-94ea2109c1d6_en",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 3.53,
+        "price_change_pct": -3.5,
+        "spread_change_pct": 20.8
+      }
+    },
+    {
+      "event_id": "evt_010",
+      "date": "2026-03-18",
+      "time": "11:27",
+      "trading_day": "2026-03-18",
+      "type": "directors_dealings",
+      "title": "Directors' dealings: Dr. Pamela Hoerr (buy)",
+      "source_url": "https://www.eqs-news.com/news/directors-dealings/deutsche-pfandbriefbank-ag-dr-pamela-hoerr-buy/acf32f07-000c-4fe3-8033-114a3c599a22_en",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 3.53,
+        "price_change_pct": -3.5,
+        "spread_change_pct": 20.8
+      }
+    },
+    {
+      "event_id": "evt_011",
+      "date": "2026-03-18",
+      "time": "",
+      "trading_day": "2026-03-18",
+      "type": "press_release",
+      "title": "Supervisory Board: Dr Louis Hagen leaving; Jan Kupfer to be nominated as chair",
+      "source_url": "https://www.pfandbriefbank.com/en/media/press/detail/dr-louis-hagen-scheidet-aus-ar-aus-jan-kupfer-soll-der-hauptversammlung-zur-wahl-in-den-aufsichtsrat-vorgeschlagen-werden-und-dort-den-aufsichtsratsvorsitz-uebernehmen/",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 3.53,
+        "price_change_pct": -3.5,
+        "spread_change_pct": 20.8
+      }
+    },
+    {
+      "event_id": "evt_012",
+      "date": "2026-03-19",
+      "time": "15:32",
+      "trading_day": "2026-03-19",
+      "type": "directors_dealings",
+      "title": "Directors' dealings: Marcus Schulte (buy)",
+      "source_url": "https://www.eqs-news.com/news/directors-dealings/deutsche-pfandbriefbank-ag-marcus-schulte-buy/68a4ebb0-7ad0-47a7-89dc-dcbda613b628_en",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 1.58,
+        "price_change_pct": -2.0,
+        "spread_change_pct": 34.1
+      }
+    },
+    {
+      "event_id": "evt_013",
+      "date": "2026-03-23",
+      "time": "",
+      "trading_day": "2026-03-23",
+      "type": "annual_results",
+      "title": "Annual Report 2025 published",
+      "source_url": "https://www.pfandbriefbank.com/en/investors/financial-calendar.html",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 1.85,
+        "price_change_pct": -0.7,
+        "spread_change_pct": 10.3
+      }
+    },
+    {
+      "event_id": "evt_014",
+      "date": "2026-04-01",
+      "time": "",
+      "trading_day": "2026-04-01",
+      "type": "press_release",
+      "title": "Management Board: CFO Marcus Schulte extends contract early",
+      "source_url": "https://www.pfandbriefbank.com/en/media/press/detail/informationen-zum-vorstandsgremium-der-pbb-cfo-marcus-schulte-verlaengert-vertrag-vorzeitig/",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 1.82,
+        "price_change_pct": -0.5,
+        "spread_change_pct": 12.5
+      }
+    },
+    {
+      "event_id": "evt_015",
+      "date": "2026-04-02",
+      "time": "15:05",
+      "trading_day": "2026-04-02",
+      "type": "agm",
+      "title": "Convening notice for the AGM on 21 May 2026",
+      "source_url": "https://www.eqs-news.com/news/agm-announcements/deutsche-pfandbriefbank-ag-announcement-of-the-convening-of-the-general-meeting-in-muc2a8nchen-on-21-05-2026-according-to-article-121-aktg-german-stock-companies-act-with-the-objective-of-europe/a4b8943e-1675-42fb-b19a-bd56e8f9c9e0_en",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 2.38,
+        "price_change_pct": 0.3,
+        "spread_change_pct": 23.7
+      }
+    },
+    {
+      "event_id": "evt_016",
+      "date": "2026-05-12",
+      "time": "",
+      "trading_day": "2026-05-12",
+      "type": "quarterly_results",
+      "title": "Q1 2026 results",
+      "source_url": "https://www.pfandbriefbank.com/en/media/press/detail/pbb-increases-new-business-by-almost-a-fifth/",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 1.83,
+        "price_change_pct": -1.3,
+        "spread_change_pct": 17.6
+      }
+    },
+    {
+      "event_id": "evt_017",
+      "date": "2026-05-21",
+      "time": "",
+      "trading_day": "2026-05-21",
+      "type": "agm",
+      "title": "Annual General Meeting",
+      "source_url": "https://www.pfandbriefbank.com/en/investors/financial-calendar.html",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 2.56,
+        "price_change_pct": -3.2,
+        "spread_change_pct": 9.8
+      }
+    },
+    {
+      "event_id": "evt_018",
+      "date": "2026-08-13",
+      "time": "",
+      "trading_day": "2026-08-13",
+      "type": "quarterly_results",
+      "title": "H1 2026 results",
+      "source_url": "https://www.pfandbriefbank.com/en/media/press/detail/pbb-with-solid-first-half-year-strong-growth-in-new-business-once-again/",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 3.11,
+        "price_change_pct": -0.8,
+        "spread_change_pct": 24.2
+      }
+    },
+    {
+      "event_id": "evt_019",
+      "date": "2026-09-04",
+      "time": "08:32",
+      "trading_day": "2026-09-04",
+      "type": "voting_rights",
+      "title": "Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.",
+      "source_url": "https://www.eqs-news.com/news/voting-rights/the-goldman-sachs-group-inc-wilmington-de-united-states-of-america-usa/4020af5c-5157-4345-ab73-77034ad58594_en",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 3.46,
+        "price_change_pct": 2.3,
+        "spread_change_pct": 11.0
+      }
+    },
+    {
+      "event_id": "evt_020",
+      "date": "2026-09-08",
+      "time": "07:42",
+      "trading_day": "2026-09-08",
+      "type": "voting_rights",
+      "title": "Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.",
+      "source_url": "https://www.eqs-news.com/news/voting-rights/the-goldman-sachs-group-inc-wilmington-de-united-states-of-america-usa/5d6976ed-efde-4301-82a0-b0d051d7311f_en",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 1.86,
+        "price_change_pct": 1.5,
+        "spread_change_pct": 8.0
+      }
+    },
+    {
+      "event_id": "evt_021",
+      "date": "2026-09-08",
+      "time": "09:52",
+      "trading_day": "2026-09-08",
+      "type": "voting_rights",
+      "title": "Voting rights notification (WpHG s.40): Bank of America Corporation",
+      "source_url": "https://www.eqs-news.com/news/voting-rights/bank-of-america-corporation-wilmington-de-united-states-of-america-usa/8454dc34-f807-4b4a-9f61-3913b9eaaf2d_en",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 1.86,
+        "price_change_pct": 1.5,
+        "spread_change_pct": 8.0
+      }
+    },
+    {
+      "event_id": "evt_022",
+      "date": "2026-09-08",
+      "time": "10:22",
+      "trading_day": "2026-09-08",
+      "type": "voting_rights",
+      "title": "Voting rights notification (WpHG s.40): Bank of America Corporation",
+      "source_url": "https://www.eqs-news.com/news/voting-rights/bank-of-america-corporation-wilmington-de-united-states-of-america-usa/ab5225cb-a149-4841-9bb6-b6dd7cafeb43_en",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 1.86,
+        "price_change_pct": 1.5,
+        "spread_change_pct": 8.0
+      }
+    },
+    {
+      "event_id": "evt_023",
+      "date": "2026-09-08",
+      "time": "11:09",
+      "trading_day": "2026-09-08",
+      "type": "voting_rights",
+      "title": "Voting rights notification (WpHG s.40): Bank of America Corporation",
+      "source_url": "https://www.eqs-news.com/news/voting-rights/bank-of-america-corporation-wilmington-de-united-states-of-america-usa/6718592d-12a8-4e77-b7e9-8ea230fbb36e_en",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 1.86,
+        "price_change_pct": 1.5,
+        "spread_change_pct": 8.0
+      }
+    },
+    {
+      "event_id": "evt_024",
+      "date": "2026-09-16",
+      "time": "14:22",
+      "trading_day": "2026-09-16",
+      "type": "voting_rights",
+      "title": "Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.",
+      "source_url": "https://www.eqs-news.com/news/voting-rights/the-goldman-sachs-group-inc-wilmington-de-united-states-of-america-usa/3df41707-5ef1-48ca-aa2a-d41c1cc30301_en",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 1.48,
+        "price_change_pct": -5.6,
+        "spread_change_pct": 50.1
+      }
+    },
+    {
+      "event_id": "evt_025",
+      "date": "2026-09-18",
+      "time": "08:25",
+      "trading_day": "2026-09-18",
+      "type": "voting_rights",
+      "title": "Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.",
+      "source_url": "https://www.eqs-news.com/news/voting-rights/the-goldman-sachs-group-inc-wilmington-de-united-states-of-america-usa/fbee8da4-8139-412b-a799-32e86f7e4ebd_en",
+      "has_impact_card": true,
+      "headline_metric": {
+        "volume_ratio": 1.79,
+        "price_change_pct": 1.7,
+        "spread_change_pct": null
       }
     }
   ],
@@ -136,5 +391,5 @@
     "voting_rights",
     "directors_dealings"
   ],
-  "_note": "dates/heures réelles (heures 07:00 à vérifier), spread_change_pct réel ; volume_ratio et price_change_pct = mock"
+  "_note": "Synthetic data: every figure is generated by scripts/make_synthetic_mocks.py (no real market data)."
 }

@@ -1,6 +1,6 @@
 """ETL – chargement des données (propriétaire : partenaire back-end).
 
-Les signatures et colonnes sont fixées dans CLAUDE.md (section « Interfaces ») : app/analytics s'appuie dessus.
+Les signatures et colonnes sont fixées ici (contrat ETL → analytics) : app/analytics s'appuie dessus.
 Chaque fonction lit data/raw une seule fois (lru_cache) ; app.main les précharge au démarrage.
 Sans fichiers, elles renvoient un DataFrame vide avec les bonnes colonnes (l'analytics retombe alors sur les mocks).
 """

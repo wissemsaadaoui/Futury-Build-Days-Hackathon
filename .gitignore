@@ -21,4 +21,9 @@ data/decisions.db-*
 
 # macOS
 .DS_Store
-créé/
+
+# Local tooling and demo material (never published)
+.claude/
+demo-shots/
+demo-shots.zip
+node_modules/

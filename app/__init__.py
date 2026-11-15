@@ -1,2 +1,2 @@
-"""Issuer Intelligence Hub – back-end FastAPI (voir CLAUDE.md)."""
+"""Issuer Intelligence Hub – back-end FastAPI."""
 from __future__ import annotations

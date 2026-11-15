@@ -1,6 +1,6 @@
 """Export PDF (impact card, IR snapshot) – propriétaire : partenaire back-end.
 
-Met en page les dicts de app.analytics (aucun calcul). Chaque PDF contient le disclaimer de CLAUDE.md.
+Met en page les dicts de app.analytics (aucun calcul). Chaque PDF contient le disclaimer « Descriptive analysis of historical Xetra trading data. Not investment advice. ».
 """
 from __future__ import annotations
 

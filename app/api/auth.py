@@ -1,4 +1,4 @@
-"""Login applicatif par Bearer token (fonctionne aussi cross-site : front local -> API du VPS, sans cookie).
+"""Login applicatif par Bearer token (fonctionne aussi cross-site : front local -> API déployée, sans cookie).
 
 POST /auth/login {password} -> {"token", "expires_at"} (token signé HMAC-SHA256, 12 h) ; 401 après 1 s sinon
 GET  /auth/me               -> 200 si "Authorization: Bearer <token>" est valide, 401 sinon
@@ -88,7 +88,7 @@ def me(request: Request) -> dict[str, bool]:
 
 
 def app_path(request: Request) -> str:
-    """Chemin de la route SANS le root_path : derrière Caddy, uvicorn tourne avec --root-path /api et
+    """Chemin de la route SANS le root_path : derrière un reverse proxy, uvicorn tourne avec --root-path /api et
     request.url.path vaut alors "/api/auth/login" au lieu de "/auth/login"."""
     root = request.scope.get("root_path", "")
     path = request.url.path
