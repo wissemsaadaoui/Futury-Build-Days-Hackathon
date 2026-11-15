@@ -1,7 +1,6 @@
-# Données Deutsche Börse (jamais committées) – sans « / » pour couvrir aussi un lien symbolique
+
 data/raw
 
-# Secrets (garder .env.example)
 .env
 
 # Python
@@ -14,15 +13,10 @@ __pycache__/
 
 # Sorties générées par scripts/
 data/processed/
-
-# Journal des décisions et seuils de l'équipe IR (SQLite local, créé automatiquement)
 data/decisions.db
 data/decisions.db-*
-
-# macOS
 .DS_Store
 
-# Local tooling and demo material (never published)
 .claude/
 demo-shots/
 demo-shots.zip
