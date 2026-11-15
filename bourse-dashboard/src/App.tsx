@@ -72,6 +72,7 @@ import {
   formatPercent,
   formatRatio,
   hasDemoData,
+  isSynthetic,
 } from './format.ts'
 
 type Page =
@@ -1226,7 +1227,7 @@ function DashboardPage({
                 <div className="chart-heading">
                   <div>
                     <span className="kicker">
-                      SHARE PRICE · EUR · {hasDemoData(dashboard.data?._data_status) ? 'PARTLY DEMO DATA' : 'XETRA'}
+                      SHARE PRICE · EUR · {isSynthetic(dashboard.data?._data_status) ? 'SYNTHETIC DATA' : hasDemoData(dashboard.data?._data_status) ? 'PARTLY DEMO DATA' : 'XETRA'}
                     </span>
                     <div className="price-line">
                       <strong><CountUp text={latest ? formatEuro(latest.close) : '–'} delay={1000} /></strong>

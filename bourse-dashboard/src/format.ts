@@ -77,6 +77,11 @@ export function formatAnomalyValue(type: string, value: number | null) {
   return formatRatio(value) // volume, spread, enchère, cassure de niveau : × la normale
 }
 
+// Données synthétiques (API lancée sans fichiers Xetra) : tous les blocs valent "synthetic"
+export function isSynthetic(status: DataStatus | undefined) {
+  return Object.values(status ?? {}).some((value) => value === 'synthetic')
+}
+
 export function hasDemoData(status: DataStatus | undefined) {
   return Object.values(status ?? {}).some((value) => value !== 'real')
 }

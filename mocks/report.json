@@ -402,9 +402,9 @@
   },
   "peer_basis": "manual",
   "_data_status": {
-    "spreads": "real",
-    "ohlc": "real",
-    "flows": "real"
+    "spreads": "synthetic",
+    "ohlc": "synthetic",
+    "flows": "synthetic"
   },
   "ai_points": [
     "Average spread 46.2 bps (+23.3% vs first half).",

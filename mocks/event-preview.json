@@ -258,10 +258,10 @@
   "peer_basis": "manual",
   "ai_summary": "In its past 2 quarterly results releases, Deutsche Pfandbriefbank AG's spread on the publication day changed by a median of +20.9% (17.6% to 24.2%) versus its 20-day average. Volume reached a median of 2.5x its usual level (1.8x to 3.1x). Liquidity was back to normal within 2 session(s) at most (median 2). Across 13 peer releases, the median spread change was +38.5%.",
   "_data_status": {
-    "spreads": "real",
-    "ohlc": "real",
-    "flows": "real",
-    "intraday": "real"
+    "spreads": "synthetic",
+    "ohlc": "synthetic",
+    "flows": "synthetic",
+    "intraday": "synthetic"
   },
   "ai_points": [
     "2 past quarterly results releases: median spread change +20.9% (+17.6% to +24.2%).",

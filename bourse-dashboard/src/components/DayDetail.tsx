@@ -26,6 +26,7 @@ import {
   formatPercent,
   formatRatio,
   hasDemoData,
+  isSynthetic,
   isMissing,
 } from '../format.ts'
 import type { MetricHelpKey } from '../content/metricHelp.ts'
@@ -225,7 +226,7 @@ export function DayDetail({
               ? announcementsLabel(dayEvents.length)
               : card.event ? eventLabels[card.event.type] ?? card.event.type : 'Trading day'}
           </span>
-          <small>{hasDemoData(card._data_status) ? 'PARTLY DEMO DATA' : 'XETRA DATA'}</small>
+          <small>{isSynthetic(card._data_status) ? 'SYNTHETIC DATA' : hasDemoData(card._data_status) ? 'PARTLY DEMO DATA' : 'XETRA DATA'}</small>
         </div>
         <h2>{card.event ? card.event.title : `Trading on ${formatDate(day)}`}</h2>
         <p className="muted">

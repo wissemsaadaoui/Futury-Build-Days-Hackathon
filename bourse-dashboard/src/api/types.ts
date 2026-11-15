@@ -3,7 +3,7 @@
 
 export type Num = number | null
 
-export type DataStatus = Record<string, 'real' | 'mock' | 'missing'>
+export type DataStatus = Record<string, 'real' | 'mock' | 'missing' | 'synthetic'>
 
 export type StockRef = { isin: string; name: string; index: string; sector?: string | null }
 

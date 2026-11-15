@@ -4,6 +4,7 @@ Lancer : uvicorn app.main:app --reload --port 8000  (doc : /docs, spec : /openap
 """
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -18,7 +19,13 @@ from app.api import assistant, auth, compare, decisions, health, impact_cards, s
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    """Charge toutes les données une seule fois au démarrage (~5 s) : les requêtes sont ensuite rapides."""
+    """Charge toutes les données une seule fois au démarrage (~5 s) : les requêtes sont ensuite rapides.
+    Sans data/raw (SYNTHETIC_DATA=auto) : données de marché synthétiques, voir app/etl/synthetic.py."""
+    from app.etl import synthetic
+
+    if synthetic.wanted():
+        logging.getLogger("uvicorn.error").warning("No Xetra files in DATA_DIR: serving SYNTHETIC market data")
+        synthetic.install()
     etl.warm_up()
     yield
 
