@@ -1,5 +1,5 @@
 {
-  "_endpoint": "GET /events/{event_id}/impact-card   (événement voting_rights : bloc pre_disclosure_activity)",
+  "_endpoint": "GET /events/{event_id}/impact-card   (voting_rights event: pre_disclosure_activity block)",
   "card_id": "card_evt_019",
   "stock": {
     "isin": "DE0008019001",
@@ -21,63 +21,63 @@
   },
   "metrics": {
     "volume": {
-      "event": 416600,
-      "baseline": 685379,
-      "ratio": 0.61,
-      "z_score": -0.2
+      "event": 990602,
+      "baseline": 286628,
+      "ratio": 3.46,
+      "z_score": 2.7
     },
     "turnover_eur": {
-      "event": 1432562,
-      "baseline": 2333491,
-      "ratio": 0.61
+      "event": 5818672,
+      "baseline": 1643749,
+      "ratio": 3.54
     },
     "price": {
-      "prev_close": 3.29,
-      "open": 3.34,
-      "close": 3.43,
-      "change_pct": 4.1,
-      "intraday_range_pct": 8.6
+      "prev_close": 5.82,
+      "open": 5.85,
+      "close": 5.95,
+      "change_pct": 2.3,
+      "intraday_range_pct": 3.4
     },
     "spread_bps": {
-      "event": 66.3,
-      "baseline": 71.7,
-      "change_pct": -7.4
+      "event": 58.0,
+      "baseline": 52.2,
+      "change_pct": 11.0
     },
     "auction_share": {
-      "event": 0.23,
-      "baseline": 0.35,
-      "change_pts": -0.12
+      "event": 0.24,
+      "baseline": 0.29,
+      "change_pts": -0.05
     },
     "opening_auction": {
-      "volume": 121,
-      "baseline": 2720,
-      "ratio": 0.04
+      "volume": 60181,
+      "baseline": 21454,
+      "ratio": 2.81
     },
     "closing_auction": {
-      "volume": 95126,
-      "baseline": 434998,
-      "ratio": 0.22
+      "volume": 161286,
+      "baseline": 57498,
+      "ratio": 2.81
     }
   },
   "flows": {
     "by_participant": [
       {
         "type": "AGENT",
-        "buy": 263721,
-        "sell": 188813,
-        "net": 74908
+        "buy": 241157,
+        "sell": 325155,
+        "net": -83998
       },
       {
         "type": "PROP",
-        "buy": 121599,
-        "sell": 186779,
-        "net": -65180
+        "buy": 374034,
+        "sell": 238035,
+        "net": 135999
       },
       {
         "type": "MARKET_MAKER",
-        "buy": 31280,
-        "sell": 41008,
-        "net": -9728
+        "buy": 375406,
+        "sell": 427408,
+        "net": -52002
       }
     ],
     "by_mode": [
@@ -91,7 +91,7 @@
       },
       {
         "mode": "AUCTION",
-        "share": 0.23
+        "share": 0.24
       }
     ]
   },
@@ -99,102 +99,105 @@
     {
       "offset": -5,
       "date": "2026-08-28",
-      "close": 3.49,
-      "volume_ratio": 0.46,
-      "spread_bps": 71.1
+      "close": 5.94,
+      "volume_ratio": 0.36,
+      "spread_bps": 51.2
     },
     {
       "offset": -4,
       "date": "2026-08-31",
-      "close": 3.39,
-      "volume_ratio": 10.7,
-      "spread_bps": 56.9
+      "close": 6.11,
+      "volume_ratio": 0.58,
+      "spread_bps": 48.4
     },
     {
       "offset": -3,
       "date": "2026-09-01",
-      "close": 3.33,
-      "volume_ratio": 0.57,
-      "spread_bps": 65.5
+      "close": 6.1,
+      "volume_ratio": 0.72,
+      "spread_bps": 61.0
     },
     {
       "offset": -2,
       "date": "2026-09-02",
-      "close": 3.31,
-      "volume_ratio": 0.5,
-      "spread_bps": 73.5
+      "close": 5.96,
+      "volume_ratio": 0.82,
+      "spread_bps": 55.2
     },
     {
       "offset": -1,
       "date": "2026-09-03",
-      "close": 3.29,
-      "volume_ratio": 0.4,
-      "spread_bps": 75.6
+      "close": 5.82,
+      "volume_ratio": 0.32,
+      "spread_bps": 42.5
     },
     {
       "offset": 0,
       "date": "2026-09-04",
-      "close": 3.43,
-      "volume_ratio": 0.61,
-      "spread_bps": 66.3
+      "close": 5.95,
+      "volume_ratio": 3.46,
+      "spread_bps": 58.0
     },
     {
       "offset": 1,
       "date": "2026-09-07",
-      "close": 3.37,
-      "volume_ratio": 0.25,
-      "spread_bps": 69.5
+      "close": 5.8,
+      "volume_ratio": 1.07,
+      "spread_bps": 47.5
     },
     {
       "offset": 2,
       "date": "2026-09-08",
-      "close": 3.36,
-      "volume_ratio": 0.16,
-      "spread_bps": 66.0
+      "close": 5.89,
+      "volume_ratio": 2.11,
+      "spread_bps": 56.8
     },
     {
       "offset": 3,
       "date": "2026-09-09",
-      "close": 3.32,
-      "volume_ratio": 0.46,
-      "spread_bps": 64.8
+      "close": 5.62,
+      "volume_ratio": 1.17,
+      "spread_bps": 59.4
     },
     {
       "offset": 4,
       "date": "2026-09-10",
-      "close": 3.36,
-      "volume_ratio": 0.35,
-      "spread_bps": 68.3
+      "close": 5.71,
+      "volume_ratio": 0.52,
+      "spread_bps": 59.5
     },
     {
       "offset": 5,
       "date": "2026-09-11",
-      "close": 3.36,
-      "volume_ratio": 0.22,
-      "spread_bps": 68.6
+      "close": 5.49,
+      "volume_ratio": 1.03,
+      "spread_bps": 51.3
     }
   ],
   "vs_peers": {
-    "peer_avg_volume_ratio": 0.92,
-    "peer_avg_price_change_pct": 1.4,
-    "excess_return_pct": 2.7
+    "peer_avg_volume_ratio": 0.82,
+    "peer_avg_price_change_pct": 0.1,
+    "excess_return_pct": 2.2
   },
   "technical_context": {
     "trend_before": "below_ema50",
-    "macd_before": "bearish",
-    "macd_after": "bullish",
-    "broke_level": null
+    "macd_before": "bullish",
+    "macd_after": "bearish",
+    "broke_level": {
+      "type": "resistance",
+      "price": 5.89
+    }
   },
-  "ai_summary": "On the day of the event (Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.), Deutsche Pfandbriefbank AG traded 0.6x its usual volume and the share price moved 4.1%, 2.7 percentage points better than the median of its peers. The round-trip cost for a EUR 25,000 trade tightened to 66.3 bps versus a 20-day average of 71.7 bps (-7.4%). In the first 15 minutes after the open (09:00), volume was 0.8x the usual level for that time of day, and the price moved 0.4% after 5 minutes and -1.1% after 30 minutes. Auctions accounted for 23.0% of volume versus 35.0% normally; the closing auction was 0.2x its usual size.",
+  "ai_summary": "On the day of the event (Voting rights notification (WpHG s.40): The Goldman Sachs Group Inc.), Deutsche Pfandbriefbank AG traded 3.5x its usual volume and the share price moved 2.3%, 2.2 percentage points better than the median of its peers. The round-trip cost for a EUR 25,000 trade widened to 58.0 bps versus a 20-day average of 52.2 bps (11.0%) and returned to normal after 1 session. In the first 15 minutes after the open (09:00), volume was 2.9x the usual level for that time of day, and the price moved 0.2% after 5 minutes and 0.4% after 30 minutes. Auctions accounted for 24.0% of volume versus 29.0% normally; the closing auction was 2.8x its usual size. Execution alert: Close of EUR 5.95 rose above the resistance at EUR 5.89 (3 previous touches) on 3.5x usual volume, confirmed by unusually large executions.",
   "ai_points": [
-    "Volume was 0.6x its usual level; the price moved +4.1%.",
-    "Spread 66.3 bps versus 71.7 bps on average (-7.4%).",
-    "First 15 minutes after the open: 0.8x the usual volume.",
-    "Auctions took 23.0% of volume versus 35.0% normally."
+    "Volume was 3.5x its usual level; the price moved +2.3%.",
+    "Spread 58.0 bps versus 52.2 bps on average (+11.0%).",
+    "First 15 minutes after the open: 2.9x the usual volume.",
+    "Auctions took 24.0% of volume versus 29.0% normally."
   ],
   "ai_summary_id": "impact:card_evt_019",
   "ai_summary_decision": null,
-  "generated_at": "2026-11-11T21:16:34+01:00",
+  "generated_at": "2026-11-15T10:00:00+01:00",
   "export": {
     "pdf_url": "/events/evt_019/impact-card.pdf"
   },
@@ -445,25 +448,25 @@
       {
         "offset_min": 0,
         "time": "09:00",
-        "vwap": 3.32,
-        "volume": 1521,
-        "cum_volume": 1521,
-        "buy_aggressor_share": 1.0
+        "vwap": 5.85,
+        "volume": 60181,
+        "cum_volume": 60181,
+        "buy_aggressor_share": null
       },
       {
         "offset_min": 1,
         "time": "09:01",
-        "vwap": 3.35,
-        "volume": 2000,
-        "cum_volume": 3521,
-        "buy_aggressor_share": 1.0
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 60181,
+        "buy_aggressor_share": null
       },
       {
         "offset_min": 2,
         "time": "09:02",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 3521,
+        "cum_volume": 60181,
         "buy_aggressor_share": null
       },
       {
@@ -471,111 +474,111 @@
         "time": "09:03",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 3521,
+        "cum_volume": 60181,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 4,
         "time": "09:04",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 3521,
-        "buy_aggressor_share": null
+        "vwap": 5.86,
+        "volume": 907,
+        "cum_volume": 61088,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 5,
         "time": "09:05",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 3521,
-        "buy_aggressor_share": null
+        "vwap": 5.86,
+        "volume": 1418,
+        "cum_volume": 62506,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 6,
         "time": "09:06",
-        "vwap": 3.28,
-        "volume": 9814,
-        "cum_volume": 13335,
-        "buy_aggressor_share": 0.0
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 62506,
+        "buy_aggressor_share": null
       },
       {
         "offset_min": 7,
         "time": "09:07",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 13335,
+        "cum_volume": 62506,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 8,
         "time": "09:08",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 13335,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 1642,
+        "cum_volume": 64148,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 9,
         "time": "09:09",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 13335,
-        "buy_aggressor_share": null
+        "vwap": 5.88,
+        "volume": 3027,
+        "cum_volume": 67175,
+        "buy_aggressor_share": 0.07
       },
       {
         "offset_min": 10,
         "time": "09:10",
-        "vwap": 3.28,
-        "volume": 587,
-        "cum_volume": 13922,
-        "buy_aggressor_share": 1.0
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 67175,
+        "buy_aggressor_share": null
       },
       {
         "offset_min": 11,
         "time": "09:11",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 13922,
-        "buy_aggressor_share": null
+        "vwap": 5.88,
+        "volume": 7913,
+        "cum_volume": 75088,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 12,
         "time": "09:12",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 13922,
+        "cum_volume": 75088,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 13,
         "time": "09:13",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 13922,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 1986,
+        "cum_volume": 77074,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 14,
         "time": "09:14",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 13922,
+        "cum_volume": 77074,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 15,
         "time": "09:15",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 13922,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 5485,
+        "cum_volume": 82559,
+        "buy_aggressor_share": 0.4
       },
       {
         "offset_min": 16,
         "time": "09:16",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 13922,
+        "cum_volume": 82559,
         "buy_aggressor_share": null
       },
       {
@@ -583,7 +586,7 @@
         "time": "09:17",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 13922,
+        "cum_volume": 82559,
         "buy_aggressor_share": null
       },
       {
@@ -591,71 +594,71 @@
         "time": "09:18",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 13922,
+        "cum_volume": 82559,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 19,
         "time": "09:19",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 13922,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 534,
+        "cum_volume": 83093,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 20,
         "time": "09:20",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 13922,
+        "cum_volume": 83093,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 21,
         "time": "09:21",
-        "vwap": 3.29,
-        "volume": 6029,
-        "cum_volume": 19951,
-        "buy_aggressor_share": 1.0
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 83093,
+        "buy_aggressor_share": null
       },
       {
         "offset_min": 22,
         "time": "09:22",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 19951,
-        "buy_aggressor_share": null
+        "vwap": 5.88,
+        "volume": 544,
+        "cum_volume": 83637,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 23,
         "time": "09:23",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 19951,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 3924,
+        "cum_volume": 87561,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 24,
         "time": "09:24",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 19951,
+        "cum_volume": 87561,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 25,
         "time": "09:25",
-        "vwap": 3.3,
-        "volume": 758,
-        "cum_volume": 20709,
-        "buy_aggressor_share": 1.0
+        "vwap": 5.87,
+        "volume": 2360,
+        "cum_volume": 89921,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 26,
         "time": "09:26",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 20709,
+        "cum_volume": 89921,
         "buy_aggressor_share": null
       },
       {
@@ -663,7 +666,7 @@
         "time": "09:27",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 20709,
+        "cum_volume": 89921,
         "buy_aggressor_share": null
       },
       {
@@ -671,23 +674,23 @@
         "time": "09:28",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 20709,
+        "cum_volume": 89921,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 29,
         "time": "09:29",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 20709,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 237,
+        "cum_volume": 90158,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 30,
         "time": "09:30",
-        "vwap": 3.3,
-        "volume": 891,
-        "cum_volume": 21600,
+        "vwap": 5.87,
+        "volume": 560,
+        "cum_volume": 90718,
         "buy_aggressor_share": 1.0
       },
       {
@@ -695,79 +698,79 @@
         "time": "09:31",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 21600,
+        "cum_volume": 90718,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 32,
         "time": "09:32",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 21600,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 2281,
+        "cum_volume": 92999,
+        "buy_aggressor_share": 0.55
       },
       {
         "offset_min": 33,
         "time": "09:33",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 21600,
-        "buy_aggressor_share": null
+        "vwap": 5.86,
+        "volume": 12479,
+        "cum_volume": 105478,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 34,
         "time": "09:34",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 21600,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 546,
+        "cum_volume": 106024,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 35,
         "time": "09:35",
-        "vwap": 3.31,
-        "volume": 5096,
-        "cum_volume": 26696,
-        "buy_aggressor_share": 0.32
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 106024,
+        "buy_aggressor_share": null
       },
       {
         "offset_min": 36,
         "time": "09:36",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 26696,
-        "buy_aggressor_share": null
+        "vwap": 5.86,
+        "volume": 4437,
+        "cum_volume": 110461,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 37,
         "time": "09:37",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 26696,
+        "cum_volume": 110461,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 38,
         "time": "09:38",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 26696,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 291,
+        "cum_volume": 110752,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 39,
         "time": "09:39",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 26696,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 1955,
+        "cum_volume": 112707,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 40,
         "time": "09:40",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 26696,
+        "cum_volume": 112707,
         "buy_aggressor_share": null
       },
       {
@@ -775,7 +778,7 @@
         "time": "09:41",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 26696,
+        "cum_volume": 112707,
         "buy_aggressor_share": null
       },
       {
@@ -783,7 +786,7 @@
         "time": "09:42",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 26696,
+        "cum_volume": 112707,
         "buy_aggressor_share": null
       },
       {
@@ -791,7 +794,7 @@
         "time": "09:43",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 26696,
+        "cum_volume": 112707,
         "buy_aggressor_share": null
       },
       {
@@ -799,71 +802,71 @@
         "time": "09:44",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 26696,
+        "cum_volume": 112707,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 45,
         "time": "09:45",
-        "vwap": 3.32,
-        "volume": 618,
-        "cum_volume": 27314,
-        "buy_aggressor_share": 1.0
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 112707,
+        "buy_aggressor_share": null
       },
       {
         "offset_min": 46,
         "time": "09:46",
-        "vwap": 3.31,
-        "volume": 495,
-        "cum_volume": 27809,
+        "vwap": 5.87,
+        "volume": 2329,
+        "cum_volume": 115036,
         "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 47,
         "time": "09:47",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 27809,
-        "buy_aggressor_share": null
+        "vwap": 5.88,
+        "volume": 2314,
+        "cum_volume": 117350,
+        "buy_aggressor_share": 0.18
       },
       {
         "offset_min": 48,
         "time": "09:48",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 27809,
+        "cum_volume": 117350,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 49,
         "time": "09:49",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 27809,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 4287,
+        "cum_volume": 121637,
+        "buy_aggressor_share": 0.16
       },
       {
         "offset_min": 50,
         "time": "09:50",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 27809,
-        "buy_aggressor_share": null
+        "vwap": 5.89,
+        "volume": 2207,
+        "cum_volume": 123844,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 51,
         "time": "09:51",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 27809,
-        "buy_aggressor_share": null
+        "vwap": 5.89,
+        "volume": 1725,
+        "cum_volume": 125569,
+        "buy_aggressor_share": 0.53
       },
       {
         "offset_min": 52,
         "time": "09:52",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 27809,
+        "cum_volume": 125569,
         "buy_aggressor_share": null
       },
       {
@@ -871,55 +874,55 @@
         "time": "09:53",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 27809,
+        "cum_volume": 125569,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 54,
         "time": "09:54",
-        "vwap": 3.31,
-        "volume": 1000,
-        "cum_volume": 28809,
+        "vwap": 5.89,
+        "volume": 12376,
+        "cum_volume": 137945,
         "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 55,
         "time": "09:55",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 28809,
-        "buy_aggressor_share": null
+        "vwap": 5.89,
+        "volume": 620,
+        "cum_volume": 138565,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 56,
         "time": "09:56",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 28809,
-        "buy_aggressor_share": null
+        "vwap": 5.89,
+        "volume": 856,
+        "cum_volume": 139421,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 57,
         "time": "09:57",
-        "vwap": 3.32,
-        "volume": 387,
-        "cum_volume": 29196,
-        "buy_aggressor_share": 1.0
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 139421,
+        "buy_aggressor_share": null
       },
       {
         "offset_min": 58,
         "time": "09:58",
-        "vwap": 3.33,
-        "volume": 146,
-        "cum_volume": 29342,
-        "buy_aggressor_share": 1.0
+        "vwap": 5.88,
+        "volume": 6617,
+        "cum_volume": 146038,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 59,
         "time": "09:59",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 29342,
+        "cum_volume": 146038,
         "buy_aggressor_share": null
       },
       {
@@ -927,95 +930,95 @@
         "time": "10:00",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 29342,
+        "cum_volume": 146038,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 61,
         "time": "10:01",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 29342,
-        "buy_aggressor_share": null
+        "vwap": 5.88,
+        "volume": 214,
+        "cum_volume": 146252,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 62,
         "time": "10:02",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 29342,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 1047,
+        "cum_volume": 147299,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 63,
         "time": "10:03",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 29342,
+        "cum_volume": 147299,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 64,
         "time": "10:04",
-        "vwap": 3.33,
-        "volume": 6,
-        "cum_volume": 29348,
-        "buy_aggressor_share": 1.0
+        "vwap": 5.88,
+        "volume": 141,
+        "cum_volume": 147440,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 65,
         "time": "10:05",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 29348,
+        "cum_volume": 147440,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 66,
         "time": "10:06",
-        "vwap": 3.33,
-        "volume": 80,
-        "cum_volume": 29428,
-        "buy_aggressor_share": 1.0
+        "vwap": 5.88,
+        "volume": 2406,
+        "cum_volume": 149846,
+        "buy_aggressor_share": 0.93
       },
       {
         "offset_min": 67,
         "time": "10:07",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 29428,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 2241,
+        "cum_volume": 152087,
+        "buy_aggressor_share": 0.14
       },
       {
         "offset_min": 68,
         "time": "10:08",
-        "vwap": 3.34,
-        "volume": 4522,
-        "cum_volume": 33950,
-        "buy_aggressor_share": 0.49
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 152087,
+        "buy_aggressor_share": null
       },
       {
         "offset_min": 69,
         "time": "10:09",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 33950,
+        "cum_volume": 152087,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 70,
         "time": "10:10",
-        "vwap": 3.33,
-        "volume": 1314,
-        "cum_volume": 35264,
-        "buy_aggressor_share": 0.0
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 152087,
+        "buy_aggressor_share": null
       },
       {
         "offset_min": 71,
         "time": "10:11",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 35264,
+        "cum_volume": 152087,
         "buy_aggressor_share": null
       },
       {
@@ -1023,31 +1026,31 @@
         "time": "10:12",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 35264,
+        "cum_volume": 152087,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 73,
         "time": "10:13",
-        "vwap": 3.33,
-        "volume": 747,
-        "cum_volume": 36011,
-        "buy_aggressor_share": 1.0
+        "vwap": 5.87,
+        "volume": 1661,
+        "cum_volume": 153748,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 74,
         "time": "10:14",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 36011,
-        "buy_aggressor_share": null
+        "vwap": 5.88,
+        "volume": 8068,
+        "cum_volume": 161816,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 75,
         "time": "10:15",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 36011,
+        "cum_volume": 161816,
         "buy_aggressor_share": null
       },
       {
@@ -1055,7 +1058,7 @@
         "time": "10:16",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 36011,
+        "cum_volume": 161816,
         "buy_aggressor_share": null
       },
       {
@@ -1063,23 +1066,23 @@
         "time": "10:17",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 36011,
+        "cum_volume": 161816,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 78,
         "time": "10:18",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 36011,
-        "buy_aggressor_share": null
+        "vwap": 5.86,
+        "volume": 2940,
+        "cum_volume": 164756,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 79,
         "time": "10:19",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 36011,
+        "cum_volume": 164756,
         "buy_aggressor_share": null
       },
       {
@@ -1087,7 +1090,7 @@
         "time": "10:20",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 36011,
+        "cum_volume": 164756,
         "buy_aggressor_share": null
       },
       {
@@ -1095,7 +1098,7 @@
         "time": "10:21",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 36011,
+        "cum_volume": 164756,
         "buy_aggressor_share": null
       },
       {
@@ -1103,7 +1106,7 @@
         "time": "10:22",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 36011,
+        "cum_volume": 164756,
         "buy_aggressor_share": null
       },
       {
@@ -1111,215 +1114,215 @@
         "time": "10:23",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 36011,
+        "cum_volume": 164756,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 84,
         "time": "10:24",
-        "vwap": 3.33,
-        "volume": 6,
-        "cum_volume": 36017,
-        "buy_aggressor_share": 1.0
+        "vwap": 5.88,
+        "volume": 4348,
+        "cum_volume": 169104,
+        "buy_aggressor_share": 0.66
       },
       {
         "offset_min": 85,
         "time": "10:25",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 36017,
-        "buy_aggressor_share": null
+        "vwap": 5.87,
+        "volume": 1454,
+        "cum_volume": 170558,
+        "buy_aggressor_share": 0.52
       },
       {
         "offset_min": 86,
         "time": "10:26",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 36017,
-        "buy_aggressor_share": null
+        "vwap": 5.86,
+        "volume": 6090,
+        "cum_volume": 176648,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 87,
         "time": "10:27",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 36017,
-        "buy_aggressor_share": null
+        "vwap": 5.86,
+        "volume": 265,
+        "cum_volume": 176913,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 88,
         "time": "10:28",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 36017,
-        "buy_aggressor_share": null
+        "vwap": 5.85,
+        "volume": 6783,
+        "cum_volume": 183696,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 89,
         "time": "10:29",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 36017,
-        "buy_aggressor_share": null
+        "vwap": 5.85,
+        "volume": 548,
+        "cum_volume": 184244,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 90,
         "time": "10:30",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 36017,
-        "buy_aggressor_share": null
+        "vwap": 5.84,
+        "volume": 4216,
+        "cum_volume": 188460,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 91,
         "time": "10:31",
-        "vwap": 3.33,
-        "volume": 171,
-        "cum_volume": 36188,
-        "buy_aggressor_share": 1.0
+        "vwap": 5.85,
+        "volume": 4006,
+        "cum_volume": 192466,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 92,
         "time": "10:32",
-        "vwap": 3.33,
-        "volume": 3644,
-        "cum_volume": 39832,
-        "buy_aggressor_share": 0.36
+        "vwap": 5.84,
+        "volume": 8942,
+        "cum_volume": 201408,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 93,
         "time": "10:33",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 39832,
+        "cum_volume": 201408,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 94,
         "time": "10:34",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 39832,
-        "buy_aggressor_share": null
+        "vwap": 5.84,
+        "volume": 399,
+        "cum_volume": 201807,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 95,
         "time": "10:35",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 39832,
-        "buy_aggressor_share": null
+        "vwap": 5.83,
+        "volume": 13851,
+        "cum_volume": 215658,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 96,
         "time": "10:36",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 39832,
+        "cum_volume": 215658,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 97,
         "time": "10:37",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 39832,
-        "buy_aggressor_share": null
+        "vwap": 5.84,
+        "volume": 263,
+        "cum_volume": 215921,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 98,
         "time": "10:38",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 39832,
+        "cum_volume": 215921,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 99,
         "time": "10:39",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 39832,
-        "buy_aggressor_share": null
+        "vwap": 5.84,
+        "volume": 1065,
+        "cum_volume": 216986,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 100,
         "time": "10:40",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 39832,
-        "buy_aggressor_share": null
+        "vwap": 5.83,
+        "volume": 1290,
+        "cum_volume": 218276,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 101,
         "time": "10:41",
-        "vwap": 3.32,
-        "volume": 132,
-        "cum_volume": 39964,
-        "buy_aggressor_share": 0.0
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 218276,
+        "buy_aggressor_share": null
       },
       {
         "offset_min": 102,
         "time": "10:42",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 39964,
-        "buy_aggressor_share": null
+        "vwap": 5.83,
+        "volume": 3428,
+        "cum_volume": 221704,
+        "buy_aggressor_share": 0.39
       },
       {
         "offset_min": 103,
         "time": "10:43",
-        "vwap": 3.32,
-        "volume": 3818,
-        "cum_volume": 43782,
-        "buy_aggressor_share": 0.75
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 221704,
+        "buy_aggressor_share": null
       },
       {
         "offset_min": 104,
         "time": "10:44",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 43782,
-        "buy_aggressor_share": null
+        "vwap": 5.82,
+        "volume": 3820,
+        "cum_volume": 225524,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 105,
         "time": "10:45",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 43782,
+        "cum_volume": 225524,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 106,
         "time": "10:46",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 43782,
-        "buy_aggressor_share": null
+        "vwap": 5.81,
+        "volume": 4650,
+        "cum_volume": 230174,
+        "buy_aggressor_share": 0.62
       },
       {
         "offset_min": 107,
         "time": "10:47",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 43782,
+        "cum_volume": 230174,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 108,
         "time": "10:48",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 43782,
-        "buy_aggressor_share": null
+        "vwap": 5.8,
+        "volume": 15277,
+        "cum_volume": 245451,
+        "buy_aggressor_share": 0.27
       },
       {
         "offset_min": 109,
         "time": "10:49",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 43782,
+        "cum_volume": 245451,
         "buy_aggressor_share": null
       },
       {
@@ -1327,99 +1330,99 @@
         "time": "10:50",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 43782,
+        "cum_volume": 245451,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 111,
         "time": "10:51",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 43782,
-        "buy_aggressor_share": null
+        "vwap": 5.8,
+        "volume": 4366,
+        "cum_volume": 249817,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 112,
         "time": "10:52",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 43782,
-        "buy_aggressor_share": null
+        "vwap": 5.79,
+        "volume": 440,
+        "cum_volume": 250257,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 113,
         "time": "10:53",
-        "vwap": 3.32,
-        "volume": 2314,
-        "cum_volume": 46096,
-        "buy_aggressor_share": 1.0
+        "vwap": null,
+        "volume": 0,
+        "cum_volume": 250257,
+        "buy_aggressor_share": null
       },
       {
         "offset_min": 114,
         "time": "10:54",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 46096,
+        "cum_volume": 250257,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 115,
         "time": "10:55",
-        "vwap": 3.32,
-        "volume": 2491,
-        "cum_volume": 48587,
-        "buy_aggressor_share": 0.0
+        "vwap": 5.79,
+        "volume": 1863,
+        "cum_volume": 252120,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 116,
         "time": "10:56",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 48587,
-        "buy_aggressor_share": null
+        "vwap": 5.79,
+        "volume": 6904,
+        "cum_volume": 259024,
+        "buy_aggressor_share": 0.0
       },
       {
         "offset_min": 117,
         "time": "10:57",
         "vwap": null,
         "volume": 0,
-        "cum_volume": 48587,
+        "cum_volume": 259024,
         "buy_aggressor_share": null
       },
       {
         "offset_min": 118,
         "time": "10:58",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 48587,
-        "buy_aggressor_share": null
+        "vwap": 5.79,
+        "volume": 2148,
+        "cum_volume": 261172,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 119,
         "time": "10:59",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 48587,
-        "buy_aggressor_share": null
+        "vwap": 5.79,
+        "volume": 2828,
+        "cum_volume": 264000,
+        "buy_aggressor_share": 1.0
       },
       {
         "offset_min": 120,
         "time": "11:00",
-        "vwap": null,
-        "volume": 0,
-        "cum_volume": 48587,
-        "buy_aggressor_share": null
+        "vwap": 5.79,
+        "volume": 2971,
+        "cum_volume": 266971,
+        "buy_aggressor_share": 1.0
       }
     ],
     "first_15min": {
-      "volume": 13922,
-      "baseline": 16363,
-      "ratio": 0.85
+      "volume": 77074,
+      "baseline": 27075,
+      "ratio": 2.85
     },
     "price_change_pct": {
-      "after_5min": 0.4,
-      "after_30min": -1.1,
-      "after_60min": -0.3
+      "after_5min": 0.2,
+      "after_30min": 0.4,
+      "after_60min": 0.6
     }
   },
   "pre_disclosure_activity": {
@@ -1434,24 +1437,19 @@
         "anomaly_types": [
           "net_flow"
         ],
-        "volume_ratio": 1.19,
-        "agent_net_flow_eur": -205183
+        "volume_ratio": 0.85,
+        "agent_net_flow_eur": 334020
       },
       {
-        "date": "2026-08-31",
+        "date": "2026-09-02",
         "anomaly_types": [
-          "aggressor_sweep",
-          "auction_spike",
-          "large_trade",
-          "net_flow",
-          "price_move",
-          "volume_spike"
+          "net_flow"
         ],
-        "volume_ratio": 22.74,
-        "agent_net_flow_eur": 6869279
+        "volume_ratio": 0.8,
+        "agent_net_flow_eur": -392097
       }
     ],
-    "summary": "Unusual activity in the 7 sessions before the disclosure: 2 flagged sessions (volume spike, large single execution, aggressor sweep, unusual net flow, large closing auction, price move vs peers). This trading may coincide with the position change reported in the notification; the data do not show who traded."
+    "summary": "Unusual activity in the 7 sessions before the disclosure: 2 flagged sessions (unusual net flow). This trading may coincide with the position change reported in the notification; the data do not show who traded."
   },
   "_data_status": {
     "spreads": "real",
@@ -1460,5 +1458,5 @@
     "opening_closing_auction": "real",
     "intraday": "real"
   },
-  "_note": "Généré depuis les vraies données pbb (evt_019, notification Goldman Sachs du 04.09.2026) – v0.3."
+  "_note": "Synthetic data: every figure is generated by scripts/make_synthetic_mocks.py (no real market data)."
 }

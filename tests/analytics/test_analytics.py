@@ -14,6 +14,8 @@ from app.analytics import _util, data, events, indicators, metrics
 from app.assistant import guard, templates
 
 PBB = "DE0008019001"
+# Tests that read the real Xetra files (data/raw, not in the repo): skipped without them
+needs_data = pytest.mark.skipif(etl.load_xlm().empty, reason="data/raw/spreads absent")
 
 
 # ---------- helpers ----------
@@ -121,6 +123,7 @@ def test_clean_removes_nan():
 
 
 # ---------- données réelles (spreads) ----------
+@needs_data
 def test_spread_data_loaded():
     assert data.trading_days()[0] == pd.Timestamp("2026-01-02")
     assert len(data.trading_days()) == 213
@@ -135,6 +138,7 @@ def _xlm_spread(isin: str, day: str) -> float:
     return float(row["impact_bps"].iloc[0])
 
 
+@needs_data
 def test_impact_card_shape_matches_mock():
     card = A.build_impact_card("evt_003")  # FY 2025 results
     assert not _missing_keys(_util.load_mock("impact-card"), card)
@@ -145,6 +149,7 @@ def test_impact_card_shape_matches_mock():
     _no_nan(card)
 
 
+@needs_data
 def test_after_close_event_maps_to_next_day():
     days = data.trading_days()
     # 16:48 (evt_005, directors' dealings) : avant 17:30 -> même jour
@@ -154,6 +159,7 @@ def test_after_close_event_maps_to_next_day():
     assert events.resolve_trading_day("2026-03-06", "18:00", days) == pd.Timestamp("2026-03-09")
 
 
+@needs_data
 def test_unknown_time_gives_null_published_at():
     ev = A.build_impact_card("evt_003")["event"]  # heure non vérifiée dans events.csv
     assert ev["published_at"] is None and ev["trading_day"] == "2026-03-05"
@@ -169,6 +175,7 @@ def test_unknown_ids_raise_notfound():
         A.build_day_card(PBB, "2026-03-07")  # samedi
 
 
+@needs_data
 def test_dashboard_spread_only(monkeypatch):
     """Mode « spreads seulement » : OHLC et Flows vidés -> structure mock, spreads réels."""
     monkeypatch.setattr(etl, "load_ohlc", lambda: pd.DataFrame(columns=etl.OHLC_COLS))
@@ -190,6 +197,7 @@ def test_dashboard_spread_only(monkeypatch):
         data.clear_caches()
 
 
+@needs_data
 def test_events_compare_report():
     ev = A.list_events(PBB)
     assert [e["event_id"] for e in ev["events"]][:2] == ["evt_001", "evt_002"]
@@ -203,6 +211,7 @@ def test_events_compare_report():
 
 
 # ---------- chemin complet avec OHLC + Flows ----------
+@needs_data
 def test_full_path_with_ohlc_and_flows(synthetic_ohlc_flows):
     card = A.build_impact_card("evt_003")
     assert card["_data_status"]["ohlc"] == "real" and card["_data_status"]["flows"] == "real"
@@ -233,6 +242,7 @@ def test_guard_rejects_invented_numbers_and_advice():
     assert not guard.check("The price will rise after this.", facts)
 
 
+@needs_data
 def test_summary_falls_back_without_llm(monkeypatch):
     from app.assistant import llm
 
@@ -243,6 +253,7 @@ def test_summary_falls_back_without_llm(monkeypatch):
 
 
 # ---------- Partie B : vraies données (OHLC, Flows n_days == 1, enchères depuis les trades) ----------
+@needs_data
 def test_real_data_status_on_pbb():
     card = A.build_impact_card("evt_002")
     assert card["_data_status"] == {"spreads": "real", "ohlc": "real", "flows": "real", "opening_closing_auction": "real", "intraday": "real"}
@@ -252,6 +263,7 @@ def test_real_data_status_on_pbb():
     assert r["_data_status"]["ohlc"] == "real" and r["_data_status"]["flows"] == "real"
 
 
+@needs_data
 def test_auction_blocks_match_trades():
     card = A.build_impact_card("evt_002")
     tr = etl.load_trades(PBB)
@@ -262,6 +274,7 @@ def test_auction_blocks_match_trades():
         assert card["metrics"][f"{kind}_auction"]["baseline"] is not None
 
 
+@needs_data
 def test_turnover_comes_from_ohlc():
     card = A.build_impact_card("evt_002")
     px = etl.load_ohlc()
@@ -269,6 +282,7 @@ def test_turnover_comes_from_ohlc():
     assert card["metrics"]["turnover_eur"]["event"] == round(float(row["turnover_eur"].iloc[0]))
 
 
+@needs_data
 def test_flows_ignore_multi_day_rows(monkeypatch):
     real = etl.load_flows()
     day = pd.Timestamp("2026-02-13")
@@ -300,6 +314,7 @@ def test_infer_tick_on_synthetic_grid():
     assert pricing.infer_tick(prices.head(10)) is None  # pas assez de prix
 
 
+@needs_data
 def test_spread_decomposition_adds_up():
     from app.analytics import pricing
 
@@ -311,6 +326,7 @@ def test_spread_decomposition_adds_up():
     assert (d["price_b"] < d["price_a"]) == (d["price_effect_bps"] > 0)
 
 
+@needs_data
 def test_dashboard_spread_in_eur_and_ticks():
     d = A.build_dashboard(PBB, "2026-10-01", "2026-10-30")
     for row in d["series"]:
@@ -320,6 +336,7 @@ def test_dashboard_spread_in_eur_and_ticks():
 
 
 # ---------- Partie C : intraday ----------
+@needs_data
 def test_intraday_during_session_evt_002():
     card = A.build_impact_card("evt_002")  # ad hoc du 13.02 à 12:26
     it = card["intraday"]
@@ -343,6 +360,7 @@ def test_intraday_during_session_evt_002():
     _no_nan(it)
 
 
+@needs_data
 def test_intraday_outside_session_starts_at_open():
     from app.analytics import intraday
 
@@ -360,6 +378,7 @@ def test_intraday_outside_session_starts_at_open():
     assert intraday.intraday_block(PBB, day, "2026-03-05T07:00:00+01:00")["during_session"] is False
 
 
+@needs_data
 def test_intraday_null_without_trades(monkeypatch):
     monkeypatch.setattr(etl, "load_trades", lambda isin: pd.DataFrame(columns=etl.TRADES_COLS))
     data.clear_caches()
@@ -406,6 +425,7 @@ def synthetic_trades(monkeypatch):
     data.clear_caches()
 
 
+@needs_data
 def test_large_trade_on_synthetic_trades(synthetic_trades):
     alerts, thr = synthetic_trades([])
     q_big = int(thr * 1.5 / 3.0)  # 1,5 x le seuil à 3 €
@@ -423,6 +443,7 @@ def test_large_trade_on_synthetic_trades(synthetic_trades):
     assert big["description"].startswith("A single sell-initiated execution") and "investor" not in big["description"]
 
 
+@needs_data
 def test_aggressor_sweep_on_synthetic_trades(synthetic_trades):
     alerts, thr = synthetic_trades([])
     q = int(thr * 0.4 / 3.0)  # chaque exécution = 40 % du seuil : il en faut 3 pour le dépasser
@@ -464,6 +485,7 @@ def test_net_flow_ignores_multi_day_rows(monkeypatch):
         data.clear_caches()
 
 
+@needs_data
 def test_alerts_on_pbb_are_consistent():
     from app import config
 
@@ -500,6 +522,7 @@ def _sentences(text: str) -> int:
     return len(re.findall(r"[.!?](?:\s|$)", text))
 
 
+@needs_data
 @pytest.mark.parametrize("which", ["evt_002", "evt_003", "day"])
 def test_real_summaries_are_short_guarded_and_neutral(which):
     from app.assistant import facts as F
@@ -513,6 +536,7 @@ def test_real_summaries_are_short_guarded_and_neutral(which):
     assert {"intraday", "auctions", "volume", "price"} <= set(f)
 
 
+@needs_data
 def test_facts_include_intraday_and_day_alerts():
     from app.assistant import facts as F
 
@@ -530,6 +554,7 @@ def test_facts_include_intraday_and_day_alerts():
     assert f"{it['first_15min']['ratio']:.1f}x" in card["ai_summary"]  # arrondi à 1 décimale dans le texte
 
 
+@needs_data
 def test_llm_text_naming_an_investor_is_rejected(monkeypatch):
     from app.assistant import llm
 
@@ -548,6 +573,7 @@ def test_extended_closing_auctions_are_kept():
     assert (s > 0).all()
 
 
+@needs_data
 def test_sweep_needs_three_executions_and_no_absolute_floor(synthetic_trades):
     from app import config
 
@@ -587,6 +613,7 @@ def synthetic_ohlc(monkeypatch):
     data.clear_caches()
 
 
+@needs_data
 def test_price_move_uses_excess_return(synthetic_ohlc):
     from app.analytics import alerts
 
@@ -610,6 +637,7 @@ def test_price_move_uses_excess_return(synthetic_ohlc):
     assert alerts.detail_url(PBB, days[40], "evt_002") == "/events/evt_002/impact-card"
 
 
+@needs_data
 def test_level_break_needs_volume_and_large_execution(synthetic_ohlc, monkeypatch):
     from app.analytics import alerts, indicators
 
@@ -636,6 +664,7 @@ def test_level_break_needs_volume_and_large_execution(synthetic_ohlc, monkeypatc
     assert list(lb["date"]) == [days[45]] and lb.iloc[0]["level_type"] == "resistance"
 
 
+@needs_data
 def test_new_alert_wording_on_pbb():
     d = A.build_dashboard(PBB, "2026-01-01", "2026-10-30")
     for a in d["anomalies"]:
@@ -656,6 +685,7 @@ def _with_extra_events(monkeypatch, rows: list[dict]):
     data.clear_caches()
 
 
+@needs_data
 def test_pre_disclosure_looks_only_before_publication(monkeypatch):
     from app.analytics import disclosure
 
@@ -681,6 +711,7 @@ def test_pre_disclosure_looks_only_before_publication(monkeypatch):
     assert "investor" not in s.lower()
 
 
+@needs_data
 def test_pre_disclosure_null_when_quiet_or_not_voting_rights():
     assert A.build_impact_card("evt_002")["pre_disclosure_activity"] is None  # ad hoc, pas une notification
     vr = [e["event_id"] for e in A.list_events(PBB)["events"] if e["type"] == "voting_rights"]
@@ -689,6 +720,7 @@ def test_pre_disclosure_null_when_quiet_or_not_voting_rights():
 
 
 # ---------- Bug reports : peers_text et KPIs sans période précédente ----------
+@needs_data
 def test_peers_text_uses_sector_label():
     from app import config
     from app.assistant import templates
@@ -703,6 +735,7 @@ def test_peers_text_uses_sector_label():
     assert "financial peers" in peer_txt and "industrial" not in peer_txt
 
 
+@needs_data
 def test_report_without_previous_period_compares_halves():
     r = A.build_report(PBB, "2026-01-02", "2026-10-30")  # aucune donnée avant le 02.01
     prof = r["sections"][0]
@@ -719,6 +752,7 @@ def test_report_without_previous_period_compares_halves():
     assert "first half of the period" in r["headline"]
 
 
+@needs_data
 def test_report_with_previous_period_keeps_it():
     r = A.build_report(PBB, "2026-07-01", "2026-10-30")
     for k in r["sections"][0]["kpis"]:
@@ -804,6 +838,7 @@ def test_llm_price_prediction_in_preview_falls_back(monkeypatch):
 
 
 # ---------- Event preview ----------
+@needs_data
 def test_preview_never_uses_events_after_day():
     from app.analytics import preview as PV
 
@@ -819,6 +854,7 @@ def test_preview_never_uses_events_after_day():
         "date": "2026-12-01", "title": None, "event_id": None, "source_url": None}
 
 
+@needs_data
 def test_preview_stats_on_synthetic_events(monkeypatch):
     from app.analytics import preview as PV
 
@@ -853,6 +889,7 @@ def test_stats_and_confidence_rules():
     assert [PV._confidence(n) for n in (0, 2, 3, 5, 6)] == ["low", "low", "medium", "medium", "high"]
 
 
+@needs_data
 def test_preview_with_no_past_event_is_all_null():
     p = A.build_event_preview(PBB, "dividend")
     assert p["own_history"]["n"] == 0 and p["own_history"]["events"] == []
@@ -867,6 +904,7 @@ def test_preview_with_no_past_event_is_all_null():
         A.build_event_preview("XX0000000000", "dividend")
 
 
+@needs_data
 def test_attention_points_rules():
     from app.analytics import preview as PV
 
@@ -883,6 +921,7 @@ def test_attention_points_rules():
     assert "Most of the reaction happens in the first 15 minutes after publication." in A.build_event_preview(PBB, "ad_hoc")["attention_points"]
 
 
+@needs_data
 def test_price_abs_change_never_negative_and_no_direction():
     for t in ("quarterly_results", "annual_results", "ad_hoc", "agm", "voting_rights", "directors_dealings"):
         p = A.build_event_preview(PBB, t)
@@ -896,6 +935,7 @@ def test_price_abs_change_never_negative_and_no_direction():
 
 
 # ---------- Report : section Alerts ----------
+@needs_data
 def test_report_alerts_section_matches_dashboard():
     from collections import Counter
 
@@ -922,6 +962,7 @@ def test_report_alerts_section_matches_dashboard():
     _no_nan(r)
 
 
+@needs_data
 def test_report_alerts_section_on_quiet_period(monkeypatch):
     monkeypatch.setattr(etl, "load_ohlc", lambda: pd.DataFrame(columns=etl.OHLC_COLS))
     monkeypatch.setattr(etl, "load_flows", lambda: pd.DataFrame(columns=etl.FLOWS_COLS))
@@ -972,6 +1013,7 @@ def test_guard_accepts_formatted_numbers_only_from_facts():
     assert not guard.check("Volume was 512,300 shares.", facts)
 
 
+@needs_data
 def test_report_texts_use_ir_formats():
     rep = A.build_report(PBB, "2026-01-02", "2026-10-30")
     prof = next(s for s in rep["sections"] if s["title"] == "Trading profile")
@@ -983,6 +1025,7 @@ def test_report_texts_use_ir_formats():
 
 
 # ---------- Événement à venir : Q3 pbb du 12.11.2026 (evt_026, scène de démo) ----------
+@needs_data
 def test_future_event_has_no_market_data_yet():
     from app.analytics import NoMarketData
 
@@ -992,6 +1035,7 @@ def test_future_event_has_no_market_data_yet():
         A.build_impact_card("evt_026")
 
 
+@needs_data
 def test_future_event_api_returns_clean_404():
     from tests.helpers import logged_in_client
 
@@ -1001,6 +1045,7 @@ def test_future_event_api_returns_clean_404():
         assert r.status_code == 404 and r.json()["detail"].startswith("No market data yet for evt_026")
 
 
+@needs_data
 @pytest.mark.parametrize("day", [None, "2026-11-12"])
 def test_preview_for_q3_demo_event(day):
     from app.assistant import facts as F
@@ -1015,6 +1060,7 @@ def test_preview_for_q3_demo_event(day):
 
 
 # ---------- as_of, checklist IR, peers ----------
+@needs_data
 def test_as_of_is_last_data_date_everywhere():
     assert A.build_dashboard(PBB, "2026-03-02", "2026-03-31")["as_of"] == "2026-10-30"
     assert A.list_events(PBB)["as_of"] == "2026-10-30"
@@ -1022,6 +1068,7 @@ def test_as_of_is_last_data_date_everywhere():
     assert p["as_of"] == "2026-10-30" and p["reference_date"] is None
 
 
+@needs_data
 def test_checklist_rules_and_wording():
     from app.analytics import preview as PV
     from app.assistant import guard
@@ -1036,6 +1083,7 @@ def test_checklist_rules_and_wording():
     assert A.build_event_preview(PBB, "dividend")["checklist"] == []
 
 
+@needs_data
 def test_pbb_preview_has_peer_results():
     p = A.build_event_preview(PBB, "quarterly_results", "2026-11-12")
     assert p["peers"]["n"] >= 6 and "peers_note" not in p["peers"]
@@ -1045,6 +1093,7 @@ def test_pbb_preview_has_peer_results():
 
 
 # ---------- AI points (3–4 phrases courtes) ----------
+@needs_data
 def test_ai_points_everywhere_and_guarded():
     from app.assistant import facts as F
 
@@ -1058,6 +1107,7 @@ def test_ai_points_everywhere_and_guarded():
             assert guard.check(p, facts) and "investor" not in p.lower() and len(p.split()) <= 20
 
 
+@needs_data
 def test_ai_points_llm_kept_only_if_each_point_passes(monkeypatch):
     from app import assistant
     from app.assistant import llm
@@ -1074,6 +1124,7 @@ def test_ai_points_llm_kept_only_if_each_point_passes(monkeypatch):
     assert assistant.points_impact_card(card) == templates.impact_points(card)
 
 
+@needs_data
 def test_ai_points_no_past_events():
     p = A.build_event_preview(PBB, "dividend")
     assert p["ai_points"] == ["No past dividend announcements are available in the 2026 data."]
@@ -1089,6 +1140,7 @@ def clean_thresholds():
     TH.reset(PBB, "tests")
 
 
+@needs_data
 def test_threshold_change_changes_alert_count(clean_thresholds):
     TH = clean_thresholds
     from app.analytics.dashboard import flag_count
@@ -1107,6 +1159,7 @@ def test_threshold_change_changes_alert_count(clean_thresholds):
     assert flag_count(PBB) == base and not TH.is_custom(PBB) and TH.current(PBB) == TH.defaults()
 
 
+@needs_data
 def test_threshold_bounds_and_preview(clean_thresholds):
     TH = clean_thresholds
     from app.analytics.dashboard import threshold_preview
@@ -1132,6 +1185,7 @@ def test_defaults_equal_code_values():
 
 
 # ---------- key_finding (point 8) ----------
+@needs_data
 def test_key_finding_matches_phase1():
     kf = A.build_dashboard(PBB, "2026-10-01", "2026-10-30")["key_finding"]
     assert kf["text"] == ("pbb's cost to trade €25k rose from 54.3 to 97.4 bps (Jan–Oct), "
@@ -1144,6 +1198,7 @@ def test_key_finding_matches_phase1():
     assert n["price_effect_pct"] == 58.1 and n["liquidity_effect_pct"] == 41.9
 
 
+@needs_data
 def test_key_finding_wording_follows_the_data(monkeypatch):
     from app.analytics import key_finding as KF
 
@@ -1162,6 +1217,7 @@ def test_key_finding_wording_follows_the_data(monkeypatch):
 
 
 # ---------- human-in-the-loop : id, décision, rang (points 9-10) ----------
+@needs_data
 def test_anomaly_ids_unique_and_rank_order():
     rows = A.build_dashboard(PBB, "2026-01-02", "2026-10-30")["anomalies"]
     assert len({r["id"] for r in rows}) == len(rows)

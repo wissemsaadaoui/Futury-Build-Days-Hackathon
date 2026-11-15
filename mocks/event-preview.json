@@ -1,5 +1,5 @@
 {
-  "_endpoint": "GET /stocks/{isin}/event-preview?type=quarterly_results   (date= optionnel)",
+  "_endpoint": "GET /stocks/{isin}/event-preview?type=quarterly_results   (date= optional)",
   "stock": {
     "isin": "DE0008019001",
     "name": "Deutsche Pfandbriefbank AG",
@@ -20,59 +20,59 @@
       {
         "event_id": "evt_016",
         "date": "2026-05-12",
-        "spread_change_pct": 15.5,
-        "volume_ratio": 1.36,
-        "price_abs_change_pct": 6.0,
-        "sessions_to_normal": 1,
-        "auction_share_change_pts": -0.11,
-        "first_15min_ratio": 1.34
+        "spread_change_pct": 17.6,
+        "volume_ratio": 1.83,
+        "price_abs_change_pct": 1.3,
+        "sessions_to_normal": 2,
+        "auction_share_change_pts": -0.06,
+        "first_15min_ratio": 2.51
       },
       {
         "event_id": "evt_018",
         "date": "2026-08-13",
-        "spread_change_pct": 7.9,
-        "volume_ratio": 2.52,
-        "price_abs_change_pct": 2.4,
-        "sessions_to_normal": 0,
-        "auction_share_change_pts": -0.06,
-        "first_15min_ratio": 5.93
+        "spread_change_pct": 24.2,
+        "volume_ratio": 3.11,
+        "price_abs_change_pct": 0.8,
+        "sessions_to_normal": 2,
+        "auction_share_change_pts": 0.02,
+        "first_15min_ratio": 4.52
       }
     ],
     "spread_change_pct": {
       "n": 2,
-      "median": 11.7,
-      "min": 7.9,
-      "max": 15.5
+      "median": 20.9,
+      "min": 17.6,
+      "max": 24.2
     },
     "volume_ratio": {
       "n": 2,
-      "median": 1.94,
-      "min": 1.36,
-      "max": 2.52
+      "median": 2.47,
+      "min": 1.83,
+      "max": 3.11
     },
     "price_abs_change_pct": {
       "n": 2,
-      "median": 4.2,
-      "min": 2.4,
-      "max": 6.0
+      "median": 1.1,
+      "min": 0.8,
+      "max": 1.3
     },
     "sessions_to_normal": {
       "n": 2,
-      "median": 0.5,
-      "min": 0.0,
-      "max": 1.0
+      "median": 2.0,
+      "min": 2.0,
+      "max": 2.0
     },
     "auction_share_change_pts": {
       "n": 2,
-      "median": -0.08,
-      "min": -0.11,
-      "max": -0.06
+      "median": -0.02,
+      "min": -0.06,
+      "max": 0.02
     },
     "first_15min_ratio": {
       "n": 2,
-      "median": 3.63,
-      "min": 1.34,
-      "max": 5.93
+      "median": 3.51,
+      "min": 2.51,
+      "max": 4.52
     }
   },
   "peers": {
@@ -81,194 +81,195 @@
       {
         "event_id": "evt_037",
         "date": "2026-04-23",
-        "spread_change_pct": 53.6,
-        "volume_ratio": 2.61,
-        "price_abs_change_pct": 7.8,
+        "spread_change_pct": 18.2,
+        "volume_ratio": 1.48,
+        "price_abs_change_pct": 3.3,
         "sessions_to_normal": 1,
-        "auction_share_change_pts": -0.17,
-        "first_15min_ratio": 1.55
+        "auction_share_change_pts": 0.13,
+        "first_15min_ratio": 2.0
       },
       {
         "event_id": "evt_029",
         "date": "2026-05-11",
-        "spread_change_pct": 3.9,
-        "volume_ratio": 0.83,
-        "price_abs_change_pct": 1.5,
-        "sessions_to_normal": 0,
-        "auction_share_change_pts": 0.01,
-        "first_15min_ratio": 1.78
+        "spread_change_pct": 43.4,
+        "volume_ratio": 3.92,
+        "price_abs_change_pct": 3.3,
+        "sessions_to_normal": 1,
+        "auction_share_change_pts": -0.14,
+        "first_15min_ratio": 2.41
       },
       {
         "event_id": "evt_035",
         "date": "2026-05-13",
-        "spread_change_pct": 4.4,
-        "volume_ratio": 1.22,
-        "price_abs_change_pct": 0.5,
-        "sessions_to_normal": 0,
-        "auction_share_change_pts": 0.04,
-        "first_15min_ratio": 0.51
+        "spread_change_pct": 39.1,
+        "volume_ratio": 1.23,
+        "price_abs_change_pct": 4.7,
+        "sessions_to_normal": 1,
+        "auction_share_change_pts": -0.04,
+        "first_15min_ratio": 1.48
       },
       {
         "event_id": "evt_033",
         "date": "2026-05-13",
-        "spread_change_pct": null,
-        "volume_ratio": 1.58,
-        "price_abs_change_pct": 0.9,
-        "sessions_to_normal": null,
-        "auction_share_change_pts": -0.07,
-        "first_15min_ratio": 3.76
+        "spread_change_pct": 5.0,
+        "volume_ratio": 1.74,
+        "price_abs_change_pct": 2.4,
+        "sessions_to_normal": 0,
+        "auction_share_change_pts": 0.08,
+        "first_15min_ratio": 1.62
       },
       {
         "event_id": "evt_027",
         "date": "2026-05-13",
-        "spread_change_pct": 51.0,
-        "volume_ratio": 2.75,
-        "price_abs_change_pct": 0.2,
-        "sessions_to_normal": 4,
-        "auction_share_change_pts": -0.07,
-        "first_15min_ratio": 9.49
+        "spread_change_pct": 13.9,
+        "volume_ratio": 1.82,
+        "price_abs_change_pct": 0.6,
+        "sessions_to_normal": 1,
+        "auction_share_change_pts": -0.04,
+        "first_15min_ratio": 3.38
       },
       {
         "event_id": "evt_031",
         "date": "2026-05-13",
-        "spread_change_pct": 25.6,
-        "volume_ratio": 1.66,
-        "price_abs_change_pct": 0.5,
+        "spread_change_pct": 39.6,
+        "volume_ratio": 3.14,
+        "price_abs_change_pct": 0.4,
         "sessions_to_normal": 1,
-        "auction_share_change_pts": 0.0,
-        "first_15min_ratio": 1.3
+        "auction_share_change_pts": -0.06,
+        "first_15min_ratio": 2.83
       },
       {
         "event_id": "evt_038",
         "date": "2026-07-23",
-        "spread_change_pct": 46.7,
-        "volume_ratio": 2.18,
-        "price_abs_change_pct": 0.3,
-        "sessions_to_normal": 4,
-        "auction_share_change_pts": -0.23,
-        "first_15min_ratio": 8.05
+        "spread_change_pct": 57.9,
+        "volume_ratio": 5.4,
+        "price_abs_change_pct": 3.7,
+        "sessions_to_normal": 1,
+        "auction_share_change_pts": -0.04,
+        "first_15min_ratio": 5.28
       },
       {
         "event_id": "evt_030",
         "date": "2026-08-10",
-        "spread_change_pct": -11.8,
-        "volume_ratio": 1.71,
-        "price_abs_change_pct": 1.9,
-        "sessions_to_normal": 0,
-        "auction_share_change_pts": -0.09,
-        "first_15min_ratio": 6.43
+        "spread_change_pct": 23.1,
+        "volume_ratio": 1.52,
+        "price_abs_change_pct": 3.7,
+        "sessions_to_normal": 3,
+        "auction_share_change_pts": 0.0,
+        "first_15min_ratio": 1.36
       },
       {
         "event_id": "evt_034",
         "date": "2026-08-13",
-        "spread_change_pct": null,
-        "volume_ratio": 1.3,
-        "price_abs_change_pct": 0.4,
-        "sessions_to_normal": null,
-        "auction_share_change_pts": -0.1,
-        "first_15min_ratio": 2.56
+        "spread_change_pct": 2.6,
+        "volume_ratio": 4.66,
+        "price_abs_change_pct": 4.8,
+        "sessions_to_normal": 0,
+        "auction_share_change_pts": -0.03,
+        "first_15min_ratio": 8.43
       },
       {
         "event_id": "evt_032",
         "date": "2026-08-13",
-        "spread_change_pct": 4.7,
-        "volume_ratio": 1.33,
-        "price_abs_change_pct": 2.3,
-        "sessions_to_normal": 0,
-        "auction_share_change_pts": -0.13,
-        "first_15min_ratio": 1.63
+        "spread_change_pct": 38.5,
+        "volume_ratio": 2.04,
+        "price_abs_change_pct": 3.0,
+        "sessions_to_normal": 1,
+        "auction_share_change_pts": -0.09,
+        "first_15min_ratio": 2.77
       },
       {
         "event_id": "evt_028",
         "date": "2026-08-13",
-        "spread_change_pct": 5.5,
-        "volume_ratio": 4.8,
-        "price_abs_change_pct": 2.9,
-        "sessions_to_normal": 0,
-        "auction_share_change_pts": -0.13,
-        "first_15min_ratio": 27.01
+        "spread_change_pct": 18.9,
+        "volume_ratio": 4.2,
+        "price_abs_change_pct": 2.6,
+        "sessions_to_normal": 1,
+        "auction_share_change_pts": -0.02,
+        "first_15min_ratio": 11.53
       },
       {
         "event_id": "evt_036",
         "date": "2026-08-14",
-        "spread_change_pct": -27.2,
-        "volume_ratio": 0.51,
-        "price_abs_change_pct": 0.0,
-        "sessions_to_normal": 0,
-        "auction_share_change_pts": 0.41,
-        "first_15min_ratio": 1.16
+        "spread_change_pct": 41.7,
+        "volume_ratio": 3.19,
+        "price_abs_change_pct": 3.1,
+        "sessions_to_normal": 1,
+        "auction_share_change_pts": -0.02,
+        "first_15min_ratio": 3.61
       },
       {
         "event_id": "evt_039",
         "date": "2026-10-22",
-        "spread_change_pct": 66.0,
-        "volume_ratio": 1.31,
-        "price_abs_change_pct": 6.2,
+        "spread_change_pct": 67.6,
+        "volume_ratio": 2.0,
+        "price_abs_change_pct": 3.1,
         "sessions_to_normal": 1,
-        "auction_share_change_pts": -0.16,
-        "first_15min_ratio": 3.99
+        "auction_share_change_pts": -0.01,
+        "first_15min_ratio": 2.22
       }
     ],
     "spread_change_pct": {
-      "n": 11,
-      "median": 5.5,
-      "min": -27.2,
-      "max": 66.0
+      "n": 13,
+      "median": 38.5,
+      "min": 2.6,
+      "max": 67.6
     },
     "volume_ratio": {
       "n": 13,
-      "median": 1.58,
-      "min": 0.51,
-      "max": 4.8
+      "median": 2.04,
+      "min": 1.23,
+      "max": 5.4
     },
     "price_abs_change_pct": {
       "n": 13,
-      "median": 0.9,
-      "min": 0.0,
-      "max": 7.8
+      "median": 3.1,
+      "min": 0.4,
+      "max": 4.8
     },
     "sessions_to_normal": {
-      "n": 11,
-      "median": 0.0,
+      "n": 13,
+      "median": 1.0,
       "min": 0.0,
-      "max": 4.0
+      "max": 3.0
     },
     "auction_share_change_pts": {
       "n": 13,
-      "median": -0.09,
-      "min": -0.23,
-      "max": 0.41
+      "median": -0.03,
+      "min": -0.14,
+      "max": 0.13
     },
     "first_15min_ratio": {
       "n": 13,
-      "median": 2.56,
-      "min": 0.51,
-      "max": 27.01
+      "median": 2.77,
+      "min": 1.36,
+      "max": 11.53
     }
   },
-  "attention_points": [],
+  "attention_points": [
+    "Liquidity usually takes 2+ sessions to normalise."
+  ],
   "checklist": [
-    "Past quarterly results releases traded a median of 1.9x usual volume: inform the designated sponsor / market makers ahead of publication.",
-    "The spread widened by a median of +11.7% on past publication days: consider publishing before the market opens so the order book can adjust from the opening auction.",
-    "On past quarterly results releases the effect on liquidity faded within one session (median 0.5 sessions to normal)."
+    "Past quarterly results releases traded a median of 2.5x usual volume: inform the designated sponsor / market makers ahead of publication.",
+    "The spread widened by a median of +20.9% on past publication days: consider publishing before the market opens so the order book can adjust from the opening auction."
   ],
   "confidence": "low",
   "note": "Based on 2026 data only (Jan–Oct).",
   "peer_basis": "manual",
-  "events_note": null,
-  "ai_summary": "In its past 2 quarterly results releases, Deutsche Pfandbriefbank AG's spread on the publication day changed by a median of +11.7% (7.9% to 15.5%) versus its 20-day average. Volume reached a median of 1.9x its usual level (1.4x to 2.5x). Liquidity was back to normal within 1 session(s) at most (median 0.5). Across 13 peer releases, the median spread change was +5.5%.",
-  "ai_points": [
-    "2 past quarterly results releases: median spread change +11.7% (+7.9% to +15.5%).",
-    "Median volume 1.9x the usual level (1.4x to 2.5x).",
-    "Liquidity back to normal within 1 session(s) at most.",
-    "13 peer releases: median spread change +5.5%."
-  ],
-  "ai_summary_id": "preview:DE0008019001:quarterly_results:all",
-  "ai_summary_decision": null,
+  "ai_summary": "In its past 2 quarterly results releases, Deutsche Pfandbriefbank AG's spread on the publication day changed by a median of +20.9% (17.6% to 24.2%) versus its 20-day average. Volume reached a median of 2.5x its usual level (1.8x to 3.1x). Liquidity was back to normal within 2 session(s) at most (median 2). Across 13 peer releases, the median spread change was +38.5%.",
   "_data_status": {
     "spreads": "real",
     "ohlc": "real",
     "flows": "real",
     "intraday": "real"
-  }
+  },
+  "ai_points": [
+    "2 past quarterly results releases: median spread change +20.9% (+17.6% to +24.2%).",
+    "Median volume 2.5x the usual level (1.8x to 3.1x).",
+    "Liquidity back to normal within 2 session(s) at most.",
+    "13 peer releases: median spread change +38.5%."
+  ],
+  "ai_summary_id": "preview:DE0008019001:quarterly_results:all",
+  "ai_summary_decision": null,
+  "_note": "Synthetic data: every figure is generated by scripts/make_synthetic_mocks.py (no real market data)."
 }

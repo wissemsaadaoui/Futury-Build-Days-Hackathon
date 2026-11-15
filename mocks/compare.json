@@ -1,58 +1,138 @@
 {
-  "_endpoint": "GET /compare?type=quarterly_results&index=MDAX&from=2025-11-01&to=2026-10-31",
+  "_endpoint": "GET /compare?type=quarterly_results&index=SDAX&from=2025-11-01&to=2026-10-31",
   "filter": {
     "type": "quarterly_results",
-    "index": "MDAX",
+    "index": "SDAX",
     "from": "2025-11-01",
     "to": "2026-10-31"
   },
   "summary": {
-    "n_events": 4,
-    "median_volume_ratio": 2.35,
-    "median_abs_price_change_pct": 4.1,
-    "median_spread_change_pct": 22.0
+    "n_events": 12,
+    "median_volume_ratio": 2.58,
+    "median_abs_price_change_pct": 2.8,
+    "median_spread_change_pct": 23.6
   },
   "events": [
     {
-      "event_id": "evt_002",
-      "isin": "DE000A1K0235",
-      "name": "SUSS MicroTec SE",
-      "date": "2026-05-07",
-      "volume_ratio": 3.21,
-      "price_change_pct": 8.15,
-      "spread_change_pct": -6.7,
-      "auction_share_change_pts": 0.09
+      "event_id": "evt_029",
+      "isin": "DE0005493365",
+      "name": "Hypoport SE",
+      "date": "2026-05-11",
+      "volume_ratio": 3.92,
+      "price_change_pct": 3.3,
+      "spread_change_pct": 43.4,
+      "auction_share_change_pts": -0.14
     },
     {
-      "event_id": "evt_101",
-      "isin": "DE000MOCK0004",
-      "name": "Mock Peer One AG",
-      "date": "2026-03-12",
-      "volume_ratio": 2.1,
-      "price_change_pct": -3.2,
-      "spread_change_pct": 18.0,
-      "auction_share_change_pts": 0.04
+      "event_id": "evt_016",
+      "isin": "DE0008019001",
+      "name": "Deutsche Pfandbriefbank AG",
+      "date": "2026-05-12",
+      "volume_ratio": 1.83,
+      "price_change_pct": -1.3,
+      "spread_change_pct": 17.6,
+      "auction_share_change_pts": -0.06
     },
     {
-      "event_id": "evt_102",
-      "isin": "DE000MOCK0005",
-      "name": "Mock Peer Two SE",
-      "date": "2026-04-29",
-      "volume_ratio": 2.6,
-      "price_change_pct": 5.0,
-      "spread_change_pct": 26.0,
-      "auction_share_change_pts": 0.06
+      "event_id": "evt_035",
+      "isin": "DE0008051004",
+      "name": "Wüstenrot & Württembergische AG",
+      "date": "2026-05-13",
+      "volume_ratio": 1.23,
+      "price_change_pct": -4.7,
+      "spread_change_pct": 39.1,
+      "auction_share_change_pts": -0.04
     },
     {
-      "event_id": "evt_103",
-      "isin": "DE000MOCK0004",
-      "name": "Mock Peer One AG",
-      "date": "2026-08-06",
-      "volume_ratio": 1.7,
-      "price_change_pct": -1.1,
-      "spread_change_pct": 9.0,
+      "event_id": "evt_033",
+      "isin": "DE0006223407",
+      "name": "ProCredit Holding AG",
+      "date": "2026-05-13",
+      "volume_ratio": 1.74,
+      "price_change_pct": 2.4,
+      "spread_change_pct": 5.0,
+      "auction_share_change_pts": 0.08
+    },
+    {
+      "event_id": "evt_027",
+      "isin": "DE000A161N30",
+      "name": "GRENKE AG",
+      "date": "2026-05-13",
+      "volume_ratio": 1.82,
+      "price_change_pct": 0.6,
+      "spread_change_pct": 13.9,
+      "auction_share_change_pts": -0.04
+    },
+    {
+      "event_id": "evt_031",
+      "isin": "DE0006569908",
+      "name": "MLP SE",
+      "date": "2026-05-13",
+      "volume_ratio": 3.14,
+      "price_change_pct": 0.4,
+      "spread_change_pct": 39.6,
+      "auction_share_change_pts": -0.06
+    },
+    {
+      "event_id": "evt_030",
+      "isin": "DE0005493365",
+      "name": "Hypoport SE",
+      "date": "2026-08-10",
+      "volume_ratio": 1.52,
+      "price_change_pct": 3.7,
+      "spread_change_pct": 23.1,
+      "auction_share_change_pts": 0.0
+    },
+    {
+      "event_id": "evt_018",
+      "isin": "DE0008019001",
+      "name": "Deutsche Pfandbriefbank AG",
+      "date": "2026-08-13",
+      "volume_ratio": 3.11,
+      "price_change_pct": -0.8,
+      "spread_change_pct": 24.2,
       "auction_share_change_pts": 0.02
+    },
+    {
+      "event_id": "evt_034",
+      "isin": "DE0006223407",
+      "name": "ProCredit Holding AG",
+      "date": "2026-08-13",
+      "volume_ratio": 4.66,
+      "price_change_pct": -4.8,
+      "spread_change_pct": 2.6,
+      "auction_share_change_pts": -0.03
+    },
+    {
+      "event_id": "evt_032",
+      "isin": "DE0006569908",
+      "name": "MLP SE",
+      "date": "2026-08-13",
+      "volume_ratio": 2.04,
+      "price_change_pct": 3.0,
+      "spread_change_pct": 38.5,
+      "auction_share_change_pts": -0.09
+    },
+    {
+      "event_id": "evt_028",
+      "isin": "DE000A161N30",
+      "name": "GRENKE AG",
+      "date": "2026-08-13",
+      "volume_ratio": 4.2,
+      "price_change_pct": -2.6,
+      "spread_change_pct": 18.9,
+      "auction_share_change_pts": -0.02
+    },
+    {
+      "event_id": "evt_036",
+      "isin": "DE0008051004",
+      "name": "Wüstenrot & Württembergische AG",
+      "date": "2026-08-14",
+      "volume_ratio": 3.19,
+      "price_change_pct": -3.1,
+      "spread_change_pct": 41.7,
+      "auction_share_change_pts": -0.02
     }
   ],
-  "_note": "SUSS evt_002 : spread réel ; autres événements (Mock Peer) et médianes = mock"
+  "_note": "Synthetic data: every figure is generated by scripts/make_synthetic_mocks.py (no real market data)."
 }
